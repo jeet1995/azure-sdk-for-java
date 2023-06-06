@@ -427,10 +427,11 @@ public class CosmosItemTest extends TestSuiteBase {
 
         FeedResponse<InternalObjectNode> feedResponse = container.readMany(cosmosItemIdentities, InternalObjectNode.class);
 
-        assertThat(feedResponse).isNotNull();
-        assertThat(feedResponse.getResults()).isNotNull();
-        // there could be a case where 0 items were created in physical partition 1
-        assertThat(feedResponse.getResults().size()).isLessThanOrEqualTo(1);
+        if (!pkValItem1.get().isEmpty() && !pkValItem2.get().isEmpty()) {
+            assertThat(feedResponse).isNotNull();
+            assertThat(feedResponse.getResults()).isNotNull();
+            assertThat(feedResponse.getResults().size()).isEqualTo(1);
+        }
     }
 
     @Test(groups = { "simple" }, timeOut = TIMEOUT)
