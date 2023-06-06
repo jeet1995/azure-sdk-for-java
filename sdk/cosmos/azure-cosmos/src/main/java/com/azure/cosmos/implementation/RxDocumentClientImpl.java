@@ -2715,7 +2715,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
                 CosmosException cosmosException = resourceResponseToExceptionPair.getRight();
                 FeedResponse<Document> feedResponse;
 
-                if (cosmosException != null) {
+                if (cosmosException != null && resourceResponse == null) {
                     feedResponse = ModelBridgeInternal.createFeedResponse(new ArrayList<>(), cosmosException.getResponseHeaders());
                     diagnosticsAccessor.addClientSideDiagnosticsToFeed(
                             feedResponse.getCosmosDiagnostics(),
