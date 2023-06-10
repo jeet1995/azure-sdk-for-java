@@ -2807,6 +2807,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         SqlQuerySpec querySpec,
         CosmosQueryRequestOptions options,
         Class<T> classOfT) {
+        // a sql logger to log in debug mode
         SqlQuerySpecLogger.getInstance().logQuery(querySpec);
         return createQuery(collectionLink, querySpec, options, classOfT, ResourceType.Document);
     }

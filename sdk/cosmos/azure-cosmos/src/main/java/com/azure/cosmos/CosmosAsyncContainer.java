@@ -693,6 +693,7 @@ public class CosmosAsyncContainer {
      * error.
      */
     public <T> CosmosPagedFlux<T> queryItems(String query, Class<T> classType) {
+
         /*read*/
         return queryItemsInternal(new SqlQuerySpec(query), new CosmosQueryRequestOptions(), classType);
     }
@@ -900,6 +901,7 @@ public class CosmosAsyncContainer {
                                                        "allowed");
             }
         }
+        // CosmosPagedFlux uses a CosmosPagedFluxOptions -> Flux<FeedResponse> func
         return UtilBridgeInternal.createCosmosPagedFlux(queryItemsInternalFunc(sqlQuerySpec, cosmosQueryRequestOptions, classType));
     }
 
@@ -917,6 +919,7 @@ public class CosmosAsyncContainer {
                 : nonNullOptions;
             String spanName = this.queryItemsSpanName;
 
+            // max item per page is set on CosmosPagedFluxOptions instance
             queryOptionsAccessor.applyMaxItemCount(options, pagedFluxOptions);
 
             pagedFluxOptions.setTracerAndTelemetryInformation(
@@ -930,7 +933,10 @@ public class CosmosAsyncContainer {
                 options.getConsistencyLevel(),
                 client.getEffectiveDiagnosticsThresholds(queryOptionsAccessor.getDiagnosticsThresholds(options)));
 
+            // why is max item set back on CosmosQueryRequestOptions
             setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
+
+            // initialize a diagnostics tracker for cancelled requests
             ImplementationBridgeHelpers
                 .CosmosQueryRequestOptionsHelper
                 .getCosmosQueryRequestOptionsAccessor()
