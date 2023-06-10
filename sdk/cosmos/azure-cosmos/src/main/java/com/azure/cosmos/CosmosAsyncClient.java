@@ -754,6 +754,7 @@ public final class CosmosAsyncClient implements Closeable {
         return clientLevelThresholds != null ? clientLevelThresholds : new CosmosDiagnosticsThresholds();
     }
 
+    // applies to the DIRECT connectivity mode
     boolean isTransportLevelTracingEnabled() {
 
         CosmosClientTelemetryConfig effectiveConfig = this.clientTelemetryConfig != null ?
