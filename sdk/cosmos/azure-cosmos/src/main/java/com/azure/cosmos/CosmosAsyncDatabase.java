@@ -903,6 +903,7 @@ public class CosmosAsyncDatabase {
      *
      * @return the mono containing throughput response.
      */
+    // mono because throughput is one value for a database or a container
     public Mono<ThroughputResponse> readThroughput() {
         return withContext(this::readThroughputInternal);
     }

@@ -50,6 +50,7 @@ class ServerSideOnlyContinuationFetcherImpl<T> extends Fetcher<T> {
     @Override
     protected boolean isFullyDrained(boolean isChangeFeed, FeedResponse<T> response) {
         // if token is null or if change feed query and no changes then done
+        // continuation token empty means paginator is done fetching pages for a non-change feed query
         return StringUtils.isEmpty(continuationToken) ||
             (isChangeFeed && BridgeInternal.noChanges(response));
     }
@@ -61,6 +62,9 @@ class ServerSideOnlyContinuationFetcherImpl<T> extends Fetcher<T> {
 
     @Override
     protected RxDocumentServiceRequest createRequest(int maxItemCount) {
+        // for readFeed:
+        //  1. set continuation token and max item count on request headers
+        //  2. instantiate RxDocumentServiceRequest
         return this.createRequestFunc.apply(this.continuationToken, maxItemCount);
     }
 }

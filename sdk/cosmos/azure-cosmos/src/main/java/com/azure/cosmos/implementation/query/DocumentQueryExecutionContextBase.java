@@ -93,6 +93,7 @@ implements IDocumentQueryExecutionContext<T> {
 
         RxDocumentServiceRequest request = querySpec != null
                 ? this.createQueryDocumentServiceRequest(requestHeaders, querySpec)
+            // what is read feed
                 : this.createReadFeedDocumentServiceRequest(requestHeaders);
 
         this.populatePartitionKeyInfo(request, partitionKey);
@@ -225,7 +226,7 @@ implements IDocumentQueryExecutionContext<T> {
             requestHeaders.put(HttpConstants.HttpHeaders.CORRELATED_ACTIVITY_ID, correlationActivityId.toString());
         }
 
-        requestHeaders.put(HttpConstants.HttpHeaders.CONTINUATION, ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(cosmosQueryRequestOptions));
+        requestHeaders.put(HttpConstants.HttpHeaders.CONTINUATION, ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(cosmosQueryRequestOptions));
         requestHeaders.put(HttpConstants.HttpHeaders.IS_QUERY, Strings.toString(true));
 
         // Flow the pageSize only when we are not doing client eval
@@ -281,6 +282,9 @@ implements IDocumentQueryExecutionContext<T> {
             SqlQuerySpec querySpec) {
         RxDocumentServiceRequest executeQueryRequest;
 
+        // read have doubts
+
+        // There is only the default query compatibility mode
         switch (this.client.getQueryCompatibilityMode()) {
         case SqlQuery:
             List<SqlParameter> params = querySpec.getParameters();
@@ -304,6 +308,7 @@ implements IDocumentQueryExecutionContext<T> {
         case Default:
         case Query:
         default:
+            // RxDocumentServiceRequest provides various factory methods to create instances
             executeQueryRequest = RxDocumentServiceRequest.create(this.diagnosticsClientContext,
                 OperationType.Query,
                 this.resourceTypeEnum,

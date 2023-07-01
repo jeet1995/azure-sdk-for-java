@@ -203,6 +203,11 @@ public class JsonSerializable {
         return LOGGER;
     }
 
+    // what is populatePropertyBag and why does it have
+    // no implementation here
+    // no base functionality - allow sub-classes to follow
+    // subsequently populate sub-class specific properties
+
     public void populatePropertyBag() {
     }
 
@@ -263,7 +268,9 @@ public class JsonSerializable {
             this.propertyBag.set(propertyName, jsonArray);
         } else if (value instanceof JsonNode) {
             this.propertyBag.set(propertyName, (JsonNode) value);
-        } else if (value instanceof JsonSerializable) {
+        }
+        // several classes which inherit JsonSerializable
+        else if (value instanceof JsonSerializable) {
             // JsonSerializable
             JsonSerializable castedValue = (JsonSerializable) value;
             castedValue.populatePropertyBag();
@@ -821,6 +828,8 @@ public class JsonSerializable {
     }
 
     static <T> boolean containsJsonSerializable(Class<T> c) {
+        // classes which encapsulate serializable as opposed to
+        // extending serializable
         return CompositePath.class.equals(c)
             || ConflictResolutionPolicy.class.equals(c)
             || ChangeFeedPolicy.class.equals(c)

@@ -34,7 +34,9 @@ import java.util.UUID;
 public class RxDocumentServiceRequest implements Cloneable {
 
     private final DiagnosticsClientContext clientContext;
+    // set as true when partition is splitting - GoneAndRetryWithRetryPolicy
     public volatile boolean forcePartitionKeyRangeRefresh;
+    // set as true when partition is migrating - GoneAndRetryWithRetryPolicy
     public volatile boolean forceCollectionRoutingMapRefresh;
     private String resourceId;
     private final ResourceType resourceType;
@@ -44,6 +46,14 @@ public class RxDocumentServiceRequest implements Cloneable {
     private final boolean isNameBased;
     private final OperationType operationType;
     private String resourceAddress;
+
+    // set as true by: typically when the correct collection name -> id mapping has not been obtained
+    // 1. RenameCollectionAwareClientRetryPolicy
+    // 2. toFeedRange if list of partitions is null
+    // 3. InvalidPartitionException -> GoneAndRetryWithRetryPolicy
+    // set as false by:
+    // 1. when instantiating RxDocumentServiceRequest
+
     public volatile boolean forceNameCacheRefresh;
     private volatile URI endpointOverride = null;
     private final UUID activityId;
@@ -841,6 +851,7 @@ public class RxDocumentServiceRequest implements Cloneable {
     }
 
     public boolean isForceNameCacheRefresh() {
+        // what sets this to true
         return forceNameCacheRefresh;
     }
 
@@ -1170,7 +1181,7 @@ public class RxDocumentServiceRequest implements Cloneable {
             this.headers.put(HttpConstants.HttpHeaders.PRIORITY_LEVEL, priorityLevel.toString());
         }
     }
-  
+
     public Duration getResponseTimeout() {
         return responseTimeout;
     }

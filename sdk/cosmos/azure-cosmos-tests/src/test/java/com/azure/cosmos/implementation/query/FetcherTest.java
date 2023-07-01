@@ -81,7 +81,7 @@ public class FetcherTest {
                     getExpectedMaxItemCountInRequest(options, top, feedResponseList, requestIndex.get()));
             assertThat(token).describedAs("continuation token").isEqualTo(
                     getExpectedContinuationTokenInRequest(
-                        ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(options), feedResponseList, requestIndex.get()));
+                        ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(options), feedResponseList, requestIndex.get()));
             requestIndex.getAndIncrement();
 
             return mock(RxDocumentServiceRequest.class);
@@ -96,7 +96,7 @@ public class FetcherTest {
         };
 
         ServerSideOnlyContinuationFetcherImpl<Document> fetcher =
-                new ServerSideOnlyContinuationFetcherImpl<>(createRequestFunc, executeFunc, ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(options), false, top,
+                new ServerSideOnlyContinuationFetcherImpl<>(createRequestFunc, executeFunc, ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(options), false, top,
                         ModelBridgeInternal.getMaxItemCountFromQueryRequestOptions(options),
                         ImplementationBridgeHelpers
                             .CosmosQueryRequestOptionsHelper

@@ -83,7 +83,7 @@ public final class PipelinedQueryExecutionContext<T> extends PipelinedQueryExecu
 
         return createPipelineComponentFunction
                 .apply(
-                    ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(cosmosQueryRequestOptions),
+                    ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(cosmosQueryRequestOptions),
                     initParams)
                 .map(c -> new PipelinedQueryExecutionContext<>(
                         c,

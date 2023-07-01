@@ -460,7 +460,9 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             this.reactorHttpClient = httpClient();
 
             this.globalEndpointManager = new GlobalEndpointManager(asDatabaseAccountManagerInternal(), this.connectionPolicy, /**/configs);
+            // retryPolicy is final
             this.retryPolicy = new RetryPolicy(this, this.globalEndpointManager, this.connectionPolicy);
+            // is this really needed?, since we reinitialize in the init() method
             this.resetSessionTokenRetryPolicy = retryPolicy;
             CpuMemoryMonitor.register(this);
             this.queryPlanCache = new ConcurrentHashMap<>();
@@ -544,6 +546,9 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
                     this,
                     this.retryPolicy);
             }
+
+            // this initialization of resetSessionTokenRetryPolicy ensures the resetSessionTokenRetryPolicy
+            // encapsulates the retryPolicy
             this.resetSessionTokenRetryPolicy = new ResetSessionTokenRetryPolicyFactory(this.sessionContainer, this.collectionCache, this.retryPolicy);
 
             this.partitionKeyRangeCache = new RxPartitionKeyRangeCache(RxDocumentClientImpl.this,
@@ -834,12 +839,15 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
     private String parentResourceLinkToQueryLink(String parentResourceLink, ResourceType resourceTypeEnum) {
         switch (resourceTypeEnum) {
             case Database:
+                // /dbs
                 return Paths.DATABASES_ROOT;
 
             case DocumentCollection:
+                // /dbs/colls
                 return Utils.joinPath(parentResourceLink, Paths.COLLECTIONS_PATH_SEGMENT);
 
             case Document:
+
                 return Utils.joinPath(parentResourceLink, Paths.DOCUMENTS_PATH_SEGMENT);
 
             case Offer:
@@ -983,6 +991,9 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         Flux<FeedResponse<T>> feedResponseFlux,
         CosmosEndToEndOperationLatencyPolicyConfig endToEndPolicyConfig,
         CosmosQueryRequestOptions requestOptions) {
+        // Sequence: FR1, FR2, ... FRn
+        // No emission: timeout check time elapsed since subscription
+        // If emission: timeout check time elapsed since last emission
         return feedResponseFlux
             .timeout(endToEndPolicyConfig.getEndToEndOperationTimeout())
             .onErrorMap(throwable -> {
@@ -1977,6 +1988,8 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         return rxDocumentServiceResponseMono;
     }
 
+    // where do we track cancellation for query requests
+    // here cancellation is tracked for point-operations
     private static Throwable getCancellationException(RxDocumentServiceRequest request, Throwable throwable) {
         Throwable unwrappedException = reactor.core.Exceptions.unwrap(throwable);
         if (unwrappedException instanceof TimeoutException) {
@@ -2291,6 +2304,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
 
     @Override
     public Mono<ResourceResponse<Document>> readDocument(String documentLink, RequestOptions options) {
+        // wonder why we have two different initializations for it??
         DocumentClientRetryPolicy retryPolicyInstance = this.resetSessionTokenRetryPolicy.getRequestPolicy();
         return ObservableHelper.inlineIfPossibleAsObs(() -> readDocumentInternal(documentLink, options, retryPolicyInstance), retryPolicyInstance);
     }
@@ -2305,12 +2319,16 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             logger.debug("Reading a Document. documentLink: [{}]", documentLink);
             String path = Utils.joinPath(documentLink, null);
             Map<String, String> requestHeaders = this.getRequestHeaders(options, ResourceType.Document, OperationType.Read);
+
+            // TIDBITS about RxDocumentServiceRequest
+            //  1. If path is not empty then request is not name-based
             RxDocumentServiceRequest request = RxDocumentServiceRequest.create(this,
                 OperationType.Read, ResourceType.Document, path, requestHeaders, options);
             if (retryPolicyInstance != null) {
                 retryPolicyInstance.onBeforeSendRequest(request);
             }
 
+            // Resolve the documentCollection first either from the cache or the GW (look at RxCollectionCache / RxClientCollectionCache)
             Mono<Utils.ValueHolder<DocumentCollection>> collectionObs = this.collectionCache.resolveCollectionAsync(BridgeInternal.getMetaDataDiagnosticContext(request.requestContext.cosmosDiagnostics), request);
 
             Mono<RxDocumentServiceRequest> requestObs = addPartitionKeyInformation(request, null, null, options, collectionObs);
@@ -2744,6 +2762,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
 
             @Override
             public RxCollectionCache getCollectionCache() {
+                // collectionCache maps collectionName to collectionRid
                 return RxDocumentClientImpl.this.collectionCache;
             }
 
@@ -4217,6 +4236,8 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         int maxPageSize = maxItemCount != null ? maxItemCount : -1;
         final CosmosQueryRequestOptions finalCosmosQueryRequestOptions = options;
         DocumentClientRetryPolicy retryPolicy = this.resetSessionTokenRetryPolicy.getRequestPolicy();
+
+        // create a func which takes continuation token and page size as arguments
         BiFunction<String, Integer, RxDocumentServiceRequest> createRequestFunc = (continuationToken, pageSize) -> {
             Map<String, String> requestHeaders = new HashMap<>();
             if (continuationToken != null) {
@@ -4229,6 +4250,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             return request;
         };
 
+        // Function which takes a request and returns a response
         Function<RxDocumentServiceRequest, Mono<FeedResponse<T>>> executeFunc = request -> ObservableHelper
             .inlineIfPossibleAsObs(() -> readFeed(request).map(response -> toFeedResponsePage(
                 response,

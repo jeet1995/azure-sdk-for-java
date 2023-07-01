@@ -62,6 +62,7 @@ abstract class Fetcher<T> {
             // it is a top query, we should not retrieve more than requested top.
             this.maxItemCount = new AtomicInteger(Math.min(maxItemCount, top));
         }
+        // keep fetching until set otherwise
         this.shouldFetchMore = new AtomicBoolean(true);
         this.cancelledRequestDiagnosticsTracker = cancelledRequestDiagnosticsTracker;
     }

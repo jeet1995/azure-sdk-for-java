@@ -140,7 +140,7 @@ public final class CosmosAsyncClientEncryptionKey {
 
     static void initialize() {
         ImplementationBridgeHelpers.CosmosAsyncClientEncryptionKeyHelper.setCosmosAsyncClientEncryptionKeyAccessor(
-            CosmosAsyncClientEncryptionKey::read);
+            (cosmosAsyncClientEncryptionKey, requestOptions) -> cosmosAsyncClientEncryptionKey.read(requestOptions));
     }
 
     static { initialize(); }

@@ -81,6 +81,9 @@ public class RxClientCollectionCache extends RxCollectionCache {
 
     protected Mono<DocumentCollection> getByNameAsync(MetadataDiagnosticsContext metaDataDiagnosticsContext, String resourceAddress, Map<String, Object> properties) {
         DocumentClientRetryPolicy retryPolicyInstance = new ClearingSessionContainerClientRetryPolicy(this.sessionContainer, this.retryPolicy.getRequestPolicy());
+
+        // ClearingSessionContainerClientRetryPolicy needs the session container
+        // to be cleared when a 404 / 1002 is returned
         return ObservableHelper.inlineIfPossible(
                 () -> this.readCollectionAsync(metaDataDiagnosticsContext, resourceAddress, retryPolicyInstance, properties),
                 retryPolicyInstance);
@@ -92,6 +95,8 @@ public class RxClientCollectionCache extends RxCollectionCache {
                                                          Map<String, Object> properties) {
 
         String path = Utils.joinPath(collectionLink, null);
+
+        // create the request to read a documentCollection from the gateway
         RxDocumentServiceRequest request = RxDocumentServiceRequest.create(this.diagnosticsClientContext,
                 OperationType.Read,
                 ResourceType.DocumentCollection,
@@ -102,6 +107,8 @@ public class RxClientCollectionCache extends RxCollectionCache {
 
         if (tokenProvider.getAuthorizationTokenType() != AuthorizationTokenType.AadToken) {
             String resourceName = request.getResourceAddress();
+
+            // get the authorization token (not AAD token)
             String authorizationToken = tokenProvider.getUserAuthorizationToken(
                     resourceName,
                     request.getResourceType(),
@@ -111,6 +118,7 @@ public class RxClientCollectionCache extends RxCollectionCache {
                     properties);
 
             try {
+                // encode the authorization token
                 authorizationToken = URLEncoder.encode(authorizationToken, "UTF-8");
             } catch (UnsupportedEncodingException e) {
                 return Mono.error(new IllegalStateException("Failed to encode authtoken.", e));
@@ -119,6 +127,8 @@ public class RxClientCollectionCache extends RxCollectionCache {
         }
 
         if (retryPolicyInstance != null){
+            // resolves the locationEndpointToRoute / resolveServiceEndpoint, diagnostics on the request
+            // set some request-level properties on the ClientRetryPolicy - multi-write enabled
             retryPolicyInstance.onBeforeSendRequest(request);
         }
 

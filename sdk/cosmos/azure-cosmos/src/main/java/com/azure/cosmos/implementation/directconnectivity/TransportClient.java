@@ -64,6 +64,8 @@ public abstract class TransportClient implements AutoCloseable {
     }
 
     private Mono<StoreResponse> invokeStoreInternalAsync(Uri physicalAddress, RxDocumentServiceRequest request) {
+        // storeResponse is processed on the I/O thread
+        // by default
         if (switchOffIOThreadForResponse) {
             return this.invokeStoreAsync(physicalAddress, request).publishOn(CosmosSchedulers.TRANSPORT_RESPONSE_BOUNDED_ELASTIC);
         }

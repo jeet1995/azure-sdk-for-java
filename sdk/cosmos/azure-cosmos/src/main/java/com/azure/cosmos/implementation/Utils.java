@@ -62,6 +62,7 @@ public class Utils {
     public static final Base64.Decoder Base64Decoder = Base64.getDecoder();
     public static final Base64.Encoder Base64UrlEncoder = Base64.getUrlEncoder();
 
+    // create a singleton ObjectMapper
     private static final ObjectMapper simpleObjectMapperAllowingDuplicatedProperties =
         createAndInitializeObjectMapper(true);
     private static final ObjectMapper simpleObjectMapperDisallowingDuplicatedProperties =

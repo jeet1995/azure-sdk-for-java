@@ -40,7 +40,7 @@ public class CosmosQueryRequestOptions {
     private int maxBufferedItemCount;
     private int responseContinuationTokenLimitInKb;
     private Integer maxItemCount;
-    private String requestContinuation;
+    private String requestContinuationToken;
     private PartitionKey partitionkey;
     private boolean queryMetricsEnabled;
     private Map<String, Object> properties;
@@ -85,7 +85,7 @@ public class CosmosQueryRequestOptions {
         this.maxBufferedItemCount = options.maxBufferedItemCount;
         this.responseContinuationTokenLimitInKb = options.responseContinuationTokenLimitInKb;
         this.maxItemCount = options.maxItemCount;
-        this.requestContinuation = options.requestContinuation;
+        this.requestContinuationToken = options.requestContinuationToken;
         this.partitionkey = options.partitionkey;
         this.queryMetricsEnabled = options.queryMetricsEnabled;
         this.emptyPagesAllowed = options.emptyPagesAllowed;
@@ -368,18 +368,18 @@ public class CosmosQueryRequestOptions {
      *
      * @return the request continuation.
      */
-    String getRequestContinuation() {
-        return this.requestContinuation;
+    String getRequestContinuationToken() {
+        return this.requestContinuationToken;
     }
 
     /**
      * Sets the request continuation token.
      *
-     * @param requestContinuation the request continuation.
+     * @param requestContinuationToken the request continuation.
      * @return the CosmosQueryRequestOptions.
      */
-    CosmosQueryRequestOptions setRequestContinuation(String requestContinuation) {
-        this.requestContinuation = requestContinuation;
+    CosmosQueryRequestOptions setRequestContinuationToken(String requestContinuationToken) {
+        this.requestContinuationToken = requestContinuationToken;
         return this;
     }
 

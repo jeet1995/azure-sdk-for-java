@@ -121,7 +121,7 @@ public class OrderByDocumentQueryExecutionContext
                     initParams.getQueryInfo().getOrderBy(),
                     initParams.getQueryInfo().getOrderByExpressions(),
                     initParams.getInitialPageSize(),
-                    ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(initParams.getCosmosQueryRequestOptions()),
+                    ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(initParams.getCosmosQueryRequestOptions()),
                 collection);
 
             return Flux.just(context);

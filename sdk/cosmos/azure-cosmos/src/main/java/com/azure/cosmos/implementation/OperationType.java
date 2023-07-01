@@ -31,6 +31,17 @@ public enum OperationType {
     PreReplaceValidation,
     Query,
     Read,
+    // readAllDatabases - metadata
+    // readAllItems
+    // readConflicts
+    // readAllContainers - metadata
+    // queryChangeFeedInternalFunc
+    // readAllUsers
+    // readAllStoredProcedures
+    // readUDFs
+    // readAllTriggers
+    // readAllPermissions
+
     ReadFeed,
     Recreate,
     Recycle,

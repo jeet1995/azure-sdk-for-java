@@ -174,7 +174,7 @@ public class PipelinedDocumentQueryExecutionContext<T>
 
         return createPipelineComponentFunction
             .apply(
-                ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(cosmosQueryRequestOptions),
+                ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(cosmosQueryRequestOptions),
                 initParams.convertGenericType(Document.class))
             .map(c -> new PipelinedDocumentQueryExecutionContext<>(
                 c, pageSize, queryInfo, factoryMethod));

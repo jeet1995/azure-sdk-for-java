@@ -34,10 +34,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -92,6 +89,8 @@ public class StoreReader {
             boolean checkMinLSN,
             boolean forceReadAll) {
 
+        // every request has a time tracker on it, if the
+        // request times out a client-side GoneException is raised
         if (entity.requestContext.timeoutHelper.isElapsed()) {
             return Mono.error(new GoneException());
         }
@@ -174,6 +173,7 @@ public class StoreReader {
                         if (storeException == null) {
                             return Flux.error(unwrappedException);
                         } else {
+                            // add endpoint to a list of failedEndpoints for 410 - GONE
                             request.requestContext.addToFailedEndpoints(storeException, storeRespAndURI.getRight());
                         }
 
@@ -186,6 +186,8 @@ public class StoreReader {
                                 readMode != ReadMode.Strong,
                                 storeRespAndURI.getRight(),
                                 replicaStatusList);
+
+                        // RntbdContextException is a sub-class of TransportException - thrown during RntbdContextNegotiation
                         if (storeException instanceof TransportException) {
                             BridgeInternal.getFailedReplicas(request.requestContext.cosmosDiagnostics).add(storeRespAndURI.getRight().getURI());
                         }
@@ -229,6 +231,10 @@ public class StoreReader {
 
         int startIndex = 0;
 
+        // 1. get an addressUri
+        // 2. create readFromStoreObs using the addressUri
+        // 3. add task to a list
+
         while(startIndex < addressRandomPermutation.size()) {
             Uri addressUri = addressRandomPermutation.get(startIndex);
             Pair<Mono<StoreResponse>, Uri> res;
@@ -243,7 +249,9 @@ public class StoreReader {
             startIndex++;
             resolveApiResults.remove(addressUri);
 
+            // forceReadAll == false && replicasToRead == 1 for Session Consistency
             if (!forceReadAll && readStoreTasks.size() == replicasToRead.get()) {
+                // forceReadAll == false
                 break;
             }
         }
@@ -268,11 +276,19 @@ public class StoreReader {
             return Mono.error(e);
         }).map(newStoreResults -> {
             for (StoreResult srr : newStoreResults) {
+
+                // isValid == true when a valid response (no exception) is sent by the replica
+                // isValid == true when requiresValidLsn==false
+                // || ((cosmosException.getStatusCode() != 410 || isSubStatusCode(cosmosException, HttpConstants.SubStatusCodes.NAME_CACHE_IS_STALE))
+                // && lsn >= 0)
                 if (srr.isValid) {
 
                     try {
 
                         if (requestSessionToken.v == null
+                                // if 410/1000 returned from server and response sessionToken token is populated
+                                // in the exception body then resultCollector could have an entry
+                                // if responseSessionToken is valid
                                 || (srr.sessionToken != null && requestSessionToken.v.isValid(srr.sessionToken))
                                 || (!enforceSessionCheck && !srr.isNotFoundException)) {
                             resultCollector.add(srr);
@@ -287,9 +303,15 @@ public class StoreReader {
                     resultCollector.add(srr);
                 }
 
+                // isGoneException => status code : 410 but subStatusCode not 1000
                 hasGoneException.v = hasGoneException.v || (srr.isGoneException && !srr.isInvalidPartitionException);
 
+                // For 410 cases - resultCollector has an entry only for 410/1000
+                //      - helps in short-circuiting
+                // responseSessionToken is valid wrt requestSessionToken
                 if (resultCollector.size() >= replicaCountToRead) {
+
+                    // 410s + session token in response
                     if (hasGoneException.v && !entity.requestContext.performedBackgroundAddressRefresh) {
                         this.startBackgroundAddressRefresh(entity);
                         entity.requestContext.performedBackgroundAddressRefresh = true;
@@ -407,6 +429,7 @@ public class StoreReader {
             requestedCollectionId = entity.requestContext.resolvedCollectionRid;
         }
 
+        // try to get addresses from gateway
         Mono<List<Uri>> resolveApiResultsObs = this.addressSelector.resolveAllUriAsync(
                 entity,
                 includePrimary,
@@ -414,6 +437,7 @@ public class StoreReader {
 
         if (!StringUtils.isEmpty(requestedCollectionId) && !StringUtils.isEmpty(entity.requestContext.resolvedCollectionRid)) {
             if (!requestedCollectionId.equals(entity.requestContext.resolvedCollectionRid)) {
+                // when is this flow accessed
                 this.sessionContainer.clearTokenByResourceId(requestedCollectionId);
             }
         }
@@ -675,6 +699,7 @@ public class StoreReader {
         // TODO: is this needed
         this.lastReadAddress = physicalAddress.toString();
 
+        // continuation token is needed for ReadFeed and Query operations
         if (request.getOperationType() == OperationType.ReadFeed ||
                 request.getOperationType() == OperationType.Query) {
             continuation = request.getHeaders().get(HttpConstants.HttpHeaders.CONTINUATION);
@@ -702,6 +727,8 @@ public class StoreReader {
         switch (request.getOperationType()) {
             case Read:
             case Head: {
+
+                // can return Mono.error(CosmosException)
                 Mono<StoreResponse> storeResponseObs = this.transportClient.invokeResourceOperationAsync(
                         physicalAddress,
                         request);
@@ -966,6 +993,7 @@ public class StoreReader {
 
                 // SESSION token response header is introduced from getVersion HttpConstants.Versions.v2018_06_18 onwards.
                 // Previously it was only a request header
+                // server-side GoneException will session token be populated?
                 headerValue = cosmosException.getResponseHeaders().get(HttpConstants.HttpHeaders.SESSION_TOKEN);
                 if (!Strings.isNullOrEmpty(headerValue)) {
                     sessionToken = SessionTokenHelper.parse(headerValue);

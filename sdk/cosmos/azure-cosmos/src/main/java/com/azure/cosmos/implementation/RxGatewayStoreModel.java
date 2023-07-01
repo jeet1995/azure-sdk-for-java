@@ -580,10 +580,13 @@ public class RxGatewayStoreModel implements RxStoreModel {
     }
 
     private Mono<Void> addIntendedCollectionRidAndSessionToken(RxDocumentServiceRequest request) {
+        // 1. apply session token to the request
+        // 2. add intended collectionRid to the request
         return applySessionToken(request).then(addIntendedCollectionRid(request));
     }
 
     private Mono<Void> addIntendedCollectionRid(RxDocumentServiceRequest request) {
+        // add collectionRid from request to request header
         if (this.collectionCache != null && request.getResourceType().equals(ResourceType.Document)) {
             return this.collectionCache.resolveCollectionAsync(BridgeInternal.getMetaDataDiagnosticContext(request.requestContext.cosmosDiagnostics), request).flatMap(documentCollectionValueHolder -> {
                 if (StringUtils.isEmpty(request.getHeaders().get(INTENDED_COLLECTION_RID_HEADER))) {
@@ -599,6 +602,7 @@ public class RxGatewayStoreModel implements RxStoreModel {
     }
 
     private Mono<Void> applySessionToken(RxDocumentServiceRequest request) {
+        // something i still have to read
         Map<String, String> headers = request.getHeaders();
         Objects.requireNonNull(headers, "RxDocumentServiceRequest::headers is required and cannot be null");
 
@@ -613,6 +617,7 @@ public class RxGatewayStoreModel implements RxStoreModel {
         boolean sessionConsistency = RequestHelper.getConsistencyLevelToUse(this.gatewayServiceConfigurationReader,
             request) == ConsistencyLevel.SESSION;
 
+        // who set the session token here
         if (!Strings.isNullOrEmpty(request.getHeaders().get(HttpConstants.HttpHeaders.SESSION_TOKEN))) {
             if (!sessionConsistency ||
                 (!request.isReadOnlyRequest() && request.getOperationType() != OperationType.Batch && !this.useMultipleWriteLocations)) {

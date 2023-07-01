@@ -56,6 +56,7 @@ public final class SqlQuerySpec {
      * @param parameters the query parameters.
      */
     public SqlQuerySpec(String queryText, List<SqlParameter> parameters) {
+        // I have seen SqlParameter typically prefixed with '@'
         this.jsonSerializable = new JsonSerializable();
         this.setQueryText(queryText);
         this.parameters = parameters;
@@ -124,6 +125,7 @@ public final class SqlQuerySpec {
     }
 
     void populatePropertyBag() {
+        // no-op?
         this.jsonSerializable.populatePropertyBag();
         boolean defaultParameters = (this.parameters != null && this.parameters.size() != 0);
 

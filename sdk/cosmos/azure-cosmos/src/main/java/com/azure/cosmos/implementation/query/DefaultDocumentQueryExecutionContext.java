@@ -99,7 +99,7 @@ public class DefaultDocumentQueryExecutionContext<T> extends DocumentQueryExecut
         // The workaround is to try and parse the continuation token as a composite continuation token.
         // If it is, then we send the query to the gateway with max degree of parallelism to force getting back the query plan
 
-        String originalContinuation = ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(newCosmosQueryRequestOptions);
+        String originalContinuation = ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(newCosmosQueryRequestOptions);
 
         if (isClientSideContinuationToken(originalContinuation)) {
             // At this point we know we want back a query plan

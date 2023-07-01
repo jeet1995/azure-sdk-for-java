@@ -117,6 +117,7 @@ public class ClientRetryPolicy extends DocumentClientRetryPolicy {
         }
 
         // Received Connection error (HttpRequestException), initiate the endpoint rediscovery
+        // what error does WMT get during a region outage
         if (WebExceptionUtility.isNetworkFailure(e)) {
             if (clientException != null && Exceptions.isSubStatusCode(clientException, HttpConstants.SubStatusCodes.GATEWAY_ENDPOINT_UNAVAILABLE)) {
                 if (this.isReadRequest || WebExceptionUtility.isWebExceptionRetriable(e)) {

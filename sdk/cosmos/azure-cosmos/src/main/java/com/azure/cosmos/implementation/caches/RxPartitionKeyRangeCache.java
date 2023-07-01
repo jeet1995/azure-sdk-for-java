@@ -206,6 +206,7 @@ public class RxPartitionKeyRangeCache implements IPartitionKeyRangeCache {
 
         // here we stick to what main java sdk does, investigate later.
 
+        // ReadFeed query to get all partitions for a collection
         Mono<List<PartitionKeyRange>> rangesObs = getPartitionKeyRange(metaDataDiagnosticsContext, collectionRid , false, properties);
 
         return rangesObs.flatMap(ranges -> {
@@ -218,6 +219,8 @@ public class RxPartitionKeyRangeCache implements IPartitionKeyRangeCache {
             if (previousRoutingMap == null)
             {
                 // Splits could have happened during change feed query and we might have a mix of gone and new ranges.
+                // If a pkrId has parents, then its parents have either split or merged - these parents are excluded
+                // from the collectionRoutingMap
                 Set<String> goneRanges = new HashSet<>(ranges.stream().flatMap(range -> CollectionUtils.emptyIfNull(range.getParents()).stream()).collect(Collectors.toSet()));
 
                 routingMap = InMemoryCollectionRoutingMap.tryCreateCompleteRoutingMap(

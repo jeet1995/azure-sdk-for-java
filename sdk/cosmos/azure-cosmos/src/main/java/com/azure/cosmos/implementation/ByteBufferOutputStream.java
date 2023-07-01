@@ -27,6 +27,7 @@ public class ByteBufferOutputStream extends ByteArrayOutputStream {
      * {@link ByteArrayOutputStream#toByteArray()} as it doesn't copy data.
      * @return ByteBuffer
      */
+    // revisit
     public ByteBuffer asByteBuffer() {
         return ByteBuffer.wrap(super.buf, 0, super.count);
     }

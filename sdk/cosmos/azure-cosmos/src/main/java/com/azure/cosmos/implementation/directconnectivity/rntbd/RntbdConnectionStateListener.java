@@ -5,6 +5,7 @@ package com.azure.cosmos.implementation.directconnectivity.rntbd;
 
 import com.azure.cosmos.implementation.CosmosSchedulers;
 import com.azure.cosmos.implementation.directconnectivity.Uri;
+import io.netty.channel.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -29,6 +30,7 @@ public class RntbdConnectionStateListener {
     private final Set<Uri> addressUris;
     private final ProactiveOpenConnectionsProcessor proactiveOpenConnectionsProcessor;
     private final AtomicBoolean endpointValidationInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean backgroundForceAddressRefreshInProgress = new AtomicBoolean(false);
 
     // endregion
 
@@ -151,6 +153,14 @@ public class RntbdConnectionStateListener {
         }
 
         return 0;
+    }
+
+    public void attemptForceAddressRefresh(Throwable cause) {
+
+        if (cause instanceof ConnectTimeoutException) {
+            // trigger force address refresh if cancellation
+            // status can be checked
+        }
     }
     // endregion
 }

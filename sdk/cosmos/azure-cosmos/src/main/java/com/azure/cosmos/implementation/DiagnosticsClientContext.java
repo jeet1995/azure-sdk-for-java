@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+// decorates the RxDocumentClientImpl
 public interface DiagnosticsClientContext {
 
     DiagnosticsClientConfig getConfig();

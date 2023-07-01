@@ -28,6 +28,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.AdaptiveRecvByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ConnectTimeoutException;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.handler.logging.LogLevel;
@@ -370,6 +371,7 @@ public final class RntbdServiceEndpoint implements RntbdEndpoint {
 
         int concurrentRequestSnapshot = this.concurrentRequests.incrementAndGet();
 
+        // every rntbdEndpoint instance has a connectionStateListener instance
         if (this.connectionStateListener != null) {
             this.connectionStateListener.onBeforeSendRequest(args.physicalAddressUri());
         }
@@ -600,6 +602,10 @@ public final class RntbdServiceEndpoint implements RntbdEndpoint {
                 requestArgs.replicaPath(),
                 HttpConstants.SubStatusCodes.TRANSPORT_GENERATED_410
             );
+
+            if (cause instanceof ConnectTimeoutException) {
+                connectionStateListener.attemptForceAddressRefresh(cause);
+            }
 
             BridgeInternal.setRequestHeaders(goneException, requestArgs.serviceRequest().getHeaders());
             requestRecord.completeExceptionally(goneException);

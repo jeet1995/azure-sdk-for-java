@@ -31,6 +31,7 @@ public class Paginator {
 
     private final static Logger logger = LoggerFactory.getLogger(Paginator.class);
 
+    // used directly by RxDocumentClientImpl for readFeed requests
     public static <T> Flux<FeedResponse<T>> getPaginatedQueryResultAsObservable(
         CosmosQueryRequestOptions cosmosQueryRequestOptions,
         BiFunction<String, Integer, RxDocumentServiceRequest> createRequestFunc,
@@ -39,9 +40,10 @@ public class Paginator {
 
         int top = -1;
         return getPaginatedQueryResultAsObservable(
-            ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(cosmosQueryRequestOptions),
+            ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(cosmosQueryRequestOptions),
             createRequestFunc,
             executeFunc,
+            // what does this top mean
             top,
             maxPageSize,
             getPreFetchCount(cosmosQueryRequestOptions, top, maxPageSize),

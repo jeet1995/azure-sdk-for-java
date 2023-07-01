@@ -54,12 +54,16 @@ public abstract class RxCollectionCache {
         MetadataDiagnosticsContext metaDataDiagnosticsContext, RxDocumentServiceRequest request) {
         //  Mono Void to represent only terminal events specifically complete and error
         Mono<Void> init = null;
+        // two ways to resolve a collection - through collectionName or through collectionResourceId
         if (request.getIsNameBased()) {
+            // how is this set to true
             if (request.isForceNameCacheRefresh()) {
                 Mono<Void> mono = this.refreshAsync(metaDataDiagnosticsContext, request);
                 init = mono.then(Mono.fromRunnable(() -> request.setForceNameCacheRefresh(false)));
             }
 
+            // 1. forceNameCacheRefresh fills up / refreshes the cache
+            // 2. resolveByPartitionKeyRangeIdentityAsync gets the collection from the cache
             Mono<Utils.ValueHolder<DocumentCollection>> collectionInfoObs = this.resolveByPartitionKeyRangeIdentityAsync(
                 BridgeInternal.getMetaDataDiagnosticContext(request.requestContext.cosmosDiagnostics),request.getPartitionKeyRangeIdentity(), request.properties);
 
@@ -71,6 +75,9 @@ public abstract class RxCollectionCache {
                 if (collectionValueHolder.v != null) {
                     return Mono.just(collectionValueHolder);
                 }
+
+                // 1. forceNameCacheRefresh is false
+                // 2. collectionRid not present in the cache
                 if (request.requestContext.resolvedCollectionRid == null) {
 
                     Mono<DocumentCollection> collectionInfoRes = this.resolveByNameAsync(metaDataDiagnosticsContext, request.getResourceAddress(), request.properties);
@@ -83,6 +90,7 @@ public abstract class RxCollectionCache {
                         //                          collectionInfo.getResourceId());
 
                         request.setResourceId(collection.getResourceId());
+                        // resolvedCollectionRid is set when collectionName has been resolved
                         request.requestContext.resolvedCollectionRid = collection.getResourceId();
                         return Mono.just(new Utils.ValueHolder<>(collection));
 
@@ -187,9 +195,11 @@ public abstract class RxCollectionCache {
             });
     }
 
+    // does this refresh the cache
     public Mono<Void> refreshAsync(MetadataDiagnosticsContext metaDataDiagnosticsContext, RxDocumentServiceRequest request) {
         // TODO System.Diagnostics.Debug.Assert(request.IsNameBased);
 
+        // is this is the resource link of the collection?
         String resourceFullName = PathsHelper.getCollectionPath(request.getResourceAddress());
         Mono<Void> mono;
 
@@ -198,18 +208,22 @@ public abstract class RxCollectionCache {
             DocumentCollection obsoleteValue = new DocumentCollection();
             ModelBridgeInternal.setResourceId(obsoleteValue, request.requestContext.resolvedCollectionRid);
 
+            // getAsync updates the collectionInfoByNameCache
             mono = this.collectionInfoByNameCache.getAsync(
                     resourceFullName,
                     obsoleteValue,
                     () -> {
+                        // Gateway call to read the DocumentCollection instance
                         Mono<DocumentCollection> collectionObs = this.getByNameAsync(metaDataDiagnosticsContext, resourceFullName, request.properties);
                         return collectionObs.doOnSuccess(collection -> {
+                            // Set on collectionRid cache
                             this.collectionInfoByIdCache.set(collection.getResourceId(), collection);
                         });
                     }).then();
         } else {
             // In case of ForceRefresh directive coming from client, there will be no ResolvedCollectionRid, so we
             // need to refresh unconditionally.
+            // Does having resolvedCollectionRid mean metadata requests for the collection have been done at least once?
             mono = Mono.fromRunnable(() -> this.refresh(metaDataDiagnosticsContext, request.getResourceAddress(), request.properties));
         }
 

@@ -556,13 +556,13 @@ public final class ModelBridgeInternal {
 
     @Warning(value = INTERNAL_USE_ONLY_WARNING)
     public static void setQueryRequestOptionsContinuationTokenAndMaxItemCount(CosmosQueryRequestOptions options, String continuationToken, Integer maxItemCount) {
-        options.setRequestContinuation(continuationToken);
+        options.setRequestContinuationToken(continuationToken);
         options.setMaxItemCount(maxItemCount);
     }
 
     @Warning(value = INTERNAL_USE_ONLY_WARNING)
     public static void setQueryRequestOptionsContinuationToken(CosmosQueryRequestOptions cosmosQueryRequestOptions, String continuationToken) {
-        cosmosQueryRequestOptions.setRequestContinuation(continuationToken);
+        cosmosQueryRequestOptions.setRequestContinuationToken(continuationToken);
     }
 
     @Warning(value = INTERNAL_USE_ONLY_WARNING)
@@ -580,7 +580,11 @@ public final class ModelBridgeInternal {
 
     @Warning(value = INTERNAL_USE_ONLY_WARNING)
     public static ByteBuffer serializeJsonToByteBuffer(SqlQuerySpec sqlQuerySpec) {
+        // every sqlQuerySpec instance encapsulates both sqlParameters
+        // and jsonSerializable
+        // populatePropertyBag sets sqlParameters as property bag here
         sqlQuerySpec.populatePropertyBag();
+
         return sqlQuerySpec.getJsonSerializable().serializeJsonToByteBuffer();
     }
 
@@ -729,8 +733,8 @@ public final class ModelBridgeInternal {
     }
 
     @Warning(value = INTERNAL_USE_ONLY_WARNING)
-    public static String getRequestContinuationFromQueryRequestOptions(CosmosQueryRequestOptions options) {
-        return options.getRequestContinuation();
+    public static String getRequestContinuationTokenFromQueryRequestOptions(CosmosQueryRequestOptions options) {
+        return options.getRequestContinuationToken();
     }
 
     @Warning(value = INTERNAL_USE_ONLY_WARNING)

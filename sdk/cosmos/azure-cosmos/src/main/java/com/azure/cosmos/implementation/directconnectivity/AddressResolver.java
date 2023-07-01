@@ -345,10 +345,15 @@ public class AddressResolver implements IAddressResolver {
 
         RefreshState state = new RefreshState();
 
+        // if the request is a name-based request the collection cache is not necessarily up to date / might need an update
+        // if pkrId and collectionRid <-> pkrId mapping exists then collection cache is up to date
+        // collectionCache -> mapping b/w collectionRid and collectionName
         state.collectionCacheIsUptoDate = !request.getIsNameBased() ||
             (request.getPartitionKeyRangeIdentity() != null && request.getPartitionKeyRangeIdentity().getCollectionRid() != null);
         state.collectionRoutingMapCacheIsUptoDate = false;
 
+        // 1. resolves the collection associated with the physical partition
+        // 2. possibly updates collection related caches
         Mono<Utils.ValueHolder<DocumentCollection>> collectionObs = this.collectionCache.resolveCollectionAsync(BridgeInternal.getMetaDataDiagnosticContext(request.requestContext.cosmosDiagnostics), request);
 
         Mono<RefreshState> stateObs = collectionObs.flatMap(collectionValueHolder -> {
@@ -359,6 +364,7 @@ public class AddressResolver implements IAddressResolver {
             return routingMapObs.flatMap(routingMapValueHolder -> {
                 state.routingMap = routingMapValueHolder.v;
 
+                // maybe the partition is splitting
                 if (request.forcePartitionKeyRangeRefresh) {
                     state.collectionRoutingMapCacheIsUptoDate = true;
                     request.forcePartitionKeyRangeRefresh = false;
@@ -377,6 +383,9 @@ public class AddressResolver implements IAddressResolver {
 
         return stateObs.flatMap(newState -> {
 
+            // collectionCacheIsUptoDate == false if request is name based
+            // 1. forceRefresh the name cache
+            // 2. re-resolve the collectionRoutingMap
             if (newState.routingMap == null && !newState.collectionCacheIsUptoDate) {
                 // Routing map was not found by resolved collection rid. Maybe collection rid is outdated.
                 // Refresh collection cache and reresolve routing map.
@@ -425,6 +434,7 @@ public class AddressResolver implements IAddressResolver {
         RxDocumentServiceRequest request,
         boolean forceRefreshPartitionAddresses) {
 
+        // separate flow when reading from the master partition
         if (ReplicatedResourceClient.isReadingFromMaster(request.getResourceType(), request.getOperationType())
             && request.getPartitionKeyRangeIdentity() == null) {
             return resolveMasterResourceAddress(request, forceRefreshPartitionAddresses);
@@ -563,6 +573,8 @@ public class AddressResolver implements IAddressResolver {
         );
     }
 
+    // if we can't find a partitionKeyRange instance
+    // for the partitionKeyRangeId
     private ResolutionResult handleRangeAddressResolutionFailure(
         RxDocumentServiceRequest request,
         boolean collectionCacheIsUpToDate,
@@ -570,6 +582,9 @@ public class AddressResolver implements IAddressResolver {
         CollectionRoutingMap routingMap) {
         // Optimization to not refresh routing map unnecessary. As we keep track of parent child relationships,
         // we can determine that a range is gone just by looking up in the routing map.
+
+        // if say collectionCacheIsUpToDate is false - should we try to resolve
+        // the collection first ??
         if (collectionCacheIsUpToDate && routingMapCacheIsUpToDate ||
             collectionCacheIsUpToDate && routingMap.isGone(request.getPartitionKeyRangeIdentity().getPartitionKeyRangeId())) {
             String errorMessage = String.format(
@@ -598,11 +613,13 @@ public class AddressResolver implements IAddressResolver {
         boolean routingMapCacheIsUpToDate,
         boolean forceRefreshPartitionAddresses) {
 
+        // get pkr from pkrId
         PartitionKeyRange partitionKeyRange = routingMap.getRangeByPartitionKeyRangeId(request.getPartitionKeyRangeIdentity().getPartitionKeyRangeId());
         if (partitionKeyRange == null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Cannot resolve range '{}'", request.getPartitionKeyRangeIdentity().toHeader());
             }
+            // can collectionCacheIsUpToDate be false here?
             return returnOrError(() -> new Utils.ValueHolder<>(this.handleRangeAddressResolutionFailure(request, collectionCacheIsUpToDate, routingMapCacheIsUpToDate, routingMap)));
         }
 

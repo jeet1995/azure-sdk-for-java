@@ -106,7 +106,7 @@ public class ParallelDocumentQueryExecutionContext<T>
                     collection,
                     initParams.getFeedRanges(),
                     initParams.getInitialPageSize(),
-                    ModelBridgeInternal.getRequestContinuationFromQueryRequestOptions(initParams.getCosmosQueryRequestOptions()));
+                    ModelBridgeInternal.getRequestContinuationTokenFromQueryRequestOptions(initParams.getCosmosQueryRequestOptions()));
             return Flux.just(context);
         } catch (CosmosException dce) {
             return Flux.error(dce);

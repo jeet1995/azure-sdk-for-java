@@ -87,6 +87,9 @@ public class GatewayAddressCache implements IAddressCache {
     private final URI serviceEndpoint;
 
     private final AsyncCacheNonBlocking<PartitionKeyRangeIdentity, AddressInformation[]> serverPartitionAddressCache;
+
+    // a partition is suboptimal when not all replica addresses can be resolved for it
+    // remove a pkrId if in case the collectionRid associated with the pkrId is gone or the pkrId is gone
     private final ConcurrentHashMap<PartitionKeyRangeIdentity, Instant> suboptimalServerPartitionTimestamps;
     private final long suboptimalPartitionForceRefreshIntervalInSeconds;
 
@@ -213,6 +216,7 @@ public class GatewayAddressCache implements IAddressCache {
                        .map(partitionKeyRangeIdentityPair -> new Utils.ValueHolder<>(partitionKeyRangeIdentityPair.getRight()));
         }
 
+        // throttle collectionRoutingMapRefresh so as to not overload the gateway
         evaluateCollectionRoutingMapRefreshForServerPartition(
             request, partitionKeyRangeIdentity, forceRefreshPartitionAddresses);
 
@@ -226,6 +230,9 @@ public class GatewayAddressCache implements IAddressCache {
             if (forceRefreshDueToSuboptimalPartitionReplicaSet) {
                 // Compares the existing value for the specified key with a specified value,
                 // and if they are equal, updates the key with a third value.
+
+                // If partition has been suboptimal for more than 10 minutes try
+                // to do forceAddressRefresh
                 Instant newValue = this.suboptimalServerPartitionTimestamps.computeIfPresent(partitionKeyRangeIdentity,
                     (key, oldVal) -> {
                         logger.debug("key = {}, oldValue = {}", key, oldVal);
@@ -384,6 +391,7 @@ public class GatewayAddressCache implements IAddressCache {
             headers.put(HttpConstants.HttpHeaders.AUTHORIZATION, token);
         }
 
+        // Is this GW endpoint?
         URI targetEndpoint = Utils.setQuery(this.addressEndpoint.toString(), Utils.createQuery(addressQuery));
         String identifier = logAddressResolutionStart(
             request, targetEndpoint, forceRefresh, request.forceCollectionRoutingMapRefresh);
@@ -533,6 +541,12 @@ public class GatewayAddressCache implements IAddressCache {
         String collectionRid = pkRangeIdentity.getCollectionRid();
         String partitionKeyRangeId = pkRangeIdentity.getPartitionKeyRangeId();
 
+        // forceRefreshPartitionAddresses==true relevant for split scenarios
+        // forces GW to update its own caches by requesting for new replica addresses
+        // from the ServiceFabric naming service
+        // if split scenario:
+        //      1. update collectionRoutingMapCache
+        //      2. update serverPartitionAddressCache
         if (forceRefreshPartitionAddresses) {
             // forceRefreshPartitionAddresses==true indicates we are requesting the latest
             // Replica addresses from the Gateway
@@ -555,6 +569,7 @@ public class GatewayAddressCache implements IAddressCache {
                 collectionRid,
                 (colRid) -> new ForcedRefreshMetadata());
 
+            // forceCollectionRoutingMapRefresh==true set to true when partition is migrating
             if (request.forceCollectionRoutingMapRefresh) {
                 forcedRefreshMetadata.signalCollectionRoutingMapRefresh(
                     pkRangeIdentity,
@@ -587,6 +602,7 @@ public class GatewayAddressCache implements IAddressCache {
 
     private void validatePkRangeIdentity(PartitionKeyRangeIdentity pkRangeIdentity) {
 
+        // simple null checks on pkRangeIdentity
         Utils.checkNotNullOrThrow(pkRangeIdentity, "pkRangeId", "");
         Utils.checkNotNullOrThrow(
             pkRangeIdentity.getCollectionRid(),
@@ -1123,6 +1139,9 @@ public class GatewayAddressCache implements IAddressCache {
             lastCollectionRoutingMapRefresh = Instant.now();
         }
 
+        // store the timestamp for:
+        //      1. last time the partition address was refreshed
+        //      2. last time the collection routing map was refreshed
         public void signalCollectionRoutingMapRefresh(
             PartitionKeyRangeIdentity pk,
             boolean forcePartitionAddressRefresh) {
@@ -1144,6 +1163,7 @@ public class GatewayAddressCache implements IAddressCache {
             Instant lastPartitionAddressRefreshSnapshot = lastPartitionAddressOnlyRefresh.get(pk);
             Instant lastCollectionRoutingMapRefreshSnapshot = lastCollectionRoutingMapRefresh;
 
+            // if lastPartitionAddressRefreshSnapshot
             if (lastPartitionAddressRefreshSnapshot == null ||
                 !lastPartitionAddressRefreshSnapshot.isAfter(lastCollectionRoutingMapRefreshSnapshot)) {
                 // Enforce that at least one refresh attempt is made without
@@ -1151,6 +1171,8 @@ public class GatewayAddressCache implements IAddressCache {
                 return false;
             }
 
+            // if 30s have not elapsed since last collectionRoutingMap refresh
+            // do not include a new collectionRoutingMap refresh
             Duration durationSinceLastForcedCollectionRoutingMapRefresh =
                 Duration.between(lastCollectionRoutingMapRefreshSnapshot, Instant.now());
             boolean returnValue = durationSinceLastForcedCollectionRoutingMapRefresh
