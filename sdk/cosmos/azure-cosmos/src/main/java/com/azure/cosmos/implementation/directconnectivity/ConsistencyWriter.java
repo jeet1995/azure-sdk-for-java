@@ -187,7 +187,7 @@ public class ConsistencyWriter {
                         SessionTokenHelper.setPartitionLocalSessionToken(request, this.sessionContainer);
                     } else {
                         // When writes can only go to single location, there is no reason
-                        // to session session token to the server.
+                        // to send session token to the server.
                         SessionTokenHelper.validateAndRemoveSessionToken(request);
                     }
 
@@ -224,6 +224,7 @@ public class ConsistencyWriter {
                                                                .getResponseHeaders()
                                                                .get(HttpConstants
                                                                    .HttpHeaders
+                                                                   // backend requesting the SDK to trigger an address refresh
                                                                    .WRITE_REQUEST_TRIGGER_ADDRESS_REFRESH) :
                                                            null;
                                                        if (!Strings.isNullOrWhiteSpace(value)) {
@@ -251,6 +252,8 @@ public class ConsistencyWriter {
                         false,
                         primaryURI.get(),
                         replicaStatusList.get());
+                // 1. barrierForGlobalStrong is invoked only when the write to write region is successful
+                // 2. now the SDK tries to read back the same document from the read region
                 return barrierForGlobalStrong(request, response);
             })
             .doFinally(signalType -> {
@@ -281,6 +284,10 @@ public class ConsistencyWriter {
         }
     }
 
+    // Q: what is a globalStrongRequest?
+    //      1. default / account-level consistency is Strong
+    //      2. no. of read regions from the response is at least 1
+    // Q: what is x-ms-number-of-read-regions?
     boolean isGlobalStrongRequest(RxDocumentServiceRequest request, StoreResponse response) {
         if (this.serviceConfigReader.getDefaultConsistencyLevel() == ConsistencyLevel.STRONG) {
             int numberOfReadRegions = -1;
@@ -297,10 +304,12 @@ public class ConsistencyWriter {
 
     Mono<StoreResponse> barrierForGlobalStrong(RxDocumentServiceRequest request, StoreResponse response) {
         try {
-            if (ReplicatedResourceClient.isGlobalStrongEnabled() && this.isGlobalStrongRequest(request, response)) {
+            if (ReplicatedResourceClient.isGlobalStrongEnabled() /* always true */ && this.isGlobalStrongRequest(request, response)) {
                 Utils.ValueHolder<Long> lsn = Utils.ValueHolder.initialize(-1L);
                 Utils.ValueHolder<Long> globalCommittedLsn = Utils.ValueHolder.initialize(-1L);
 
+                // Q: what is lsn?
+                // Q: what is global committed lsn?
                 getLsnAndGlobalCommittedLsn(response, lsn, globalCommittedLsn);
                 if (lsn.v == -1 || globalCommittedLsn.v == -1) {
                     logger.error("ConsistencyWriter: lsn {} or GlobalCommittedLsn {} is not set for global strong request",
@@ -319,6 +328,8 @@ public class ConsistencyWriter {
                 //barrier only if necessary, i.e. when write region completes write, but read regions have not.
 
                 if (globalCommittedLsn.v < lsn.v) {
+                    // a barrier request is a Head request for a DocumentCollection or a HeadFeed for Database
+                    // Q: Does a HeadFeed here imply read all databases created for the account?
                     Mono<RxDocumentServiceRequest> barrierRequestObs = BarrierRequestHelper.createAsync(this.diagnosticsClientContext,
                         request,
                         this.authorizationTokenProvider,
@@ -356,6 +367,7 @@ public class ConsistencyWriter {
     }
 
     private Mono<Boolean> waitForWriteBarrierAsync(RxDocumentServiceRequest barrierRequest, long selectedGlobalCommittedLsn) {
+        // Max no. of write barrier read retries = 30
         AtomicInteger writeBarrierRetryCount = new AtomicInteger(ConsistencyWriter.MAX_NUMBER_OF_WRITE_BARRIER_READ_RETRIES);
         AtomicLong maxGlobalCommittedLsnReceived = new AtomicLong(0);
         return Flux.defer(() -> {

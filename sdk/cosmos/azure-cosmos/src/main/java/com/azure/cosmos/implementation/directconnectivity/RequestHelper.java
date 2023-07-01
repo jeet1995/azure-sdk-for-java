@@ -14,6 +14,8 @@ import com.azure.cosmos.implementation.Strings;
 public class RequestHelper {
     public static ConsistencyLevel getConsistencyLevelToUse(GatewayServiceConfigurationReader serviceConfigReader,
                                                             RxDocumentServiceRequest request) {
+        // Q: what is default consistency level?
+        //      1. consistency level configured on the account
         ConsistencyLevel consistencyLevelToUse = serviceConfigReader.getDefaultConsistencyLevel();
 
         String requestConsistencyLevelHeaderValue = request.getHeaders().get(HttpConstants.HttpHeaders.CONSISTENCY_LEVEL);
@@ -28,6 +30,7 @@ public class RequestHelper {
                                 HttpConstants.HttpHeaders.CONSISTENCY_LEVEL));
             }
 
+            // request-level consistency overrides account-level consistency
             consistencyLevelToUse = requestConsistencyLevel;
         }
 

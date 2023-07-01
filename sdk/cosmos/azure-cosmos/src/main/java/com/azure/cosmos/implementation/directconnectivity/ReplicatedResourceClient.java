@@ -117,6 +117,14 @@ public class ReplicatedResourceClient {
 
     public Mono<StoreResponse> invokeAsync(RxDocumentServiceRequest request,
                                            Function<RxDocumentServiceRequest, Mono<RxDocumentServiceRequest>> prepareRequestAsyncDelegate) {
+
+        // Parameters of mainFuncDelegate
+        //      1. The Quadruple type
+        //          1.1 value0: Boolean -> forceAddressRefresh
+        //          1.2 value1: Boolean -> inRetry (whether the request is in a retry attempt)
+        //          1.3 value2: Duration -> time left before the request times out -> a GoneException is thrown in case of a timeout and isInRetry == true
+        //                                                                            a RequestTimeoutException is thrown in case of a timeout and isInRetry == false
+        //          1.4 value3: Integer -> retryAttempts
         BiFunction<Quadruple<Boolean, Boolean, Duration, Integer>, RxDocumentServiceRequest, Mono<StoreResponse>> mainFuncDelegate = (
                 Quadruple<Boolean, Boolean, Duration, Integer> forceRefreshAndTimeout,
                 RxDocumentServiceRequest documentServiceRequest) -> {
@@ -241,6 +249,7 @@ public class ReplicatedResourceClient {
             if (request.isReadOnlyScript()) {
                 return this.consistencyReader.readAsync(request, timeout, isInRetry, forceRefresh);
             } else {
+                // isInRetry is irrelevant for write operations since writes are non-idempotent
                 return this.consistencyWriter.writeAsync(request, timeout, forceRefresh);
             }
         } else if (request.getOperationType().isWriteOperation()) {

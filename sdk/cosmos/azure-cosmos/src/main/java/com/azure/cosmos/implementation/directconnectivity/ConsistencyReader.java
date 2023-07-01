@@ -191,6 +191,9 @@ public class ConsistencyReader {
         entity.requestContext.timeoutHelper = timeout;
 
         if (entity.requestContext.requestChargeTracker == null) {
+            // 1. a request charge is the currency of the cost it takes to perform an
+            // operation -> determined by the CosmosDb service
+            // 2. this value is encapsulated in the StoreResult instance
             entity.requestContext.requestChargeTracker = new RequestChargeTracker();
         }
 
@@ -336,12 +339,14 @@ public class ConsistencyReader {
         });
     }
 
+    // ReadMode typically corresponds to the consistency level to be used
     ReadMode deduceReadMode(RxDocumentServiceRequest request,
                             ValueHolder<ConsistencyLevel> targetConsistencyLevel,
                             ValueHolder<Boolean> useSessionToken) {
         targetConsistencyLevel.v = RequestHelper.getConsistencyLevelToUse(this.serviceConfigReader, request);
         useSessionToken.v = (targetConsistencyLevel.v == ConsistencyLevel.SESSION);
 
+        // what does defaultReplicaIndex mean?
         if (request.getDefaultReplicaIndex() != null) {
             // Don't use session token - this is used by internal scenarios which technically don't intend session read when they target
             // request to specific replica.

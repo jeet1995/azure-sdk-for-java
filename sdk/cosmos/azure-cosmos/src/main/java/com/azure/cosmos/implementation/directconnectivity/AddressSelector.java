@@ -48,12 +48,15 @@ public class AddressSelector {
     public static Uri getPrimaryUri(RxDocumentServiceRequest request, List<AddressInformation> replicaAddresses) throws GoneException {
         AddressInformation primaryAddress = null;
 
+        // Q: what is a defaultReplica?
+        //      1. Looks like we get the index and use it to determine the primary replica
         if (request.getDefaultReplicaIndex() != null) {
             int defaultReplicaIndex = request.getDefaultReplicaIndex();
             if (defaultReplicaIndex >= 0 && defaultReplicaIndex < replicaAddresses.size()) {
                 primaryAddress = replicaAddresses.get(defaultReplicaIndex);
             }
         } else {
+            // The Uri stores information on whether the replica is a primary replica or not
             primaryAddress = replicaAddresses.stream().filter(address -> address.isPrimary() && !address.getPhysicalUri().getURIAsString().contains("["))
                 .findAny().orElse(null);
         }

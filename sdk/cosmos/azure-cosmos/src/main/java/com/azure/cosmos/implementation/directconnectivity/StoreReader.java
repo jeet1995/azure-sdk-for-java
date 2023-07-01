@@ -79,6 +79,15 @@ public class StoreReader {
      * @param forceReadAll              reads from all available replicas to gather result from readsToRead number of replicas
      * @return  ReadReplicaResult which indicates the LSN and whether Quorum was Met / Not Met etc
      */
+    // 1. For barrier requests
+    //      1.1 entity - a HeadFeed request for Database or a Head request for DocumentCollection
+    //      1.2 includePrimary - true
+    //      1.3 replicaCountToRead - any replica is good enough as long as globalCommittedLsn can catch up with lsn
+    //      1.4 requiresValidLsn - false
+    //      1.5 useSessionToken - false
+    //      1.6 readMode - ReadMode.Strong
+    //      1.7 checkMinLSN - false
+    //      1.8 forceReadAll - false
     public Mono<List<StoreResult>> readMultipleReplicaAsync(
             RxDocumentServiceRequest entity,
             boolean includePrimary,
@@ -448,6 +457,8 @@ public class StoreReader {
                 resolveApiResults -> {
                     try {
                         MutableVolatile<ISessionToken> requestSessionToken = new MutableVolatile<>();
+
+                        // useSessionToken is typically true when Session consistency is used
                         if (useSessionToken) {
                             SessionTokenHelper.setPartitionLocalSessionToken(entity, this.sessionContainer);
                             if (checkMinLSN) {
@@ -457,11 +468,16 @@ public class StoreReader {
                             entity.getHeaders().remove(HttpConstants.HttpHeaders.SESSION_TOKEN);
                         }
 
+
+                        // y evaluates to Flux.empty() if there are enough replicas to read from
                         Flux<ReadReplicaResult> y = earlyResultIfNotEnoughReplicas(resolveApiResults, entity, replicaCountToRead);
                         return y.switchIfEmpty(
                                 Flux.defer(() -> {
 
                                     List<StoreResult> storeResultList = Collections.synchronizedList(new ArrayList<>());
+
+                                    // 1. for barrier read request on Strong write
+                                    //      1.1 replicaCountToRead == 1
                                     AtomicInteger replicasToRead = new AtomicInteger(replicaCountToRead);
 
                                     // string clientVersion = entity.Headers[HttpConstants.HttpHeaders.Version];
