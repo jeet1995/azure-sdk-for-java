@@ -209,6 +209,7 @@ public class ConsistencyReader {
         try {
             desiredReadMode = this.deduceReadMode(entity, targetConsistencyLevel, useSessionToken);
         } catch (CosmosException e) {
+            // adding catches to wrap exceptions in the pipeline
             return Mono.error(e);
         }
         int maxReplicaCount = this.getMaxReplicaSetSize(entity);
@@ -343,6 +344,7 @@ public class ConsistencyReader {
     ReadMode deduceReadMode(RxDocumentServiceRequest request,
                             ValueHolder<ConsistencyLevel> targetConsistencyLevel,
                             ValueHolder<Boolean> useSessionToken) {
+        // GatewayServiceConfigurationReader - consistency policy, replication policy, encapsulates GlobalEndpointManager
         targetConsistencyLevel.v = RequestHelper.getConsistencyLevelToUse(this.serviceConfigReader, request);
         useSessionToken.v = (targetConsistencyLevel.v == ConsistencyLevel.SESSION);
 

@@ -126,11 +126,12 @@ public class QuorumReader {
     public Mono<StoreResponse> readStrongAsync(
         DiagnosticsClientContext diagnosticsClientContext,
         RxDocumentServiceRequest entity,
-        int readQuorumValue,
+        int readQuorumValue /* maxReplicaCount - (maxReplicaCount / 2) */,
         ReadMode readMode) {
         final MutableVolatile<Boolean> shouldRetryOnSecondary = new MutableVolatile<>(false);
         final MutableVolatile<Boolean> hasPerformedReadFromPrimary = new MutableVolatile<>(false);
 
+        // Flux.defer is typically composed with repeatWhen / repeat
         return Flux.defer(
             // the following will be repeated till the repeat().takeUntil(.) condition is satisfied.
             () -> {
@@ -140,12 +141,17 @@ public class QuorumReader {
 
                 shouldRetryOnSecondary.v = false;
                 Mono<ReadQuorumResult> secondaryQuorumReadResultObs =
+                    // Q: why is primary excluded
                     this.readQuorumAsync(entity, readQuorumValue, false, readMode);
 
                     return secondaryQuorumReadResultObs.flux().flatMap(
                     secondaryQuorumReadResult -> {
 
                         switch (secondaryQuorumReadResult.quorumResult) {
+                            // Flow for happy path
+                            //  1. Read from multiple replicas (2 replicas excluding the primary)
+                            //  2. Check if quorum has been met
+                            //  3. If yes (happy path), return response
                             case QuorumMet:
                                 try {
                                             return Flux.just(secondaryQuorumReadResult.getResponse());
@@ -200,6 +206,7 @@ public class QuorumReader {
                                     );
                                 });
 
+                            // if store results count is lesser than readQuorum
                             case QuorumNotSelected:
                                 if (hasPerformedReadFromPrimary.v) {
                                     logger.warn("QuorumNotSelected: Primary read already attempted. Quorum could not be selected after retrying on secondaries.");
@@ -271,9 +278,12 @@ public class QuorumReader {
             res -> {
                 if (res.getLeft() != null) {
                     // no need for barrier
+                    // 1. QuorumMet
+                    // 2. QuorumNotSelected
                     return Mono.just(res.getKey());
                 }
 
+                // if it is not quorumNotSelected por quorumNotMet
                 long readLsn = res.getValue().getValue0();
                 long globalCommittedLSN = res.getValue().getValue1();
                 StoreResult storeResult = res.getValue().getValue2();
@@ -314,13 +324,19 @@ public class QuorumReader {
     private Mono<Pair<ReadQuorumResult, Quadruple<Long, Long, StoreResult, List<String>>>> ensureQuorumSelectedStoreResponse(RxDocumentServiceRequest entity, int readQuorum, boolean includePrimary, ReadMode readMode) {
 
         if (entity.requestContext.quorumSelectedStoreResponse == null) {
+            // for session consistency we read from 1 replica at a time
+            // for strong / bounded staleness we try to read from multiple replicas
             Mono<List<StoreResult>> responseResultObs = this.storeReader.readMultipleReplicaAsync(
                 entity, includePrimary, readQuorum, true /*required valid LSN*/, false, readMode);
 
             return responseResultObs.flatMap(
                 responseResult -> {
+                    // Q: why do we convert to toString here?
+                    //      1. helps to log
                     List<String> storeResponses = responseResult.stream().map(response -> response.toString()).collect(Collectors.toList());
                     int responseCount = (int) responseResult.stream().filter(response -> response.isValid).count();
+
+                    // basically the no. of "isValid" responses is lesser than "readQuorum"
                     if (responseCount < readQuorum) {
                         return Mono.just(Pair.of(new ReadQuorumResult(entity.requestContext.requestChargeTracker,
                             ReadQuorumResultKind.QuorumNotSelected,
@@ -341,16 +357,16 @@ public class QuorumReader {
                         readQuorum,
                         false,
                         isGlobalStrongReadCandidate,
-                        readLsn,
-                        globalCommittedLSN,
-                        storeResult)) {
+                        readLsn /*to be set*/,
+                        globalCommittedLSN /*to be set*/,
+                        storeResult /*to be set*/)) {
                         return Mono.just(Pair.of(new ReadQuorumResult(
                             entity.requestContext.requestChargeTracker,
                             ReadQuorumResultKind.QuorumMet,
                             readLsn.v,
                             globalCommittedLSN.v,
-                            storeResult.v,
-                            storeResponses), null));
+                            storeResult.v /* selected response*/,
+                            storeResponses /* all responses from readMultipleReplicaAsync */), null));
                     }
 
                     // at this point, if refresh were necessary, we would have refreshed it in ReadMultipleReplicaAsync
@@ -518,10 +534,13 @@ public class QuorumReader {
         RxDocumentServiceRequest barrierRequest,
         boolean allowPrimary,
         final int readQuorum,
-        final long readBarrierLsn,
+        final long readBarrierLsn /* readLSN */,
         final long targetGlobalCommittedLSN,
         ReadMode readMode) {
-        AtomicInteger readBarrierRetryCount = new AtomicInteger(maxNumberOfReadBarrierReadRetries);
+
+        // maxNumberOfReadBarrierReadRetries is set as 6
+        AtomicInteger readBarrierRetryCount = new AtomicInteger(maxNumberOfReadBarrierReadRetries) ;
+        // maxBarrierRetriesForMultiRegion is set as 30
         AtomicInteger readBarrierRetryCountMultiRegion = new AtomicInteger(maxBarrierRetriesForMultiRegion);
 
         AtomicLong maxGlobalCommittedLsn = new AtomicLong(0);
@@ -536,6 +555,11 @@ public class QuorumReader {
                 barrierRequest, allowPrimary, readQuorum,
                 true /*required valid LSN*/, false /*useSessionToken*/, readMode, false /*checkMinLSN*/, true /*forceReadAll*/);
 
+//                       Mono<List<StoreResult>> responsesObs = this.storeReader.readMultipleReplicaAsync(
+                       //                           barrierRequest, allowPrimary, readQuorum,
+                       //                           true /*required valid LSN*/, false /*useSessionToken*/, readMode,
+                       //                           false /*checkMinLSN*/, true /*forceReadAll*/);
+
             return responsesObs.flux().flatMap(
                 responses -> {
 
@@ -543,6 +567,9 @@ public class QuorumReader {
                                                                                             .mapToLong(response -> response.globalCommittedLSN).max().getAsLong() : 0;
 
 
+                    // readBarrierLsn (itemLsn if itemLsn is not null or maxLsn) - 11
+                    // targetGlobalCommittedLSN (readLsn.v) - 11
+                    // maxGlobalCommittedLsnInResponses - 10
                     if ((responses.stream().filter(response -> response.lsn >= readBarrierLsn).count() >= readQuorum) &&
                         (!(targetGlobalCommittedLSN > 0) || maxGlobalCommittedLsnInResponses >= targetGlobalCommittedLSN)) {
                             return Flux.just(true);
@@ -565,6 +592,7 @@ public class QuorumReader {
                     } else {
                         // delay
                         //await Task.Delay(QuorumReader.delayBetweenReadBarrierCallsInMs);
+                        // return Flux
                             return Flux.empty();
 
                     }
@@ -572,8 +600,10 @@ public class QuorumReader {
             );
         }).repeatWhen(obs -> obs.flatMap(aVoid -> Flux.just(0L)
                                                       .delayElements(
+                                                          // 5ms delay
                                                           Duration.ofMillis(delayBetweenReadBarrierCallsInMs),
                                                           CosmosSchedulers.COSMOS_PARALLEL)))
+                 // take will issue a cancel when 1 boolean value has been emitted
                 .take(1) // Retry loop
                    .flatMap(barrierRequestSucceeded ->
                         Flux.defer(() -> {
@@ -622,13 +652,14 @@ public class QuorumReader {
 
                                }).repeatWhen(obs -> obs.flatMap(aVoid -> {
 
-                                       if ((maxBarrierRetriesForMultiRegion - readBarrierRetryCountMultiRegion.get()) > maxShortBarrierRetriesForMultiRegion) {
+                                      // 10 ms delay b/w first 4 requests then 30 ms delay b/w next 26 requests
+                                       if ((maxBarrierRetriesForMultiRegion /*30*/ - readBarrierRetryCountMultiRegion.get()) > maxShortBarrierRetriesForMultiRegion /*4*/) {
                                                       return Flux.just(0L).delayElements(
-                                                          Duration.ofMillis(barrierRetryIntervalInMsForMultiRegion),
+                                                          Duration.ofMillis(barrierRetryIntervalInMsForMultiRegion) /*30ms*/,
                                                           CosmosSchedulers.COSMOS_PARALLEL);
                                        } else {
                                                       return Flux.just(0L).delayElements(
-                                                          Duration.ofMillis(shortBarrierRetryIntervalInMsForMultiRegion),
+                                                          Duration.ofMillis(shortBarrierRetryIntervalInMsForMultiRegion) /*10ms*/,
                                                           CosmosSchedulers.COSMOS_PARALLEL);
                                        }
 
@@ -663,6 +694,8 @@ public class QuorumReader {
         List<StoreResult> validReadResponses = readResponses.stream().filter(response -> response.isValid).collect(Collectors.toList());
         int validResponsesCount = validReadResponses.size();
 
+        // no way of confirming quorum if count of
+        // valid responses is 0
         if (validResponsesCount == 0) {
             readLsn.v = 0l;
             globalCommittedLSN.v = -1l;
@@ -673,9 +706,14 @@ public class QuorumReader {
 
         assert !validReadResponses.isEmpty();
         long numberOfReadRegions = validReadResponses.stream().map(res -> res.numberOfReadRegions).max(Comparator.naturalOrder()).get();
+
+        // criteria for global strong
+        //      1. account consistency == STRONG & (request consistency == STRONG || request consistency == null)
+        //      2. no. of read regions > 0
         boolean checkForGlobalStrong = isGlobalStrongRead && numberOfReadRegions > 0;
 
-        // Pick any R replicas in the response and check if they are at the same LSN
+        // iterate through validReadResponses and count the replicas
+        // with maxLsn
         for (StoreResult response : validReadResponses) {
             if (response.lsn == maxLsn) {
                 replicaCountMaxLsn++;
@@ -690,12 +728,16 @@ public class QuorumReader {
         }
 
         final long maxLsnFinal = maxLsn;
+        // select the storeResult with the maxLsn amongst all storeResult instances
         selectedResponse.v = validReadResponses.stream().filter(s -> s.lsn == maxLsnFinal).findFirst().get();
 
+        // Q: what is the difference b/w itemLSN and lsn
+        // Q: what is readLsn
         readLsn.v = selectedResponse.v.itemLSN == -1 ?
             maxLsn : Math.min(selectedResponse.v.itemLSN, maxLsn);
         globalCommittedLSN.v = checkForGlobalStrong ? readLsn.v : -1l;
 
+        // at this point we have the maxLsn and maxGlobalCommittedLSN across all replicas
         long maxGlobalCommittedLSN = validReadResponses.stream().mapToLong(res -> res.globalCommittedLSN).max().getAsLong();
 
         logger.debug("QuorumReader: MaxLSN {} ReplicaCountMaxLSN {} bCheckGlobalStrong {} MaxGlobalCommittedLSN {} NumberOfReadRegions {} SelectedResponseItemLSN {}",
@@ -714,6 +756,8 @@ public class QuorumReader {
         //    which should be larger than or equal to the read quorum, which therefore means we have strong consistency.
         boolean isQuorumMet = false;
 
+        // if not global strong request / read -> just check if R replica
+        //
         if ((readLsn.v > 0 && replicaCountMaxLsn >= readQuorum) &&
             (!checkForGlobalStrong || maxGlobalCommittedLSN >= maxLsn)) {
             isQuorumMet = true;

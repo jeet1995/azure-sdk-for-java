@@ -160,6 +160,8 @@ public class ConsistencyWriter {
 
         request.requestContext.forceRefreshAddressCache = forceRefresh;
 
+        // globalStrongWriteResponse is typically null before the first barrier read request is set for Strong write
+        // it is initialized with the response from the Strong write
         if (request.requestContext.globalStrongWriteResponse == null) {
 
             Mono<List<AddressInformation>> replicaAddressesObs = this.addressSelector.resolveAddressesAsync(request, forceRefresh);
@@ -270,10 +272,12 @@ public class ConsistencyWriter {
         } else {
 
             Mono<RxDocumentServiceRequest> barrierRequestObs = BarrierRequestHelper.createAsync(this.diagnosticsClientContext, request, this.authorizationTokenProvider, null, request.requestContext.globalCommittedSelectedLSN);
+            // barrier request repeats for a finite no. of times with delays introduced in between
             return barrierRequestObs.flatMap(barrierRequest -> waitForWriteBarrierAsync(barrierRequest, request.requestContext.globalCommittedSelectedLSN)
                 .flatMap(v -> {
 
                     if (!v) {
+                        // interesting: barrier not met is also a 410 type exception (410/21006)
                         logger.warn("ConsistencyWriter: Write barrier has not been met for global strong request. SelectedGlobalCommittedLsn: {}", request.requestContext.globalCommittedSelectedLSN);
                         return Mono.error(new GoneException(RMResources.GlobalStrongWriteBarrierNotMet,
                             HttpConstants.SubStatusCodes.GLOBAL_STRONG_WRITE_BARRIER_NOT_MET));
@@ -309,7 +313,9 @@ public class ConsistencyWriter {
                 Utils.ValueHolder<Long> globalCommittedLsn = Utils.ValueHolder.initialize(-1L);
 
                 // Q: what is lsn?
+                //      1. progress associated with a particular replica
                 // Q: what is global committed lsn?
+                //      1. progress associated with a region / all replicas associated with a physical partition
                 getLsnAndGlobalCommittedLsn(response, lsn, globalCommittedLsn);
                 if (lsn.v == -1 || globalCommittedLsn.v == -1) {
                     logger.error("ConsistencyWriter: lsn {} or GlobalCommittedLsn {} is not set for global strong request",
@@ -366,9 +372,13 @@ public class ConsistencyWriter {
         }
     }
 
+    // Q: what is selectedGlobalCommittedLsn
+    //      1. The value which globalCommittedLsn has to catch up to
     private Mono<Boolean> waitForWriteBarrierAsync(RxDocumentServiceRequest barrierRequest, long selectedGlobalCommittedLsn) {
         // Max no. of write barrier read retries = 30
         AtomicInteger writeBarrierRetryCount = new AtomicInteger(ConsistencyWriter.MAX_NUMBER_OF_WRITE_BARRIER_READ_RETRIES);
+
+        // Store the max global committed LSN seen so far
         AtomicLong maxGlobalCommittedLsnReceived = new AtomicLong(0);
         return Flux.defer(() -> {
             if (barrierRequest.requestContext.timeoutHelper.isElapsed()) {
@@ -384,7 +394,9 @@ public class ConsistencyWriter {
                 ReadMode.Strong,
                 false /*checkMinLsn*/,
                 false /*forceReadAll*/);
-            return storeResultListObs.flatMap(
+            return storeResultListObs
+                .flatMap(
+                // 1. For barrierRequest on Strong write only 1 response should be received since we read from 1 replica
                 responses -> {
                     if (responses != null && responses.stream().anyMatch(response -> response.globalCommittedLSN >= selectedGlobalCommittedLsn)) {
                         return Mono.just(Boolean.TRUE);
@@ -413,7 +425,10 @@ public class ConsistencyWriter {
                     return Mono.empty();
                     }).flux();
         }).repeatWhen(s -> s.flatMap(x -> {
-            // repeat with a delay
+            // repeat with a delay either of 30ms or 10ms
+            // if no. of short barrier retries have gone 4, then increase the delay between each barrier retry
+            // Q: what is repeatWhen
+            //      1. repeatWhen causes a repeated subscription - hence Flux.defer is used to re-issue the barrier request
             if ((ConsistencyWriter.MAX_NUMBER_OF_WRITE_BARRIER_READ_RETRIES - writeBarrierRetryCount.get()) > ConsistencyWriter.MAX_SHORT_BARRIER_RETRIES_FOR_MULTI_REGION) {
                 return Mono.delay(
                     Duration.ofMillis(ConsistencyWriter.DELAY_BETWEEN_WRITE_BARRIER_CALLS_IN_MS),

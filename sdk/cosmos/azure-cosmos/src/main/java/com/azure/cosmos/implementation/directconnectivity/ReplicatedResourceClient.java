@@ -112,6 +112,7 @@ public class ReplicatedResourceClient {
     }
 
     public static boolean isGlobalStrongEnabled() {
+
         return true;
     }
 

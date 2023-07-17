@@ -251,6 +251,10 @@ public class StoreReader {
                 res = this.readFromStoreAsync(addressUri, entity);
 
             } catch (Exception e) {
+                // Q: what exceptions can be thrown here?
+                //      1. GoneException because of timeout
+                //      2. IllegalStateException because of bad operation type
+                //      3. BadRequestException because of bad continuation token type - Query / ReadFeed OperationType
                 res = Pair.of(Mono.error(e), addressUri);
             }
 
@@ -1009,7 +1013,7 @@ public class StoreReader {
 
                 // SESSION token response header is introduced from getVersion HttpConstants.Versions.v2018_06_18 onwards.
                 // Previously it was only a request header
-                // server-side GoneException will session token be populated?
+                // Q: server-side GoneException will session token be populated?
                 headerValue = cosmosException.getResponseHeaders().get(HttpConstants.HttpHeaders.SESSION_TOKEN);
                 if (!Strings.isNullOrEmpty(headerValue)) {
                     sessionToken = SessionTokenHelper.parse(headerValue);
