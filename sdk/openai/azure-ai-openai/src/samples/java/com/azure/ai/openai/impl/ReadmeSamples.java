@@ -108,7 +108,7 @@ public final class ReadmeSamples {
 
         Completions completions = client.getCompletions("{deploymentOrModelId}", new CompletionsOptions(prompt));
 
-        System.out.printf("Model ID=%s is created at %d.%n", completions.getId(), completions.getCreated());
+        System.out.printf("Model ID=%s is created at %d.%n", completions.getId(), completions.getCreatedAt());
         for (Choice choice : completions.getChoices()) {
             System.out.printf("Index: %d, Text: %s.%n", choice.getIndex(), choice.getText());
         }
@@ -124,7 +124,7 @@ public final class ReadmeSamples {
             .getCompletionsStream("{deploymentOrModelId}", new CompletionsOptions(prompt));
 
         completionsStream.forEach(completions -> {
-            System.out.printf("Model ID=%s is created at %d.%n", completions.getId(), completions.getCreated());
+            System.out.printf("Model ID=%s is created at %d.%n", completions.getId(), completions.getCreatedAt());
             for (Choice choice : completions.getChoices()) {
                 System.out.printf("Index: %d, Text: %s.%n", choice.getIndex(), choice.getText());
             }
@@ -135,15 +135,15 @@ public final class ReadmeSamples {
     public void getChatCompletions() {
         // BEGIN: readme-sample-getChatCompletions
         List<ChatMessage> chatMessages = new ArrayList<>();
-        chatMessages.add(new ChatMessage(ChatRole.SYSTEM).setContent("You are a helpful assistant. You will talk like a pirate."));
-        chatMessages.add(new ChatMessage(ChatRole.USER).setContent("Can you help me?"));
-        chatMessages.add(new ChatMessage(ChatRole.ASSISTANT).setContent("Of course, me hearty! What can I do for ye?"));
-        chatMessages.add(new ChatMessage(ChatRole.USER).setContent("What's the best way to train a parrot?"));
+        chatMessages.add(new ChatMessage(ChatRole.SYSTEM, "You are a helpful assistant. You will talk like a pirate."));
+        chatMessages.add(new ChatMessage(ChatRole.USER, "Can you help me?"));
+        chatMessages.add(new ChatMessage(ChatRole.ASSISTANT, "Of course, me hearty! What can I do for ye?"));
+        chatMessages.add(new ChatMessage(ChatRole.USER, "What's the best way to train a parrot?"));
 
         ChatCompletions chatCompletions = client.getChatCompletions("{deploymentOrModelId}",
             new ChatCompletionsOptions(chatMessages));
 
-        System.out.printf("Model ID=%s is created at %d.%n", chatCompletions.getId(), chatCompletions.getCreated());
+        System.out.printf("Model ID=%s is created at %d.%n", chatCompletions.getId(), chatCompletions.getCreatedAt());
         for (ChatChoice choice : chatCompletions.getChoices()) {
             ChatMessage message = choice.getMessage();
             System.out.printf("Index: %d, Chat Role: %s.%n", choice.getIndex(), message.getRole());
@@ -156,16 +156,16 @@ public final class ReadmeSamples {
     public void getChatCompletionsStream() {
         // BEGIN: readme-sample-getChatCompletionsStream
         List<ChatMessage> chatMessages = new ArrayList<>();
-        chatMessages.add(new ChatMessage(ChatRole.SYSTEM).setContent("You are a helpful assistant. You will talk like a pirate."));
-        chatMessages.add(new ChatMessage(ChatRole.USER).setContent("Can you help me?"));
-        chatMessages.add(new ChatMessage(ChatRole.ASSISTANT).setContent("Of course, me hearty! What can I do for ye?"));
-        chatMessages.add(new ChatMessage(ChatRole.USER).setContent("What's the best way to train a parrot?"));
+        chatMessages.add(new ChatMessage(ChatRole.SYSTEM, "You are a helpful assistant. You will talk like a pirate."));
+        chatMessages.add(new ChatMessage(ChatRole.USER, "Can you help me?"));
+        chatMessages.add(new ChatMessage(ChatRole.ASSISTANT, "Of course, me hearty! What can I do for ye?"));
+        chatMessages.add(new ChatMessage(ChatRole.USER, "What's the best way to train a parrot?"));
 
         IterableStream<ChatCompletions> chatCompletionsStream = client.getChatCompletionsStream("{deploymentOrModelId}",
             new ChatCompletionsOptions(chatMessages));
 
         chatCompletionsStream.forEach(chatCompletions -> {
-            System.out.printf("Model ID=%s is created at %d.%n", chatCompletions.getId(), chatCompletions.getCreated());
+            System.out.printf("Model ID=%s is created at %d.%n", chatCompletions.getId(), chatCompletions.getCreatedAt());
             for (ChatChoice choice : chatCompletions.getChoices()) {
                 ChatMessage message = choice.getDelta();
                 if (message != null) {
@@ -193,7 +193,7 @@ public final class ReadmeSamples {
         Embeddings embeddings = client.getEmbeddings("{deploymentOrModelId}", embeddingsOptions);
 
         for (EmbeddingItem item : embeddings.getData()) {
-            System.out.printf("Index: %d.%n", item.getIndex());
+            System.out.printf("Index: %d.%n", item.getPromptIndex());
             for (Double embedding : item.getEmbedding()) {
                 System.out.printf("%f;", embedding);
             }

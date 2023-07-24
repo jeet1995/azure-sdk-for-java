@@ -117,6 +117,12 @@ public class RxDocumentServiceRequest implements Cloneable {
         }
     }
 
+    public boolean isMetadataRequest() {
+        return (this.getOperationType() != OperationType.ExecuteJavaScript
+            && this.getResourceType() == ResourceType.StoredProcedure)
+            || this.getResourceType() != ResourceType.Document;
+    }
+
     public RxDocumentServiceRequest setNonIdempotentWriteRetriesEnabled(boolean enabled) {
         this.nonIdempotentWriteRetriesEnabled = enabled;
 

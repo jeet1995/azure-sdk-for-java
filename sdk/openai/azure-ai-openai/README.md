@@ -46,7 +46,7 @@ If you want to see the full code for these snippets check out our [samples folde
 
 ### Authentication
 
-In order to interact with the Azure OpenAI service you'll need to create an instance of client class,
+In order to interact with the Azure OpenAI Service you'll need to create an instance of client class,
 [OpenAIAsyncClient][openai_client_async] or [OpenAIClient][openai_client_sync] by using 
 [OpenAIClientBuilder][openai_client_builder]. To configure a client for use with 
 Azure OpenAI, provide a valid endpoint URI to an Azure OpenAI resource along with a corresponding key credential,
@@ -157,7 +157,7 @@ prompt.add("Say this is a test");
 
 Completions completions = client.getCompletions("{deploymentOrModelId}", new CompletionsOptions(prompt));
 
-System.out.printf("Model ID=%s is created at %d.%n", completions.getId(), completions.getCreated());
+System.out.printf("Model ID=%s is created at %d.%n", completions.getId(), completions.getCreatedAt());
 for (Choice choice : completions.getChoices()) {
     System.out.printf("Index: %d, Text: %s.%n", choice.getIndex(), choice.getText());
 }
@@ -173,7 +173,7 @@ IterableStream<Completions> completionsStream = client
     .getCompletionsStream("{deploymentOrModelId}", new CompletionsOptions(prompt));
 
 completionsStream.forEach(completions -> {
-    System.out.printf("Model ID=%s is created at %d.%n", completions.getId(), completions.getCreated());
+    System.out.printf("Model ID=%s is created at %d.%n", completions.getId(), completions.getCreatedAt());
     for (Choice choice : completions.getChoices()) {
         System.out.printf("Index: %d, Text: %s.%n", choice.getIndex(), choice.getText());
     }
@@ -184,15 +184,15 @@ completionsStream.forEach(completions -> {
 
 ``` java readme-sample-getChatCompletions
 List<ChatMessage> chatMessages = new ArrayList<>();
-chatMessages.add(new ChatMessage(ChatRole.SYSTEM).setContent("You are a helpful assistant. You will talk like a pirate."));
-chatMessages.add(new ChatMessage(ChatRole.USER).setContent("Can you help me?"));
-chatMessages.add(new ChatMessage(ChatRole.ASSISTANT).setContent("Of course, me hearty! What can I do for ye?"));
-chatMessages.add(new ChatMessage(ChatRole.USER).setContent("What's the best way to train a parrot?"));
+chatMessages.add(new ChatMessage(ChatRole.SYSTEM, "You are a helpful assistant. You will talk like a pirate."));
+chatMessages.add(new ChatMessage(ChatRole.USER, "Can you help me?"));
+chatMessages.add(new ChatMessage(ChatRole.ASSISTANT, "Of course, me hearty! What can I do for ye?"));
+chatMessages.add(new ChatMessage(ChatRole.USER, "What's the best way to train a parrot?"));
 
 ChatCompletions chatCompletions = client.getChatCompletions("{deploymentOrModelId}",
     new ChatCompletionsOptions(chatMessages));
 
-System.out.printf("Model ID=%s is created at %d.%n", chatCompletions.getId(), chatCompletions.getCreated());
+System.out.printf("Model ID=%s is created at %d.%n", chatCompletions.getId(), chatCompletions.getCreatedAt());
 for (ChatChoice choice : chatCompletions.getChoices()) {
     ChatMessage message = choice.getMessage();
     System.out.printf("Index: %d, Chat Role: %s.%n", choice.getIndex(), message.getRole());
@@ -206,16 +206,16 @@ Please refer to the service documentation for a conceptual discussion of [text c
 
 ```java readme-sample-getChatCompletionsStream
 List<ChatMessage> chatMessages = new ArrayList<>();
-chatMessages.add(new ChatMessage(ChatRole.SYSTEM).setContent("You are a helpful assistant. You will talk like a pirate."));
-chatMessages.add(new ChatMessage(ChatRole.USER).setContent("Can you help me?"));
-chatMessages.add(new ChatMessage(ChatRole.ASSISTANT).setContent("Of course, me hearty! What can I do for ye?"));
-chatMessages.add(new ChatMessage(ChatRole.USER).setContent("What's the best way to train a parrot?"));
+chatMessages.add(new ChatMessage(ChatRole.SYSTEM, "You are a helpful assistant. You will talk like a pirate."));
+chatMessages.add(new ChatMessage(ChatRole.USER, "Can you help me?"));
+chatMessages.add(new ChatMessage(ChatRole.ASSISTANT, "Of course, me hearty! What can I do for ye?"));
+chatMessages.add(new ChatMessage(ChatRole.USER, "What's the best way to train a parrot?"));
 
 IterableStream<ChatCompletions> chatCompletionsStream = client.getChatCompletionsStream("{deploymentOrModelId}",
     new ChatCompletionsOptions(chatMessages));
 
 chatCompletionsStream.forEach(chatCompletions -> {
-    System.out.printf("Model ID=%s is created at %d.%n", chatCompletions.getId(), chatCompletions.getCreated());
+    System.out.printf("Model ID=%s is created at %d.%n", chatCompletions.getId(), chatCompletions.getCreatedAt());
     for (ChatChoice choice : chatCompletions.getChoices()) {
         ChatMessage message = choice.getDelta();
         if (message != null) {
@@ -243,7 +243,7 @@ EmbeddingsOptions embeddingsOptions = new EmbeddingsOptions(
 Embeddings embeddings = client.getEmbeddings("{deploymentOrModelId}", embeddingsOptions);
 
 for (EmbeddingItem item : embeddings.getData()) {
-    System.out.printf("Index: %d.%n", item.getIndex());
+    System.out.printf("Index: %d.%n", item.getPromptIndex());
     for (Double embedding : item.getEmbedding()) {
         System.out.printf("%f;", embedding);
     }

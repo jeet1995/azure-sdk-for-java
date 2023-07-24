@@ -18,10 +18,12 @@ import com.azure.cosmos.implementation.Exceptions;
 import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.IAuthorizationTokenProvider;
+import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.JavaStreamUtils;
 import com.azure.cosmos.implementation.MetadataDiagnosticsContext;
 import com.azure.cosmos.implementation.MetadataDiagnosticsContext.MetadataDiagnostics;
 import com.azure.cosmos.implementation.MetadataDiagnosticsContext.MetadataType;
+import com.azure.cosmos.implementation.MetadataRequestRetryPolicy;
 import com.azure.cosmos.implementation.OpenConnectionResponse;
 import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.PartitionKeyRange;
@@ -42,6 +44,7 @@ import com.azure.cosmos.implementation.apachecommons.lang.tuple.Pair;
 import com.azure.cosmos.implementation.caches.AsyncCacheNonBlocking;
 import com.azure.cosmos.implementation.directconnectivity.rntbd.OpenConnectionTask;
 import com.azure.cosmos.implementation.directconnectivity.rntbd.ProactiveOpenConnectionsProcessor;
+import com.azure.cosmos.implementation.faultinjection.GatewayServerErrorInjector;
 import com.azure.cosmos.implementation.http.HttpClient;
 import com.azure.cosmos.implementation.http.HttpHeaders;
 import com.azure.cosmos.implementation.http.HttpRequest;
@@ -108,6 +111,7 @@ public class GatewayAddressCache implements IAddressCache {
     private final ConnectionPolicy connectionPolicy;
     private final boolean replicaAddressValidationEnabled;
     private final Set<Uri.HealthStatus> replicaValidationScopes;
+    private GatewayServerErrorInjector gatewayServerErrorInjector;
 
     public GatewayAddressCache(
         DiagnosticsClientContext clientContext,
@@ -120,7 +124,8 @@ public class GatewayAddressCache implements IAddressCache {
         ApiType apiType,
         GlobalEndpointManager globalEndpointManager,
         ConnectionPolicy connectionPolicy,
-        ProactiveOpenConnectionsProcessor proactiveOpenConnectionsProcessor) {
+        ProactiveOpenConnectionsProcessor proactiveOpenConnectionsProcessor,
+        GatewayServerErrorInjector gatewayServerErrorInjector) {
 
         this.clientContext = clientContext;
         try {
@@ -171,6 +176,7 @@ public class GatewayAddressCache implements IAddressCache {
         if (this.replicaAddressValidationEnabled) {
             this.replicaValidationScopes.add(Uri.HealthStatus.UnhealthyPending);
         }
+        this.gatewayServerErrorInjector = gatewayServerErrorInjector;
     }
 
     public GatewayAddressCache(
@@ -183,7 +189,8 @@ public class GatewayAddressCache implements IAddressCache {
         ApiType apiType,
         GlobalEndpointManager globalEndpointManager,
         ConnectionPolicy connectionPolicy,
-        ProactiveOpenConnectionsProcessor proactiveOpenConnectionsProcessor) {
+        ProactiveOpenConnectionsProcessor proactiveOpenConnectionsProcessor,
+        GatewayServerErrorInjector gatewayServerErrorInjector) {
         this(clientContext,
                 serviceEndpoint,
                 protocol,
@@ -194,7 +201,8 @@ public class GatewayAddressCache implements IAddressCache {
                 apiType,
                 globalEndpointManager,
                 connectionPolicy,
-                proactiveOpenConnectionsProcessor);
+                proactiveOpenConnectionsProcessor,
+                gatewayServerErrorInjector);
     }
 
     @Override
@@ -328,15 +336,35 @@ public class GatewayAddressCache implements IAddressCache {
         this.proactiveOpenConnectionsProcessor = proactiveOpenConnectionsProcessor;
     }
 
+    public void setGatewayServerErrorInjector(GatewayServerErrorInjector gatewayServerErrorInjector) {
+        this.gatewayServerErrorInjector = gatewayServerErrorInjector;
+    }
+
     public Mono<List<Address>> getServerAddressesViaGatewayAsync(
         RxDocumentServiceRequest request,
         String collectionRid,
         List<String> partitionKeyRangeIds,
         boolean forceRefresh) {
+
+        MetadataRequestRetryPolicy metadataRequestRetryPolicy = new MetadataRequestRetryPolicy(globalEndpointManager);
+        metadataRequestRetryPolicy.onBeforeSendRequest(request);
+
+        return BackoffRetryUtility.executeRetry(() -> this.getServerAddressesViaGatewayInternalAsync(
+            request, collectionRid, partitionKeyRangeIds, forceRefresh), metadataRequestRetryPolicy);
+    }
+
+    private Mono<List<Address>> getServerAddressesViaGatewayInternalAsync(RxDocumentServiceRequest request,
+                                                                          String collectionRid,
+                                                                          List<String> partitionKeyRangeIds,
+                                                                          boolean forceRefresh) {
         if (logger.isDebugEnabled()) {
             logger.debug("getServerAddressesViaGatewayAsync collectionRid {}, partitionKeyRangeIds {}", collectionRid,
                 JavaStreamUtils.toString(partitionKeyRangeIds, ","));
         }
+
+        // track address refresh has happened, this is only meant to be used for fault injection validation
+        request.faultInjectionRequestContext.recordAddressForceRefreshed(forceRefresh);
+
         request.setAddressRefresh(true, forceRefresh);
         String entryUrl = PathsHelper.generatePath(ResourceType.Document, collectionRid, true);
         HashMap<String, String> addressQuery = new HashMap<>();
@@ -402,15 +430,25 @@ public class GatewayAddressCache implements IAddressCache {
         Instant addressCallStartTime = Instant.now();
         HttpRequest httpRequest = new HttpRequest(HttpMethod.GET, targetEndpoint, targetEndpoint.getPort(), httpHeaders);
 
+        Duration responseTimeout = Duration.ofSeconds(Configs.getAddressRefreshResponseTimeoutInSeconds());
+
         Mono<HttpResponse> httpResponseMono;
         if (tokenProvider.getAuthorizationTokenType() != AuthorizationTokenType.AadToken) {
-            httpResponseMono = this.httpClient.send(httpRequest,
-                Duration.ofSeconds(Configs.getAddressRefreshResponseTimeoutInSeconds()));
+            httpResponseMono = this.httpClient.send(httpRequest, responseTimeout);
         } else {
             httpResponseMono = tokenProvider
                 .populateAuthorizationHeader(httpHeaders)
-                .flatMap(valueHttpHeaders -> this.httpClient.send(httpRequest,
-                    Duration.ofSeconds(Configs.getAddressRefreshResponseTimeoutInSeconds())));
+                .flatMap(valueHttpHeaders -> this.httpClient.send(httpRequest,responseTimeout));
+        }
+
+        if (this.gatewayServerErrorInjector != null) {
+            httpResponseMono =
+                this.gatewayServerErrorInjector.injectGatewayErrors(
+                    responseTimeout,
+                    httpRequest,
+                    request,
+                    httpResponseMono,
+                    partitionKeyRangeIds);
         }
 
         Mono<RxDocumentServiceResponse> dsrObs = HttpClientUtils.parseResponseAsync(request, clientContext, httpResponseMono, httpRequest);
@@ -429,11 +467,21 @@ public class GatewayAddressCache implements IAddressCache {
                 if (logger.isDebugEnabled()) {
                     logger.debug("getServerAddressesViaGatewayAsync deserializes result");
                 }
-                logAddressResolutionEnd(request, identifier, null);
+                logAddressResolutionEnd(
+                    request,
+                    identifier,
+                    null,
+                    httpRequest.reactorNettyRequestRecord().getTransportRequestId());
+
                 return dsr.getQueryResponse(null, Address.class);
             }).onErrorResume(throwable -> {
             Throwable unwrappedException = reactor.core.Exceptions.unwrap(throwable);
-            logAddressResolutionEnd(request, identifier, unwrappedException.toString());
+            logAddressResolutionEnd(
+                request,
+                identifier,
+                unwrappedException.toString(),
+                httpRequest.reactorNettyRequestRecord().getTransportRequestId());
+
             if (!(unwrappedException instanceof Exception)) {
                 // fatal error
                 logger.error("Unexpected failure {}", unwrappedException.getMessage(), unwrappedException);
@@ -793,11 +841,21 @@ public class GatewayAddressCache implements IAddressCache {
                     metadataDiagnosticsContext.addMetaDataDiagnostic(metaDataDiagnostic);
                 }
 
-                logAddressResolutionEnd(request, identifier, null);
+                logAddressResolutionEnd(
+                    request,
+                    identifier,
+                    null,
+                    httpRequest.reactorNettyRequestRecord().getTransportRequestId());
+
                 return dsr.getQueryResponse(null, Address.class);
             }).onErrorResume(throwable -> {
             Throwable unwrappedException = reactor.core.Exceptions.unwrap(throwable);
-            logAddressResolutionEnd(request, identifier, unwrappedException.toString());
+            logAddressResolutionEnd(
+                request,
+                identifier,
+                unwrappedException.toString(),
+                httpRequest.reactorNettyRequestRecord().getTransportRequestId());
+
             if (!(unwrappedException instanceof Exception)) {
                 // fatal error
                 logger.error("Unexpected failure {}", unwrappedException.getMessage(), unwrappedException);
@@ -1124,9 +1182,16 @@ public class GatewayAddressCache implements IAddressCache {
         return null;
     }
 
-    private static void logAddressResolutionEnd(RxDocumentServiceRequest request, String identifier, String errorMessage) {
+    private static void logAddressResolutionEnd(
+        RxDocumentServiceRequest request,
+        String identifier,
+        String errorMessage,
+        long transportRequestId) {
         if (request.requestContext.cosmosDiagnostics != null) {
-            BridgeInternal.recordAddressResolutionEnd(request.requestContext.cosmosDiagnostics, identifier, errorMessage);
+            ImplementationBridgeHelpers
+                .CosmosDiagnosticsHelper
+                .getCosmosDiagnosticsAccessor()
+                .recordAddressResolutionEnd(request, identifier, errorMessage, transportRequestId);
         }
     }
 
