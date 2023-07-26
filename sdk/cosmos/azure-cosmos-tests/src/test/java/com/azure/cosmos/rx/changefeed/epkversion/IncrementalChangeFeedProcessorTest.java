@@ -94,12 +94,18 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
         try {
             List<InternalObjectNode> createdDocuments = new ArrayList<>();
             Map<String, JsonNode> receivedDocuments = new ConcurrentHashMap<>();
+
+            // does a bulk insert on 10 documents
             setupReadFeedDocuments(createdDocuments, receivedDocuments, createdFeedCollection, FEED_COUNT);
 
             changeFeedProcessor = new ChangeFeedProcessorBuilder()
+                // host name - should be unique per ChangeFeedProcessor instance
+                // if there is only 1 lease then only 1 CFP instance can hold the lease
                 .hostName(hostName)
+                // takes a consumer which has the capability to process the change feed in incremental mode
                 .handleLatestVersionChanges(changeFeedProcessorHandler(receivedDocuments))
                 .feedContainer(createdFeedCollection)
+                // lease container tracks progress of change feed
                 .leaseContainer(createdLeaseCollection)
                 .options(new ChangeFeedProcessorOptions()
                     .setLeaseRenewInterval(Duration.ofSeconds(20))

@@ -58,15 +58,20 @@ class BootstrapperImpl implements Bootstrapper {
                     return Mono.empty();
                 } else {
                     logger.info("Acquire initialization lock");
+                    // attempt to create a lock document on the lease store - if conflict
+                    // then some other CFP instance has acquired the lock
                     return this.leaseStore.acquireInitializationLock(this.lockTime)
                         .flatMap(lockAcquired -> {
                             this.isLockAcquired = lockAcquired;
 
                             if (!this.isLockAcquired) {
                                 logger.info("Another instance is initializing the store");
+                                // if lock could not be acquired delay
                                 return Mono.just(isLockAcquired).delayElement(this.sleepTime, CosmosSchedulers.COSMOS_PARALLEL);
                             } else {
+                                // if lock acquired create the missing leases for each physical partition of the monitored container
                                 return this.synchronizer.createMissingLeases()
+                                // create a marker document - if can be created w/o conflicts then store initialized otherwise some other CFP instance initialized
                                     .then(this.leaseStore.markInitialized());
                             }
                         })
@@ -76,12 +81,15 @@ class BootstrapperImpl implements Bootstrapper {
                         })
                         .flatMap(lockAcquired -> {
                             if (this.isLockAcquired) {
+                                // attempt to delete the lock document - if conflict
+                                // then some other instance has acquired the lock
                                 return this.leaseStore.releaseInitializationLock();
                             }
                             return Mono.just(lockAcquired);
                         });
                 }
             })
+             // repeat until initialization
             .repeat(() -> !this.isInitialized)
             .then();
     }

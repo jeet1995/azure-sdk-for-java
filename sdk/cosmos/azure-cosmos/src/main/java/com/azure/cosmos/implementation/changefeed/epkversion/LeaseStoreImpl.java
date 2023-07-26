@@ -43,10 +43,17 @@ class LeaseStoreImpl implements LeaseStore {
         this.requestOptionsFactory = requestOptionsFactory;
     }
 
+    // leaseStore is considered to be initialized when markerDoc
+    // can be found from the lease container
     @Override
     public Mono<Boolean> isInitialized() {
+        // Q: what is a store marker name?
+        //      1. containerPrefix + ".info"
         String markerDocId = this.getStoreMarkerName();
 
+        // denotes a marker doc probably
+        // Q: how does it help?
+        //      1. Helps in lease synchronization
         InternalObjectNode doc = new InternalObjectNode();
         doc.setId(markerDocId);
 
@@ -68,12 +75,13 @@ class LeaseStoreImpl implements LeaseStore {
             });
     }
 
-    @Override
+ @Override
     public Mono<Boolean> markInitialized() {
         String markerDocId = this.getStoreMarkerName();
         InternalObjectNode containerDocument = new InternalObjectNode();
         containerDocument.setId(markerDocId);
 
+        // create marker item on lease collection
         return this.client.createItem(this.leaseCollectionLink, containerDocument, new CosmosItemRequestOptions(), false)
             .map( item -> {
                 return true;
@@ -101,6 +109,7 @@ class LeaseStoreImpl implements LeaseStore {
         return this.client.createItem(this.leaseCollectionLink, containerDocument, new CosmosItemRequestOptions(), false)
             .map(documentResourceResponse -> {
                 if (BridgeInternal.getProperties(documentResourceResponse) != null) {
+                    // store ETag can be obtained from the document then lock has been acquired
                     this.lockETag = BridgeInternal.getProperties(documentResourceResponse).getETag();
                     return true;
                 } else {
@@ -110,6 +119,7 @@ class LeaseStoreImpl implements LeaseStore {
             .onErrorResume(throwable -> {
                 if (throwable instanceof CosmosException) {
                     CosmosException e = (CosmosException) throwable;
+                    // conflict in creating lock document
                     if (e.getStatusCode() == ChangeFeedHelper.HTTP_STATUS_CODE_CONFLICT) {
                         logger.info("Lease synchronization document was acquired by a different instance");
                         return Mono.just(false);

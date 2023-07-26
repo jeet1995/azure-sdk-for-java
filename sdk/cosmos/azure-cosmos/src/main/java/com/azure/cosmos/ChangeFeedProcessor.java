@@ -60,6 +60,7 @@ import java.util.Map;
  * </pre>
  * <!-- end com.azure.cosmos.allVersionsAndDeletesChangeFeedProcessor.builder -->
  */
+// read
 public interface ChangeFeedProcessor {
 
     /**

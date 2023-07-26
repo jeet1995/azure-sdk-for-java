@@ -134,6 +134,7 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
      */
     @Override
     public Mono<Void> start() {
+        // Q: what is a partitionManager
         if (this.partitionManager == null) {
             return this.initializeCollectionPropertiesForBuild()
                     .flatMap(value -> this.getLeaseStoreManager().flatMap(this::buildPartitionManager))
