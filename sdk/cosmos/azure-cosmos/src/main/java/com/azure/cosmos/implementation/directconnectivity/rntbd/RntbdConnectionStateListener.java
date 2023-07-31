@@ -196,6 +196,10 @@ public class RntbdConnectionStateListener {
     }
     // endregion
 
+    public Optional<Uri> getAddressUri() {
+        return addressUriMap.values().stream().findFirst();
+    }
+
     private boolean shouldRefreshForException(Exception exception) {
         return exception instanceof ConnectTimeoutException
             || exception instanceof InvalidPartitionException

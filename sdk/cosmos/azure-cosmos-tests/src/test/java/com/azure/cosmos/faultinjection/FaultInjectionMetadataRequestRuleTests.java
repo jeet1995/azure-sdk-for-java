@@ -8,6 +8,8 @@ import com.azure.cosmos.CosmosAsyncClient;
 import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosDiagnostics;
+import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfig;
+import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfigBuilder;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.AsyncDocumentClient;
 import com.azure.cosmos.implementation.DatabaseAccount;
@@ -15,6 +17,7 @@ import com.azure.cosmos.implementation.DatabaseAccountLocation;
 import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.Utils;
 import com.azure.cosmos.implementation.throughputControl.TestItem;
+import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.FeedRange;
 import com.azure.cosmos.models.PartitionKey;
@@ -37,6 +40,7 @@ import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -426,6 +430,96 @@ public class FaultInjectionMetadataRequestRuleTests extends TestSuiteBase {
             addressRefreshTooManyRequestRule.disable();
             dataOperationGoneRule.disable();
             safeClose(testClient);
+        }
+    }
+
+    @Test(groups = { "simple" }, timeOut = 40 * TIMEOUT)
+    public void faultInjectionServerErrorRuleTests_AddressRefresh_ReadTimeout_WithE2ETimeout() throws JsonProcessingException {
+        // We need to create a new client because client may have marked region unavailable in other tests
+        // which can impact the test result
+
+        List<String> preferredRegionSubset = new ArrayList<>();
+        preferredRegionSubset = Arrays.asList(preferredLocations.get(0));
+        Duration timeout = Duration.ofSeconds(2);
+
+        CosmosAsyncClient testClientOne = getClientBuilder()
+            .contentResponseOnWriteEnabled(true)
+            .preferredRegions(preferredRegionSubset)
+            .buildAsyncClient();
+
+        CosmosAsyncClient testClientTwo = getClientBuilder()
+            .contentResponseOnWriteEnabled(true)
+            .preferredRegions(preferredRegionSubset)
+            .buildAsyncClient();
+
+        CosmosEndToEndOperationLatencyPolicyConfig endToEndOperationLatencyPolicyConfig =
+            new CosmosEndToEndOperationLatencyPolicyConfigBuilder(timeout)
+                .build();
+
+        CosmosAsyncContainer containerOne = testClientOne
+            .getDatabase(this.cosmosAsyncContainer.getDatabase().getId())
+            .getContainer(this.cosmosAsyncContainer.getId());
+
+        CosmosAsyncContainer containerTwo = testClientTwo
+                .getDatabase(this.cosmosAsyncContainer.getDatabase().getId())
+                .getContainer(this.cosmosAsyncContainer.getId());
+
+        String addressRefreshTooManyRequest = "AddressRefresh-responseDelay-" + UUID.randomUUID();
+        FaultInjectionRule addressRefreshTooManyRequestRule =
+            new FaultInjectionRuleBuilder(addressRefreshTooManyRequest)
+                .condition(
+                    new FaultInjectionConditionBuilder()
+                        .region(preferredLocations.get(0))
+                        .operationType(FaultInjectionOperationType.METADATA_REQUEST_ADDRESS_REFRESH)
+                        .build()
+                )
+                .result(
+                    FaultInjectionResultBuilders
+                        .getResultBuilder(FaultInjectionServerErrorType.RESPONSE_DELAY)
+                        .delay(Duration.ofSeconds(6)) // to simulate http request timeout
+                        .times(4)
+                        .build()
+                )
+                .duration(Duration.ofMinutes(5))
+                .build();
+
+        FaultInjectionRule dataOperationGoneRule =
+            new FaultInjectionRuleBuilder("DataOperation-gone-" + UUID.randomUUID())
+                .condition(
+                    new FaultInjectionConditionBuilder()
+                        .region(this.preferredLocations.get(0))
+                        .operationType(FaultInjectionOperationType.CREATE_ITEM)
+                        .build())
+                .result(
+                    FaultInjectionResultBuilders
+                        .getResultBuilder(FaultInjectionServerErrorType.GONE)
+                        .times(1) // to make sure the address refresh will be at least triggered once
+                        .build()
+                )
+                .duration(Duration.ofMinutes(5))
+                .build();
+        try {
+            TestItem createdItem = TestItem.createNewItem();
+            containerOne.createItem(createdItem).block();
+
+            CosmosFaultInjectionHelper.configureFaultInjectionRules(
+                                          containerTwo,
+                                          Arrays.asList(addressRefreshTooManyRequestRule, dataOperationGoneRule))
+                                      .block();
+
+            CosmosItemRequestOptions cosmosItemRequestOptions = new CosmosItemRequestOptions();
+            cosmosItemRequestOptions.setCosmosEndToEndOperationLatencyPolicyConfig(endToEndOperationLatencyPolicyConfig);
+
+            CosmosDiagnostics cosmosDiagnostics =
+                containerTwo.readItem(createdItem.getId(), new PartitionKey(createdItem.getId()), cosmosItemRequestOptions, JsonNode.class).block().getDiagnostics();
+
+            assertThat(cosmosDiagnostics.getContactedRegionNames().size()).isEqualTo(1);
+            assertThat(cosmosDiagnostics.getContactedRegionNames().containsAll(Arrays.asList(this.preferredLocations.get(0).toLowerCase()))).isTrue();
+            validateFaultInjectionRuleAppliedForAddressResolution(cosmosDiagnostics, addressRefreshTooManyRequest, 1);
+        } finally {
+            addressRefreshTooManyRequestRule.disable();
+            dataOperationGoneRule.disable();
+            safeClose(testClientTwo);
         }
     }
 

@@ -304,6 +304,11 @@ public final class ProactiveOpenConnectionsProcessor implements Closeable {
                                             });
                                 }
 
+                                if (openConnectionResponse.isOpenConnectionAttempted() && !openConnectionResponse.isConnected()) {
+                                    Uri addressUri = openConnectionResponse.getUri();
+                                    addressUri.setUnhealthy();
+                                }
+
                                 this.removeEndpointFromMonitor(openConnectionTask.getAddressUri().toString(), openConnectionResponse);
                                 return Mono.just(openConnectionResponse);
                             });

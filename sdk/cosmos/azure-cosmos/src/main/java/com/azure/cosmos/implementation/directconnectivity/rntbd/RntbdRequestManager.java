@@ -28,6 +28,7 @@ import com.azure.cosmos.implementation.ServiceUnavailableException;
 import com.azure.cosmos.implementation.UnauthorizedException;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.directconnectivity.StoreResponse;
+import com.azure.cosmos.implementation.directconnectivity.Uri;
 import com.azure.cosmos.implementation.faultinjection.RntbdFaultInjectionConnectionCloseEvent;
 import com.azure.cosmos.implementation.faultinjection.RntbdFaultInjectionConnectionResetEvent;
 import com.azure.cosmos.implementation.faultinjection.RntbdServerErrorInjector;
@@ -622,21 +623,28 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
             final RntbdRequestRecord record = (RntbdRequestRecord) message;
             record.setTimestamps(this.timestamps);
 
+
+
             if (!record.isCancelled()) {
                 record.setSendingRequestHasStarted();
                 this.timestamps.channelWriteAttempted();
 
-                if (this.serverErrorInjector != null) {
+
+                final Optional<Uri> optionalUri = this.rntbdConnectionStateListener.getAddressUri();
+
+
+                if (this.serverErrorInjector != null && optionalUri.get().toString().equals("rntbd://cdb-ms-prod-eastus1-fd124.documents.azure.com:14342/apps/2a72e229-2e83-4992-a5ad-871c471c2fe3/services/a4df8a78-9c27-4b50-9a57-1dac933ab8ab/partitions/271f3fa6-153a-42fb-ad6c-fc66d5030a53/replicas/133351551128751935s/")) {
                     if (this.serverErrorInjector.injectRntbdServerResponseError(record)) {
                         this.timestamps.channelWriteCompleted();
                         this.timestamps.channelReadCompleted();
                         return;
                     }
 
-                    Consumer<Duration> writeRequestWithInjectedDelayConsumer =
+
+                        Consumer<Duration> writeRequestWithInjectedDelayConsumer =
                         (delay) -> this.writeRequestWithInjectedDelay(context, record, promise, delay);
                     if (this.serverErrorInjector.injectRntbdServerResponseDelayBeforeProcessing(
-                        record, writeRequestWithInjectedDelayConsumer)) {
+                        record, writeRequestWithInjectedDelayConsumer) ) {
 
                         return;
                     }
@@ -819,7 +827,7 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
             pendingRequestTimeout.set(record.newTimeout(timeout -> {
 
                 // We don't wish to complete on the timeout thread, but rather on a thread doled out by our executor
-                requestExpirationExecutor.execute(record::expire);
+                requestExpirationExecutor.execute(() -> record.expire());
             }));
 
             return record;
@@ -830,6 +838,9 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
             this.pendingRequests.remove(record.transportRequestId());
             if (pendingRequestTimeout.get() != null) {
                 pendingRequestTimeout.get().cancel();
+            }
+            if (error instanceof CancellationException) {
+
             }
         });
 
@@ -985,7 +996,9 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
 
             final StoreResponse storeResponse = response.toStoreResponse(this.contextFuture.getNow(null));
 
-            if (this.serverErrorInjector != null) {
+            final Optional<Uri> optionalUri = this.rntbdConnectionStateListener.getAddressUri();
+
+            if (this.serverErrorInjector != null && optionalUri.get().toString().equals("rntbd://cdb-ms-prod-eastus1-fd124.documents.azure.com:14342/apps/2a72e229-2e83-4992-a5ad-871c471c2fe3/services/a4df8a78-9c27-4b50-9a57-1dac933ab8ab/partitions/271f3fa6-153a-42fb-ad6c-fc66d5030a53/replicas/133351551128751935s/")) {
                 Consumer<Duration> completeWithInjectedDelayConsumer =
                     (delay) -> this.completeWithInjectedDelay(context, requestRecord, storeResponse, delay);
                 if (this.serverErrorInjector.injectRntbdServerResponseDelayAfterProcessing(
@@ -1127,7 +1140,9 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
             }
             BridgeInternal.setResourceAddress(cause, resourceAddress);
 
-            if (this.serverErrorInjector != null) {
+            final Optional<Uri> optionalUri = this.rntbdConnectionStateListener.getAddressUri();
+
+            if (this.serverErrorInjector != null && optionalUri.get().toString().equals("rntbd://cdb-ms-prod-eastus1-fd124.documents.azure.com:14342/apps/2a72e229-2e83-4992-a5ad-871c471c2fe3/services/a4df8a78-9c27-4b50-9a57-1dac933ab8ab/partitions/271f3fa6-153a-42fb-ad6c-fc66d5030a53/replicas/133351551128751935s/")) {
                 Consumer<Duration> completeWithInjectedDelayConsumer =
                     (delay) -> this.completeExceptionallyWithInjectedDelay(context, requestRecord, cause, delay);
                 if (this.serverErrorInjector.injectRntbdServerResponseDelayAfterProcessing(
@@ -1136,9 +1151,12 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
                     return;
                 }
             }
-
             requestRecord.completeExceptionally(cause);
         }
+    }
+
+    public RntbdConnectionStateListener getRntbdConnectionStateListener() {
+        return this.rntbdConnectionStateListener;
     }
 
     private void handleGoneException(RxDocumentServiceRequest request, Exception exception) {

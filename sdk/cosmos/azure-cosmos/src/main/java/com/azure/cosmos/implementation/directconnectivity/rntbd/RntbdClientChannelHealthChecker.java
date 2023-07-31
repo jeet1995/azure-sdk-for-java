@@ -5,6 +5,7 @@ package com.azure.cosmos.implementation.directconnectivity.rntbd;
 
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.cpu.CpuMemoryMonitor;
+import com.azure.cosmos.implementation.directconnectivity.Uri;
 import com.azure.cosmos.implementation.directconnectivity.rntbd.RntbdEndpoint.Config;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.netty.channel.Channel;
@@ -73,6 +74,7 @@ public final class RntbdClientChannelHealthChecker implements ChannelHealthCheck
     private final int timeoutOnWriteThreshold;
     @JsonProperty
     private final long timeoutOnWriteTimeLimitInNanos;
+    private final Instant channelHealthCheckCreationTime = Instant.now();
 
     // endregion
 
@@ -309,6 +311,9 @@ public final class RntbdClientChannelHealthChecker implements ChannelHealthCheck
     private String transitTimeoutValidation(Timestamps timestamps, Instant currentTime, RntbdRequestManager requestManager, Channel channel) {
         String transitTimeoutValidationMessage = StringUtils.EMPTY;
 
+        logger.info("Uri in transit timeout validation : {}", requestManager.getRntbdConnectionStateListener().getAddressUri().toString());
+        logger.info("Transit timeout count : {}", timestamps.transitTimeoutCount());
+
         if (this.timeoutDetectionEnabled && timestamps.transitTimeoutCount() > 0) {
 
             // Transit timeout can be a normal symptom under high CPU load.
@@ -400,6 +405,11 @@ public final class RntbdClientChannelHealthChecker implements ChannelHealthCheck
     @Override
     public String toString() {
         return RntbdObjectMapper.toString(this);
+    }
+
+    private boolean isUriToFail(RntbdRequestManager requestManager) {
+        Optional<Uri> optionalUri = requestManager.getRntbdConnectionStateListener().getAddressUri();
+        return optionalUri.isPresent() && optionalUri.get().toString().equals("rntbd://cdb-ms-prod-eastus1-fd124.documents.azure.com:14342/apps/2a72e229-2e83-4992-a5ad-871c471c2fe3/services/a4df8a78-9c27-4b50-9a57-1dac933ab8ab/partitions/271f3fa6-153a-42fb-ad6c-fc66d5030a53/replicas/133351551128751935s/");
     }
 
     // endregion
