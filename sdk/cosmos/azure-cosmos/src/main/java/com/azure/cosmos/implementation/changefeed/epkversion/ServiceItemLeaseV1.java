@@ -262,11 +262,16 @@ public class ServiceItemLeaseV1 implements Lease {
         ServiceItemLeaseV1 lease = new ServiceItemLeaseV1()
             .withId(document.getId())
             .withETag(document.getETag())
+            // timestamp
             .withTs(ModelBridgeInternal.getStringFromJsonSerializable(document, Constants.Properties.LAST_MODIFIED))
+            // CFP
             .withOwner(ModelBridgeInternal.getStringFromJsonSerializable(document,PROPERTY_NAME_OWNER))
+            // partition information
             .withLeaseToken(ModelBridgeInternal.getStringFromJsonSerializable(document,PROPERTY_NAME_LEASE_TOKEN))
+            // CT => denotes progress of CF for particular partition
             .withContinuationToken(ModelBridgeInternal.getStringFromJsonSerializable(document,PROPERTY_NAME_CONTINUATION_TOKEN));
 
+        // q: what is versionId
         Integer versionId = ModelBridgeInternal.getIntFromJsonSerializable(document,
             PROPERTY_NAME_VERSION);
 

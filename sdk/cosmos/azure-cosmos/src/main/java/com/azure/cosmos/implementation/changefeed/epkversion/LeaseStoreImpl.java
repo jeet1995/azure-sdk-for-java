@@ -57,6 +57,7 @@ class LeaseStoreImpl implements LeaseStore {
         InternalObjectNode doc = new InternalObjectNode();
         doc.setId(markerDocId);
 
+
         CosmosItemRequestOptions requestOptions = this.requestOptionsFactory.createItemRequestOptions(
             ServiceItemLeaseV1.fromDocument(doc));
 
@@ -143,6 +144,7 @@ class LeaseStoreImpl implements LeaseStore {
             requestOptions = new CosmosItemRequestOptions();
         }
 
+        // Q: what does setIfMatchETag do?
         requestOptions.setIfMatchETag(this.lockETag);
 
         return this.client.deleteItem(lockId, new PartitionKey(lockId), requestOptions)

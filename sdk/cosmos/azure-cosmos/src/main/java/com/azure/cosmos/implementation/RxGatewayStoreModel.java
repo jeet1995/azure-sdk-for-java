@@ -653,6 +653,7 @@ public class RxGatewayStoreModel implements RxStoreModel {
         Objects.requireNonNull(headers, "RxDocumentServiceRequest::headers is required and cannot be null");
 
         // Master resource operations don't require session token.
+        // Hence the session token is removed.
         if (isMasterOperation(request.getResourceType(), request.getOperationType())) {
             if (!Strings.isNullOrEmpty(request.getHeaders().get(HttpConstants.HttpHeaders.SESSION_TOKEN))) {
                 request.getHeaders().remove(HttpConstants.HttpHeaders.SESSION_TOKEN);

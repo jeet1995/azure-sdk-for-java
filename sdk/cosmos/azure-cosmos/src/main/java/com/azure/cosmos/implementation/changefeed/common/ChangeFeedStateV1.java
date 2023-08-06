@@ -29,6 +29,7 @@ public class ChangeFeedStateV1 extends ChangeFeedState {
         ChangeFeedStartFromInternal startFromSettings,
         FeedRangeContinuation continuation) {
 
+        // q: why is this necessary?
         super();
 
         this.containerRid = containerRid;

@@ -72,7 +72,9 @@ class PartitionSynchronizerImpl implements PartitionSynchronizer {
 
     @Override
     public Mono<Void> createMissingLeases() {
+        // Q: what is meant by overlapping ranges?
         return this.documentClient.getOverlappingRanges(PartitionKeyInternalHelper.FullRange)
+
                 .flatMap(pkRangeList -> this.createLeases(pkRangeList).then())
                 .onErrorResume(throwable -> {
                     logger.error("Create lease failed", throwable);

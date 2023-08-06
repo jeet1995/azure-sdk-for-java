@@ -24,6 +24,7 @@ class PartitionManagerImpl implements PartitionManager {
 
     @Override
     public Mono<Void> start() {
+        // lease store initialization pretty much
         return this.bootstrapper.initialize()
             .then(this.partitionController.initialize())
             .then(this.partitionLoadBalancer.start());

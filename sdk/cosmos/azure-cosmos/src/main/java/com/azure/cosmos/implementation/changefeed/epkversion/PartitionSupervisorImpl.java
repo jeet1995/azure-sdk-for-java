@@ -48,10 +48,13 @@ class PartitionSupervisorImpl<T> implements PartitionSupervisor {
     public Mono<Void> run(CancellationToken shutdownToken) {
         this.resultException = null;
 
+        // changeFeedObserverContext - scoped to a leaseToken / physical partition
         ChangeFeedObserverContext<T> context = new ChangeFeedObserverContextImpl<>(this.lease.getLeaseToken());
 
+        // q: does open mean the observer is "ready" to process CF events?
         this.observer.open(context);
 
+        // schedule partitionProcessor & leaseRenewer
         this.scheduler.schedule(() -> this.processor.run(this.childShutdownCts.getToken())
             .subscribe());
 

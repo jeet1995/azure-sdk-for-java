@@ -84,10 +84,14 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
         this.checkpointer.setCancellationToken(cancellationToken);
 
         return Flux.just(this)
+             // either move on to the downstream operator quick or stay for pollDelay
             .flatMap(value -> {
                 if (cancellationToken.isCancellationRequested()) {
                     return Flux.empty();
                 }
+
+                // if hasMoreResults == true, ensure the downstream processes the change first
+                // before pollDelay and query
 
                 // If there are still changes need to be processed, fetch right away
                 // If there are no changes, wait pollDelay time then try again
@@ -95,19 +99,27 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                     return Flux.just(value);
                 }
 
+                // pollDelay => delay b/w consecutive polls to a physical partition
+                // after partition has been delayed
                 Instant stopTimer = Instant.now().plus(this.settings.getFeedPollDelay());
                 return Mono.just(value)
                     .delayElement(Duration.ofMillis(100), CosmosSchedulers.COSMOS_PARALLEL)
                     .repeat( () -> {
                         Instant currentTime = Instant.now();
+                        // terminating condition
+                        //      1. induce lag for pollDelay amount of time
                         return !cancellationToken.isCancellationRequested() && currentTime.isBefore(stopTimer);
-                    }).last();
+                    })
+                    // last element observed before cancel signal
+                    .last();
 
             })
+            // query change feed
             .flatMap(value ->
                         this.documentClient.createDocumentChangeFeedQuery(this.settings.getCollectionSelfLink(), this.options, itemType)
                         .limitRequest(1)
             )
+            // dispatch changes obtained
             .flatMap(documentFeedResponse -> {
                 if (cancellationToken.isCancellationRequested()) return Flux.error(new TaskCancelledException());
 
@@ -142,6 +154,8 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
 
                 this.options = PartitionProcessorHelper.createForProcessingFromContinuation(continuationToken, this.changeFeedMode);
 
+                // q: how do we know how often to check for whether
+                // cancellation has been requested or not?
                 if (cancellationToken.isCancellationRequested()) {
                     return Flux.error(new TaskCancelledException());
                 }

@@ -48,6 +48,8 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
             PartitionKey partitionKey,
             CosmosItemRequestOptions requestOptions,
             Function<Lease, Lease> updateLease) {
+
+        // set properties on the lease
         Lease localLease = updateLease.apply(cachedLease);
 
         if (localLease == null) {
@@ -56,6 +58,9 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
 
         localLease.setTimestamp(Instant.now());
 
+        // cachedLease is returned from the service
+        // why are we setting these properties on the cachedLease?
+        // it is as though we are playing around with the same references but two different named bindings
         cachedLease.setServiceItemLease(localLease);
 
         return
@@ -120,6 +125,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
                 return false;
             }))
             .onErrorResume(throwable -> {
+                // q: is it okay for conflict to still be there after 5 retries?
                 if (throwable instanceof LeaseConflictException) {
                     logger.warn(
                         "Lease with token {}: Failed to update lease with concurrency token '{}', owner '{}', continuationToken '{}'.",
@@ -138,15 +144,18 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
             Lease lease,
             String itemId,
             PartitionKey partitionKey) throws LeaseLostException {
+        // q: why do we replace the lease?
         return this.client.replaceItem(itemId, partitionKey, lease, this.getCreateIfMatchOptions(lease))
             .map(cosmosItemResponse -> BridgeInternal.getProperties(cosmosItemResponse))
             .onErrorResume(re -> {
                 if (re instanceof CosmosException) {
                     CosmosException ex = (CosmosException) re;
                     switch (ex.getStatusCode()) {
+                        // if-match request header mismatch with ETag
                         case HTTP_STATUS_CODE_PRECONDITION_FAILED: {
                             return Mono.empty();
                         }
+                        // two replace requests on the ID + pkVal pair on two or more regions
                         case HTTP_STATUS_CODE_CONFLICT: {
                             throw new LeaseLostException(lease, ex, false);
                         }

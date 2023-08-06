@@ -385,17 +385,20 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
             throw new IllegalArgumentException("lease");
         }
 
+        // if lease is owned by a different CFP instance
         if (lease.getOwner() != null && !lease.getOwner().equalsIgnoreCase(this.settings.getHostName())) {
             logger.info("Lease with token '{}' : lease was taken over by owner '{}' before lease item update",
                 lease.getLeaseToken(), lease.getOwner());
             throw new LeaseLostException(lease);
         }
 
+        // Q: what properties are we updating here for the lease?
         return this.leaseUpdater.updateLease(
-            lease,
+            lease /* came from the leaseContainer */,
             lease.getId(),
             new PartitionKey(lease.getId()),
             this.requestOptionsFactory.createItemRequestOptions(lease),
+            // Q: how is 'lease' and 'serverLease' different?
             serverLease -> {
                 if (serverLease.getOwner() != null && !serverLease.getOwner().equalsIgnoreCase(lease.getOwner())) {
                     logger.info("Lease with token '{}' : lease was taken over by owner '{}'",
@@ -472,6 +475,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
         return this.leaseStore.releaseInitializationLock();
     }
 
+    // query lease documents for a particular lease prefix
     private Flux<ServiceItemLeaseV1> listDocuments(String prefix) {
         if (prefix == null || prefix.isEmpty())  {
             throw new IllegalArgumentException("prefix");
@@ -491,6 +495,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
             InternalObjectNode.class);
 
         return query.flatMap( documentFeedResponse -> Flux.fromIterable(documentFeedResponse.getResults()))
+             // transformation of lease to ServiceItemLeaseV1 type
             .map(ServiceItemLeaseV1::fromDocument);
     }
 

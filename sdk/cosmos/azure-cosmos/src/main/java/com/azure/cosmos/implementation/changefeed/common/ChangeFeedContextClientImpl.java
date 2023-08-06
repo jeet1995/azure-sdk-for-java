@@ -91,6 +91,8 @@ public class ChangeFeedContextClientImpl implements ChangeFeedContextClient {
         AsyncDocumentClient clientWrapper =
                 CosmosBridgeInternal.getAsyncDocumentClient(this.cosmosContainer.getDatabase());
 
+        // pkr resolution
+        // 1. collectionCache -> collection resolution by name -> get overlapping pkrs for collection rid
         return clientWrapper
                 .getCollectionCache()
                 .resolveByNameAsync(null, BridgeInternal.extractContainerSelfLink(this.cosmosContainer), null)

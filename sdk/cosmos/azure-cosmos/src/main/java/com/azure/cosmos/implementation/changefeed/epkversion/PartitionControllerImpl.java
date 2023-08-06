@@ -56,8 +56,10 @@ class PartitionControllerImpl implements PartitionController {
         return this.loadLeases();
     }
 
+    // lease -> obtained from the leaseContainer and then filtered based on owner
     @Override
     public synchronized Mono<Lease> addOrUpdateLease(final Lease lease) {
+
         WorkerTask workerTask = this.currentlyOwnedPartitions.get(lease.getLeaseToken());
         if (workerTask != null && workerTask.isRunning()) {
             return this.leaseManager.updateProperties(lease)
@@ -67,12 +69,17 @@ class PartitionControllerImpl implements PartitionController {
                 });
         }
 
+        // in the lease document obtained from the leaseContainer, update at least the following:
+        //      1. timestamp
+        //      2. owner
+        //      3. concurrencyToken <=> ETag (used with setIfMatchETag)
         return this.leaseManager.acquire(lease)
             .map(updatedLease -> {
                 WorkerTask checkTask = this.currentlyOwnedPartitions.get(lease.getLeaseToken());
                 if (checkTask == null) {
                     logger.info("Lease with token {}: acquired.", updatedLease.getLeaseToken());
                     PartitionSupervisor supervisor = this.partitionSupervisorFactory.create(updatedLease);
+                    // workerTask will use a partitionSupervisor and is scoped to some lease
                     this.currentlyOwnedPartitions.put(updatedLease.getLeaseToken(), this.processPartition(supervisor, updatedLease));
                 }
                 return updatedLease;
@@ -130,12 +137,14 @@ class PartitionControllerImpl implements PartitionController {
     private WorkerTask processPartition(PartitionSupervisor partitionSupervisor, Lease lease) {
         CancellationToken shutdownToken = this.shutdownCts.getToken();
 
+        // each workerTask is scoped to one physical partition + lease
         WorkerTask partitionSupervisorTask =
             new WorkerTask(
                 lease,
                 partitionSupervisor,
                 getWorkerJob(partitionSupervisor, lease, shutdownToken));
 
+        // boundedElastic scheduler
         this.scheduler.schedule(partitionSupervisorTask);
 
         return partitionSupervisorTask;

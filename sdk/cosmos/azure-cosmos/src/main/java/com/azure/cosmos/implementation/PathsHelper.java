@@ -619,8 +619,8 @@ public class PathsHelper {
         return false;
     }
 
-    private static int indexOfNth(String str, char value, int nthOccurance) {
-        int remaining = nthOccurance;
+    private static int indexOfNth(String str, char value, int nthOccurrence) {
+        int remaining = nthOccurrence;
         char[] characters = str.toCharArray();
         for (int i = 0; i < characters.length; i++) {
             if (characters[i] == value) {

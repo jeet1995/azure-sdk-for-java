@@ -48,6 +48,10 @@ class PartitionSupervisorFactoryImpl<T> implements PartitionSupervisorFactory {
         this.partitionProcessItemType = partitionProcessItemType;
     }
 
+    // given some lease, create a partitionSupervisor for it
+    //      1. for it first create
+    //          a) partitionProcessor
+    //          b) leaseRenewer
     @Override
     public PartitionSupervisor create(Lease lease) {
         checkNotNull(lease, "Argument 'lease' can not be null");

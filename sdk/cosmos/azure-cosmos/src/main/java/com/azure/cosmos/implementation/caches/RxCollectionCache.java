@@ -179,12 +179,14 @@ public abstract class RxCollectionCache {
         MetadataDiagnosticsContext metaDataDiagnosticsContext,
         String resourceAddress,
         Map<String, Object> properties,
+        // Q: what does obsoleteValue mean here?
         DocumentCollection obsoleteValue) {
 
         String resourceFullName = PathsHelper.getCollectionPath(resourceAddress);
 
         return this.collectionInfoByNameCache.getAsync(
             resourceFullName,
+            // bulk executor passes a collectionRecreate
             obsoleteValue,
             () -> {
                 Mono<DocumentCollection> collectionObs = this.getByNameAsync(

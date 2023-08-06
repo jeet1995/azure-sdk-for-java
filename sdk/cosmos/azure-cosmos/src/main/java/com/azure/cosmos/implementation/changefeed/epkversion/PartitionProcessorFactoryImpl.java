@@ -58,6 +58,7 @@ class PartitionProcessorFactoryImpl<T> implements PartitionProcessorFactory<T> {
 
         ChangeFeedState state;
         if (Strings.isNullOrWhiteSpace(lease.getContinuationToken())) {
+            // lease has no continuation token
             state = new ChangeFeedStateV1(
                 BridgeInternal.extractContainerSelfLink(this.collectionSelfLink),
                 lease.getFeedRange(),
@@ -77,6 +78,10 @@ class PartitionProcessorFactoryImpl<T> implements PartitionProcessorFactory<T> {
 
         PartitionCheckpointer checkpointer = new PartitionCheckpointerImpl(this.leaseCheckpointer, lease);
 
+        // q: what does a PartitionProcessor need?
+        //      1. ChangeFeedObserver => reacts to some change feed event
+        //      2. PartitionCheckpointer => partition-level CF progress
+        //      3. lease => lease document to be used by PartitionProcessor
         return new PartitionProcessorImpl<>(observer, this.documentClient, settings, checkpointer, lease, classType, this.changeFeedMode);
     }
 }
