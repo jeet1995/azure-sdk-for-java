@@ -26,6 +26,8 @@ class PartitionManagerImpl implements PartitionManager {
     public Mono<Void> start() {
         // lease store initialization pretty much
         return this.bootstrapper.initialize()
+            // 1. loads all leases owned by a particular host
+            // 2.
             .then(this.partitionController.initialize())
             .then(this.partitionLoadBalancer.start());
     }

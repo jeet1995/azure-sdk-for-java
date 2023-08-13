@@ -34,6 +34,7 @@ public class DefaultObserver<T> implements ChangeFeedObserver<T> {
     public Mono<Void> processChanges(ChangeFeedObserverContext<T> context, List<T> docs) {
         log.info("Start processing from thread {}", Thread.currentThread().getId());
         try {
+            // consumer => lambda passed by the user
             consumer.accept(docs);
             log.info("Done processing from thread {}", Thread.currentThread().getId());
         } catch (Exception ex) {

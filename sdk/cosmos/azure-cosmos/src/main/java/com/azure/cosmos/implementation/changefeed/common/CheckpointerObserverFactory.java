@@ -32,6 +32,11 @@ public class CheckpointerObserverFactory<T> implements ChangeFeedObserverFactory
         this.checkpointFrequency = checkpointFrequency;
     }
 
+    // q: how is a ChangeFeedObserver instance created?
+    //      1. if no explicit checkpoint - AutoCheckpointer
+    //      2. else ObserverExceptionWrappingChangeFeedObserverDecorator
+    // q: where is the defaultObserver used?
+    //      1.
     /**
      * @return a new instance of {@link ChangeFeedObserver}.
      */

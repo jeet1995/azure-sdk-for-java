@@ -41,6 +41,7 @@ class LeaseRenewerImpl implements LeaseRenewer {
                     return Mono.empty();
                 }
 
+                // induce / inject lag until leaseRenew interval is hit
                 Instant stopTimer = Instant.now().plus(this.leaseRenewInterval);
                 return Mono.just(value)
                     .delayElement(Duration.ofMillis(100), CosmosSchedulers.COSMOS_PARALLEL)
@@ -82,6 +83,7 @@ class LeaseRenewerImpl implements LeaseRenewer {
             return Mono.empty();
         }
 
+        // it is the same lease update flow
         return this.leaseManager.renew(this.lease)
             .map(renewedLease -> {
                 if (renewedLease != null) {

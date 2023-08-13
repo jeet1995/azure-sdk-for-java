@@ -83,6 +83,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
         this.hasMoreResults = true;
         this.checkpointer.setCancellationToken(cancellationToken);
 
+        // Flux.just(this) -> interesting pattern
         return Flux.just(this)
              // either move on to the downstream operator quick or stay for pollDelay
             .flatMap(value -> {
@@ -90,8 +91,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                     return Flux.empty();
                 }
 
-                // if hasMoreResults == true, ensure the downstream processes the change first
-                // before pollDelay and query
+                // if hasMoreResults == true, ensure the downstream queries the change feed
 
                 // If there are still changes need to be processed, fetch right away
                 // If there are no changes, wait pollDelay time then try again
@@ -100,7 +100,6 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 }
 
                 // pollDelay => delay b/w consecutive polls to a physical partition
-                // after partition has been delayed
                 Instant stopTimer = Instant.now().plus(this.settings.getFeedPollDelay());
                 return Mono.just(value)
                     .delayElement(Duration.ofMillis(100), CosmosSchedulers.COSMOS_PARALLEL)
@@ -110,7 +109,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                         //      1. induce lag for pollDelay amount of time
                         return !cancellationToken.isCancellationRequested() && currentTime.isBefore(stopTimer);
                     })
-                    // last element observed before cancel signal
+                    // last element observed before cancel signal -> should be partitionProcessorImpl
                     .last();
 
             })
@@ -119,12 +118,17 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                         this.documentClient.createDocumentChangeFeedQuery(this.settings.getCollectionSelfLink(), this.options, itemType)
                         .limitRequest(1)
             )
-            // dispatch changes obtained
+            // Objectives here:
+            //  1. Dispatch changes obtained
+            //  2. Record continuationToken in requestOptions
             .flatMap(documentFeedResponse -> {
+                // once the feedResponse has been obtained -> get the continuationToken
                 if (cancellationToken.isCancellationRequested()) return Flux.error(new TaskCancelledException());
 
                 final String continuationToken = documentFeedResponse.getContinuationToken();
 
+                // if continuationState cannot be obtained / multiple ranges are spanned then throw an exception
+                // q: are there cases of this?
                 final ChangeFeedState continuationState = ChangeFeedState.fromString(continuationToken);
                 checkNotNull(continuationState, "Argument 'continuationState' must not be null.");
                 checkArgument(
@@ -136,6 +140,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 this.lastServerContinuationToken = continuationToken;
                 this.hasMoreResults = !ModelBridgeInternal.noChanges(documentFeedResponse);
 
+                // the documentFeedResponse could eventually return null / empty
                 if (documentFeedResponse.getResults() != null && documentFeedResponse.getResults().size() > 0) {
                     logger.info("Lease with token {}: processing {} feeds with owner {}.",
                         this.lease.getLeaseToken(), documentFeedResponse.getResults().size(), this.lease.getOwner());
@@ -146,6 +151,8 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                 Thread.currentThread().getId(),
                                 throwable))
                         .doOnSuccess((Void) -> {
+                            // after dispatching changes it is necessary to use the continuationToken to build
+                            // the following changeFeedRequestOptions
                             this.options = PartitionProcessorHelper.createForProcessingFromContinuation(continuationToken, this.changeFeedMode);
 
                             if (cancellationToken.isCancellationRequested()) throw new TaskCancelledException();
@@ -162,6 +169,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
 
                 return Flux.empty();
             })
+            // Set the maxItemCount on CFRequestOptions
             .doOnComplete(() -> {
                 if (this.options.getMaxItemCount() != this.settings.getMaxItemCount()) {
                     this.options.setMaxItemCount(this.settings.getMaxItemCount());   // Reset after successful execution.
@@ -211,6 +219,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                 this.resultException = new RuntimeException(clientException);
                             }
 
+                            // If page size is too high, divide maxItemCount by 2
                             this.options.setMaxItemCount(this.options.getMaxItemCount() / 2);
                             logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
                             return Flux.empty();
@@ -293,16 +302,23 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
         return this.resultException;
     }
 
+    // arguments that are needed for the changes to be dispatched
+    //      1. changeFeedState -> comes from the response
+    //      2. response
     private Mono<Void> dispatchChanges(
         FeedResponse<T> response,
         ChangeFeedState continuationState) {
 
+        // PartitionCheckpointer and AutoCheckpointer don't fall in the same class hierarchy
         ChangeFeedObserverContext<T> context = new ChangeFeedObserverContextImpl<>(
             lease.getLeaseToken(),
             response,
             continuationState,
             this.checkpointer);
 
+        // q: what is the runtime type of this observer?
+        //      - if explicit checkpointing enabled, then observerExceptionWrappingCFObserverDecorator
+        //      - else, AutoCheckpointer
         return this.observer.processChanges(context, response.getResults());
     }
 }

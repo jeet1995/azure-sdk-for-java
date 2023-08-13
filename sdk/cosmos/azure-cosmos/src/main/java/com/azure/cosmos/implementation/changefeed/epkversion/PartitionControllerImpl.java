@@ -57,6 +57,9 @@ class PartitionControllerImpl implements PartitionController {
     }
 
     // lease -> obtained from the leaseContainer and then filtered based on owner
+    // q: what does the leaseManager do?
+    //      a) leaseManager update properties on the lease
+    //      b)
     @Override
     public synchronized Mono<Lease> addOrUpdateLease(final Lease lease) {
 
@@ -75,9 +78,16 @@ class PartitionControllerImpl implements PartitionController {
         //      3. concurrencyToken <=> ETag (used with setIfMatchETag)
         return this.leaseManager.acquire(lease)
             .map(updatedLease -> {
+                // WorkerTask basically is:
+                //      1. Runs the partitionSupervisor
+                //      2. Scoped to one partition / lease.
                 WorkerTask checkTask = this.currentlyOwnedPartitions.get(lease.getLeaseToken());
                 if (checkTask == null) {
                     logger.info("Lease with token {}: acquired.", updatedLease.getLeaseToken());
+                    // PartitionSupervisor relies on:
+                    //      1. changeFeedObserver
+                    //      2. partitionProcessor
+                    //      3. leaseRenewer
                     PartitionSupervisor supervisor = this.partitionSupervisorFactory.create(updatedLease);
                     // workerTask will use a partitionSupervisor and is scoped to some lease
                     this.currentlyOwnedPartitions.put(updatedLease.getLeaseToken(), this.processPartition(supervisor, updatedLease));
@@ -102,6 +112,8 @@ class PartitionControllerImpl implements PartitionController {
     private Mono<Void> loadLeases() {
         logger.debug("Starting renew leases assigned to this host on initialize.");
 
+        // query leases owned by current host
+        // q: is lease prefix + host combo to be checked - correct
         return this.leaseContainer.getOwnedLeases()
             .flatMap( lease -> {
                 logger.info("Lease with token {}: Acquired on startup.", lease.getLeaseToken());
@@ -154,6 +166,9 @@ class PartitionControllerImpl implements PartitionController {
         PartitionSupervisor partitionSupervisor,
         Lease lease,
         CancellationToken shutdownToken) {
+        // Called when workerTask is scheduled.
+        // Running the partitionSupervisor means:
+        //      1. Schedule the leaseRenewer & partitionProcessor
         return partitionSupervisor.run(shutdownToken)
             .onErrorResume(throwable -> {
                 if (throwable instanceof FeedRangeGoneException) {

@@ -430,6 +430,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
             .flatMap(refreshedLease -> {
                 if (cancellationToken.isCancellationRequested()) return Mono.error(new TaskCancelledException());
 
+                // update the continuationToken on the lease
                 return this.leaseUpdater.updateLease(
                     refreshedLease,
                     lease.getId(), new PartitionKey(lease.getId()),
@@ -494,7 +495,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
             this.requestOptionsFactory.createQueryRequestOptions(),
             InternalObjectNode.class);
 
-        return query.flatMap( documentFeedResponse -> Flux.fromIterable(documentFeedResponse.getResults()))
+        return query.flatMap(documentFeedResponse -> Flux.fromIterable(documentFeedResponse.getResults()))
              // transformation of lease to ServiceItemLeaseV1 type
             .map(ServiceItemLeaseV1::fromDocument);
     }

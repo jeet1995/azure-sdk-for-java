@@ -52,10 +52,12 @@ public class AutoCheckpointer<T> implements ChangeFeedObserver<T> {
 
     @Override
     public Mono<Void> processChanges(ChangeFeedObserverContext<T> context, List<T> docs) {
+        // autoCheckpointer encapsulates exceptionWrappingCFObserverDecorator
         return this.observer.processChanges(context, docs)
             .doOnError(throwable -> {
                 logger.warn("Unexpected exception from thread {}", Thread.currentThread().getId(), throwable);
             })
+            // checkpoint / setting the continuation token on the lease and replacing it
             .then(this.afterProcessChanges(context));
     }
 
@@ -63,6 +65,7 @@ public class AutoCheckpointer<T> implements ChangeFeedObserver<T> {
         this.processedDocCount.incrementAndGet();
 
         if (this.isCheckpointNeeded()) {
+            // q: how does CFObserverContext checkpoint?
             return context.checkpoint()
                 .doOnError(throwable -> {
                     logger.warn("Checkpoint failed; this worker will be killed", throwable);
@@ -76,17 +79,24 @@ public class AutoCheckpointer<T> implements ChangeFeedObserver<T> {
         return Mono.empty();
     }
 
+    // q: what are the default checkpoint values here?
+    //      1. processedDocCount == 0
+    //      2. timeInterval == null
+    //  conclusion: checkpointing will always be needed
     private boolean isCheckpointNeeded() {
+        // default settings
         if (this.checkpointFrequency.getProcessedDocumentCount() == 0 && this.checkpointFrequency.getTimeInterval() == null) {
             return true;
         }
 
+        // q: when is this case hit?
         if (this.processedDocCount.get() >= this.checkpointFrequency.getProcessedDocumentCount()) {
             return true;
         }
 
         Duration delta = Duration.between(this.lastCheckpointTime, Instant.now());
 
+        // if delta has exceeded checkpoint interval
         return delta.compareTo(this.checkpointFrequency.getTimeInterval()) >= 0;
     }
 }

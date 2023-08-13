@@ -50,6 +50,7 @@ public class ObserverExceptionWrappingChangeFeedObserverDecorator<T> implements 
 
     @Override
     public Mono<Void> processChanges(ChangeFeedObserverContext<T> context, List<T> docs) {
+        // this.changeFeedObserver => DefaultObserver
         return this.changeFeedObserver.processChanges(context, docs)
             .doOnError(throwable -> {
                 this.logger.warn("Exception thrown during ChangeFeedObserver.processChanges from thread {}", Thread.currentThread().getId(), throwable);

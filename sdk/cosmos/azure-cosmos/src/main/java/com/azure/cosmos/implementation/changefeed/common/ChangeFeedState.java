@@ -55,6 +55,7 @@ public abstract class ChangeFeedState extends JsonSerializable {
     public static ChangeFeedState fromString(String base64EncodedJson) {
         checkNotNull(base64EncodedJson, "Argument 'base64EncodedJson' must not be null");
 
+        // decode from base64EncodedJson to UTF_8
         String json = new String(
             Base64.getUrlDecoder().decode(base64EncodedJson),
             StandardCharsets.UTF_8);
@@ -62,6 +63,7 @@ public abstract class ChangeFeedState extends JsonSerializable {
         final ObjectMapper mapper = Utils.getSimpleObjectMapper();
 
         try {
+            // read the json into ChangeFeedState instance
             return mapper.readValue(json, ChangeFeedState.class);
         } catch (IOException ioException) {
             throw new IllegalArgumentException(

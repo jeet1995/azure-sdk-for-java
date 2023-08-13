@@ -30,9 +30,12 @@ public class ChangeFeedObserverContextImpl<T> implements ChangeFeedObserverConte
                                          FeedResponse<T> feedResponse,
                                          ChangeFeedState continuationState,
                                          PartitionCheckpointer checkpointer) {
+        // leaseToken => physical partition
         this.leaseToken = leaseToken;
+        // response drained
         this.feedResponse = feedResponse;
         this.checkpointer = checkpointer;
+        // encapsulates the continuation token
         this.continuationState = continuationState;
     }
 
