@@ -41,6 +41,7 @@ public abstract class PipelinedQueryExecutionContextBase<T>
         Class<T> classOfT,
         DocumentCollection collection) {
 
+        // q: where does queryInfo come from?
         QueryInfo queryInfo = initParams.getQueryInfo();
         CosmosQueryRequestOptions cosmosQueryRequestOptions = initParams.getCosmosQueryRequestOptions();
         int actualPageSize = Utils.getValueOrDefault(ModelBridgeInternal.getMaxItemCountFromQueryRequestOptions(cosmosQueryRequestOptions),

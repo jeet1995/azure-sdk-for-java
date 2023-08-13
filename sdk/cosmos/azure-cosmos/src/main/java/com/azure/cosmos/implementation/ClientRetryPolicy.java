@@ -267,6 +267,8 @@ public class ClientRetryPolicy extends DocumentClientRetryPolicy {
     }
 
     private Mono<ShouldRetryResult> shouldRetryOnEndpointFailureAsync(boolean isReadRequest , boolean forceRefresh, boolean usePreferredLocations) {
+        // enableEndpointDiscovery set to true by default
+        // MaxRetryCount == 120
         if (!this.enableEndpointDiscovery || this.failoverRetryCount > MaxRetryCount) {
             logger.warn("ShouldRetryOnEndpointFailureAsync() Not retrying. Retry count = {}", this.failoverRetryCount);
             return Mono.just(ShouldRetryResult.noRetry());

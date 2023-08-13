@@ -79,17 +79,23 @@ public class DocumentQueryExecutionContextFactory {
         // The partitionKeyRangeIdInternal is no more a public API on
         // FeedOptions, but have the below condition
         // for handling ParallelDocumentQueryTest#partitionKeyRangeId
+
+        // q: the below test case is probably just for the test
         if (cosmosQueryRequestOptions != null &&
             !StringUtils.isEmpty(ModelBridgeInternal.getPartitionKeyRangeIdInternal(cosmosQueryRequestOptions))) {
 
+            // Get partition key ranges to target given the collectionRid & specified pkrId if any
             Mono<List<PartitionKeyRange>> partitionKeyRanges = queryExecutionContext
+                // leverage the pkrCache here
                 .getTargetPartitionKeyRangesById(
                     collection.getResourceId(),
                     ModelBridgeInternal.getPartitionKeyRangeIdInternal(cosmosQueryRequestOptions));
 
             return partitionKeyRanges.map(pkRanges -> {
                 List<Range<String>> ranges =
+                    // map / type-transform PartitionKeyRange -> Range
                     pkRanges.stream().map(PartitionKeyRange::toRange).collect(Collectors.toList());
+                // no queryInfo yet
                 return Pair.of(ranges, QueryInfo.EMPTY);
             });
         }
@@ -102,6 +108,7 @@ public class DocumentQueryExecutionContextFactory {
             .getCosmosQueryRequestOptionsAccessor()
             .isQueryPlanRetrievalDisallowed(cosmosQueryRequestOptions)) {
 
+            // queryPlan retrieval is disallowed - endTime can be set immediately
             Instant endTime = Instant.now(); // endTime for query plan diagnostics
 
             return getTargetRangesFromEmptyQueryPlan(
@@ -186,6 +193,7 @@ public class DocumentQueryExecutionContextFactory {
                 });
     }
 
+    // part of Spark perf optimization to suppress query plan retrievals
     private static <T> Mono<Pair<List<Range<String>>, QueryInfo>> getTargetRangesFromEmptyQueryPlan(
         CosmosQueryRequestOptions cosmosQueryRequestOptions,
         DocumentCollection collection,
@@ -248,16 +256,23 @@ public class DocumentQueryExecutionContextFactory {
                    && cosmosQueryRequestOptions.getPartitionKey() != PartitionKey.NONE;
     }
 
+    // q: what is prefix container
     private static List<FeedRangeEpkImpl> resolveFeedRangeBasedOnPrefixContainer(
         List<FeedRangeEpkImpl> feedRanges,
         PartitionKeyDefinition partitionKeyDefinition,
         PartitionKey partitionKey) {
+        // partitionKey is supplied by the user, below gets partitionKeyInternal
+        // split a partitionKey into components
         PartitionKeyInternal partitionKeyInternal = ModelBridgeInternal.getPartitionKeyInternal(partitionKey);
+
+        // if the no. of components in pkInternal >= no. of paths in pkd, then return all feedRanges as is
         if (partitionKeyInternal.getComponents().size() >= partitionKeyDefinition.getPaths().size()) {
             return feedRanges;
         }
         List<FeedRangeEpkImpl> feedRanges2 = new ArrayList<>();
         for (int i = 0; i < feedRanges.size(); i++) {
+
+            // q: same range can be used - why recompute has each time for each FeedRangeEpkImpl?
             feedRanges2.add(new FeedRangeEpkImpl(partitionKeyInternal
                 .getEPKRangeForPrefixPartitionKey(partitionKeyDefinition)));
         }
@@ -265,6 +280,7 @@ public class DocumentQueryExecutionContextFactory {
     }
 
     public static <T> Flux<? extends IDocumentQueryExecutionContext<T>> createDocumentQueryExecutionContextAsync(
+        // rxDocumentClientImpl in this case
         DiagnosticsClientContext diagnosticsClientContext,
         IDocumentQueryClient client,
         ResourceType resourceTypeEnum,
@@ -272,16 +288,22 @@ public class DocumentQueryExecutionContextFactory {
         SqlQuerySpec query,
         CosmosQueryRequestOptions cosmosQueryRequestOptions,
         String resourceLink,
-        boolean isContinuationExpected,
+        boolean isContinuationExpected /* false - q: why is this set to false? - check where it is used first */,
         UUID correlatedActivityId,
-        boolean queryPlanCachingEnabled,
+        boolean queryPlanCachingEnabled /* true - by default */,
         Map<String, PartitionedQueryExecutionInfo> queryPlanCache,
         final AtomicBoolean isQueryCancelledOnTimeout) {
 
         // return proxy
         Flux<Utils.ValueHolder<DocumentCollection>> collectionObs = Flux.just(new Utils.ValueHolder<>(null));
 
+        // q: what can be the child of a collection?
+        //      1. Document
+        //      2. Attachment
+        //      3. Conflict
+        //      4. Schema
         if (resourceTypeEnum.isCollectionChild()) {
+            // resolve the collection using the cache
             collectionObs = resolveCollection(diagnosticsClientContext, client, resourceTypeEnum, resourceLink).flux();
         }
 
@@ -297,6 +319,7 @@ public class DocumentQueryExecutionContextFactory {
             isQueryCancelledOnTimeout);
 
         if ((ResourceType.Document != resourceTypeEnum && (ResourceType.Conflict != resourceTypeEnum))) {
+            // defaultQueryExecutionContext good enough for non-document and non-conflict resource types
             return Flux.just(queryExecutionContext);
         }
 
@@ -345,10 +368,12 @@ public class DocumentQueryExecutionContextFactory {
             UUID correlatedActivityId,
             final AtomicBoolean isQueryCancelledOnTimeout) {
 
+        // if null then default
         int initialPageSize = Utils.getValueOrDefault(
             ModelBridgeInternal.getMaxItemCountFromQueryRequestOptions(cosmosQueryRequestOptions),
             ParallelQueryConfig.ClientInternalPageSize);
 
+        // q: why is the validation here upstream?
         BadRequestException validationError = Utils.checkRequestOrReturnException
                 (initialPageSize > 0 || initialPageSize == -1, "MaxItemCount", "Invalid MaxItemCount %s",
                  initialPageSize);
@@ -359,9 +384,14 @@ public class DocumentQueryExecutionContextFactory {
         boolean getLazyFeedResponse = queryInfo.hasTop();
 
         // We need to compute the optimal initial page size for order-by queries
+        // q: why do we need to determine the optimal page size for order by queries?
         if (queryInfo.hasOrderBy()) {
             int top;
+            // q: what is top?
+            // q: where is top obtained from?
             if (queryInfo.hasTop() && (top = queryInfo.getTop()) > 0) {
+                // distribute top across physical partitions?
+                // q: what is pageSizeFactor
                 int pageSizeWithTop = Math.min(
                         (int)Math.ceil(top / (double)targetRanges.size()) * PageSizeFactorForTop,
                         top);
@@ -388,6 +418,7 @@ public class DocumentQueryExecutionContextFactory {
             //            }
         }
 
+        // type-transform from List<Range> to List<FeedRangeEpkImpl>
         List<FeedRangeEpkImpl> feedRangeEpks = targetRanges.stream().map(FeedRangeEpkImpl::new)
                                                    .collect(Collectors.toList());
 
@@ -397,6 +428,7 @@ public class DocumentQueryExecutionContextFactory {
                 cosmosQueryRequestOptions.getPartitionKey());
         }
 
+        // documentQueryParams will be used by the executionContext instance
         PipelinedDocumentQueryParams<T> documentQueryParams = new PipelinedDocumentQueryParams<>(
             resourceTypeEnum,
             resourceType,

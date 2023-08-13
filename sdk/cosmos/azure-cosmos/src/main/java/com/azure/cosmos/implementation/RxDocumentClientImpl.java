@@ -474,6 +474,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             this.retryPolicy = new RetryPolicy(this, this.globalEndpointManager, this.connectionPolicy);
             this.resetSessionTokenRetryPolicy = retryPolicy;
             CpuMemoryMonitor.register(this);
+            // maps String -> PartitionedQueryExecutionInfo
             this.queryPlanCache = new ConcurrentHashMap<>();
             this.apiType = apiType;
             this.clientTelemetryConfig = clientTelemetryConfig;
@@ -907,8 +908,11 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         Class<T> klass,
         ResourceType resourceTypeEnum) {
 
+        // append parentResourceLink and resourceTypeEnum
         String resourceLink = parentResourceLinkToQueryLink(parentResourceLink, resourceTypeEnum);
 
+        // q: why do we need a correlationActivityId?
+        // q: who sets a correlationActivityId?
         UUID correlationActivityIdOfRequestOptions = ImplementationBridgeHelpers
             .CosmosQueryRequestOptionsHelper
             .getCosmosQueryRequestOptionsAccessor()
@@ -936,6 +940,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
     }
 
     private <T> Flux<FeedResponse<T>> createQueryInternal(
+            //
             String resourceLink,
             SqlQuerySpec sqlQuery,
             CosmosQueryRequestOptions options,
@@ -947,8 +952,13 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
 
         Flux<? extends IDocumentQueryExecutionContext<T>> executionContext =
             DocumentQueryExecutionContextFactory
-                .createDocumentQueryExecutionContextAsync(this, queryClient, resourceTypeEnum, klass, sqlQuery,
-                                                          options, resourceLink, false, activityId,
+                .createDocumentQueryExecutionContextAsync(
+                    this,
+                    queryClient,
+                    resourceTypeEnum,
+                    klass,
+                    sqlQuery,
+                    options, resourceLink, false, activityId,
                                                           Configs.isQueryPlanCachingEnabled(), queryPlanCache, isQueryCancelledOnTimeout);
 
         AtomicBoolean isFirstResponse = new AtomicBoolean(true);

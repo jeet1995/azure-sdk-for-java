@@ -74,6 +74,8 @@ implements IDocumentQueryExecutionContext<T> {
         this.resourceLink = resourceLink;
         this.correlatedActivityId = correlatedActivityId;
         this.diagnosticsClientContext = diagnosticsClientContext;
+
+        // q: what does operationContext do?
         this.operationContext = ImplementationBridgeHelpers
             .CosmosQueryRequestOptionsHelper
             .getCosmosQueryRequestOptionsAccessor()

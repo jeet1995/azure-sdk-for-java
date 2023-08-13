@@ -153,6 +153,9 @@ public class PartitionKeyInternalHelper {
     }
 
     public static String getEffectivePartitionKeyString(PartitionKeyInternal partitionKeyInternal, PartitionKeyDefinition partitionKeyDefinition, boolean strict) {
+
+        // components are obtained when transforming pk to pkInternal
+        // pkInternal is basically pk with all components extracted
         if (partitionKeyInternal.components == null) {
             throw new IllegalArgumentException(RMResources.TooFewPartitionKeyComponents);
         }
@@ -165,15 +168,19 @@ public class PartitionKeyInternalHelper {
             return MaximumExclusiveEffectivePartitionKey;
         }
 
+        // in non-MULTI_HASH cases, no. of components should be at least as much as paths
         if (partitionKeyInternal.components.size() < partitionKeyDefinition.getPaths().size() && partitionKeyDefinition.getKind() != PartitionKind.MULTI_HASH) {
             throw new IllegalArgumentException(RMResources.TooFewPartitionKeyComponents);
         }
 
+        // q: what does strict stand for here?
         if (partitionKeyInternal.components.size() > partitionKeyDefinition.getPaths().size() && strict) {
             throw new IllegalArgumentException(RMResources.TooManyPartitionKeyComponents);
         }
 
         PartitionKind kind = partitionKeyDefinition.getKind();
+
+        // q: is HASH the default PartitionKind?
         if (kind == null) {
             kind = PartitionKind.HASH;
         }
@@ -191,24 +198,30 @@ public class PartitionKeyInternalHelper {
             case MULTI_HASH:
                 return getEffectivePartitionKeyForMultiHashPartitioning(partitionKeyInternal);
 
+            // maybe satisfied for NONE cases
             default:
                 return toHexEncodedBinaryString(partitionKeyInternal.components);
         }
     }
 
-    static public Range<String> getEPKRangeForPrefixPartitionKey(
+    public static Range<String> getEPKRangeForPrefixPartitionKey(
         PartitionKeyInternal internalPartitionKey,
-        PartitionKeyDefinition partitionKeyDefinition)
-    {
-        if(partitionKeyDefinition.getKind() != PartitionKind.MULTI_HASH)
-        {
+        PartitionKeyDefinition partitionKeyDefinition) {
+
+        if (partitionKeyDefinition.getKind() != PartitionKind.MULTI_HASH) {
             throw new IllegalArgumentException(RMResources.PartitionKeyMismatch);
         }
-        if(internalPartitionKey.getComponents().size() >= partitionKeyDefinition.getPaths().size())
-        {
+
+        if (internalPartitionKey.getComponents().size() >= partitionKeyDefinition.getPaths().size()) {
             throw new IllegalArgumentException(RMResources.TooManyPartitionKeyComponents);
         }
+
+        // q: what is minEPK and maxEPK?
+
+        // some min partition key string (after hashing)
         String minEPK = internalPartitionKey.getEffectivePartitionKeyString(internalPartitionKey, partitionKeyDefinition);
+
+        // append operation -
         String maxEPK = minEPK + MaximumExclusiveEffectivePartitionKey;
         return new Range<>(minEPK, maxEPK, true, false);
     }

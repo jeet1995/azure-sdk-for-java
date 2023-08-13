@@ -451,6 +451,7 @@ public class LocationCache {
             URI unavailableEndpoint,
             OperationType unavailableOperationType) {
         Instant currentTime = Instant.now();
+        // locationUnavailabilityInfoByEndpoint => map(URI, LocationUnavailabilityInfo)
         LocationUnavailabilityInfo updatedInfo = this.locationUnavailabilityInfoByEndpoint.compute(
                 unavailableEndpoint,
                 new BiFunction<URI, LocationUnavailabilityInfo, LocationUnavailabilityInfo>() {
@@ -462,6 +463,7 @@ public class LocationCache {
                         } else {
                             // already present, update
                             info.lastUnavailabilityCheckTimeStamp = currentTime;
+                            // operation-level unavailability tracked through bit mask
                             info.unavailableOperations = OperationType.combine(info.unavailableOperations, unavailableOperationType);
                             return info;
                         }
@@ -487,7 +489,9 @@ public class LocationCache {
             Iterable<DatabaseAccountLocation> readLocations,
             UnmodifiableList<String> preferenceList,
             Boolean enableMultipleWriteLocations) {
+
         synchronized (this.lockObject) {
+            // q: why is a new instance of DatabaseAccountLocationsInfo being created
             DatabaseAccountLocationsInfo nextLocationInfo = new DatabaseAccountLocationsInfo(this.locationInfo);
             logger.debug("updating location cache ..., current readLocations [{}], current writeLocations [{}]",
                     nextLocationInfo.readEndpoints, nextLocationInfo.writeEndpoints);
@@ -711,6 +715,7 @@ public class LocationCache {
             this.availableReadLocations = other.availableReadLocations;
             this.availableWriteEndpointByLocation = other.availableWriteEndpointByLocation;
             this.regionNameByWriteEndpoint = other.regionNameByWriteEndpoint;
+            // e.g.: https://cx-cosmos-db-west-us.com => West US
             this.regionNameByReadEndpoint = other.regionNameByReadEndpoint;
             this.availableReadEndpointByLocation = other.availableReadEndpointByLocation;
             this.writeEndpoints = other.writeEndpoints;

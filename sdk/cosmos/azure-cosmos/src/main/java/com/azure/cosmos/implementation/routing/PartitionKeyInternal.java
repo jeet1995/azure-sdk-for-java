@@ -246,6 +246,7 @@ public class PartitionKeyInternal implements Comparable<PartitionKeyInternal> {
     }
 
     public String getEffectivePartitionKeyString(PartitionKeyInternal internalPartitionKey, PartitionKeyDefinition partitionKey) {
+        // q: partitionKey should be partitionKeyDefinition?
         return PartitionKeyInternalHelper.getEffectivePartitionKeyString(internalPartitionKey, partitionKey);
     }
 

@@ -141,6 +141,7 @@ public class RxPartitionKeyRangeCache implements IPartitionKeyRangeCache {
                                                                                        boolean forceRefresh,
                                                                                        Map<String, Object> properties) {
 
+
         Mono<Utils.ValueHolder<CollectionRoutingMap>> routingMapObs = tryLookupAsync(metaDataDiagnosticsContext, collectionResourceId, null, properties);
 
         return routingMapObs.flatMap(routingMapValueHolder -> {
