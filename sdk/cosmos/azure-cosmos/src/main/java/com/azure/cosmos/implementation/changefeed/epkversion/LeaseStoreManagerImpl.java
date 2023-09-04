@@ -277,6 +277,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
             new PartitionKey(lease.getId()),
             this.requestOptionsFactory.createItemRequestOptions(lease),
             serverLease -> {
+                // this scenario could be triggered if there are possibly 3 owners
                 if (serverLease.getOwner() != null && !serverLease.getOwner().equalsIgnoreCase(oldOwner)) {
                     logger.info("Lease with token {} : lease was acquired already by owner '{}'", lease.getLeaseToken(), serverLease.getOwner());
                     throw new LeaseLostException(lease);
@@ -405,6 +406,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
                         lease.getLeaseToken(), serverLease.getOwner());
                     throw new LeaseLostException(lease);
                 }
+                // q: what are these properties?
                 serverLease.setProperties(lease.getProperties());
                 return serverLease;
             });

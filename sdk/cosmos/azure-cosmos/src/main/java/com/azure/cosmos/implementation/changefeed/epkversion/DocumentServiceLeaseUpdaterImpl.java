@@ -50,7 +50,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
             Function<Lease, Lease> updateLease) {
 
         // depends on the update function being passed, I've seen the following:
-        //      1. update properties on the lease - around when the lease is being acquired.
+        //      1. update properties and owner on the lease - around when the lease is being acquired.
         //      2. set the continuation token on the lease - around when checkpointing has to be done.
         //      3. when the lease has to be renewed
         Lease localLease = updateLease.apply(cachedLease);
@@ -68,8 +68,8 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
 
         return
             Mono.just(this)
-            // try to replace the updated lease
-            .flatMap( value -> this.tryReplaceLease(cachedLease, itemId, partitionKey))
+            // try to replace the updated lease - returns empty if precondition failed
+            .flatMap(value -> this.tryReplaceLease(cachedLease, itemId, partitionKey))
             .map(leaseDocument -> {
                 cachedLease.setServiceItemLease(ServiceItemLeaseV1.fromDocument(leaseDocument));
                 return cachedLease;
@@ -80,6 +80,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
                     return Mono.just(cachedLease);
                 }
                 // Partition lease update conflict. Reading the current version of lease.
+                // q: is the above comment incorrect - reason being Mono returns empty if precondition failed
                 return this.client.readItem(itemId, partitionKey, requestOptions, InternalObjectNode.class)
                     .onErrorResume(throwable -> {
                         if (throwable instanceof CosmosException) {
@@ -161,6 +162,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
                         }
                         // two replace requests on the ID + pkVal pair on two or more regions
                         case HTTP_STATUS_CODE_CONFLICT: {
+                            // q: why is a LeaseConflictException not thrown?
                             throw new LeaseLostException(lease, ex, false);
                         }
                         case HTTP_STATUS_CODE_NOT_FOUND: {

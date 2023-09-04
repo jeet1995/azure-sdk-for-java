@@ -57,6 +57,7 @@ class PartitionProcessorFactoryImpl<T> implements PartitionProcessorFactory<T> {
         checkNotNull(lease, "Argument 'lease' can not be null");
 
         ChangeFeedState state;
+
         if (Strings.isNullOrWhiteSpace(lease.getContinuationToken())) {
             // lease has no continuation token
             state = new ChangeFeedStateV1(

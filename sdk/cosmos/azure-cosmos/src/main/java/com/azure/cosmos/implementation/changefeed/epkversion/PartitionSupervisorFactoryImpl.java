@@ -56,7 +56,9 @@ class PartitionSupervisorFactoryImpl<T> implements PartitionSupervisorFactory {
     public PartitionSupervisor create(Lease lease) {
         checkNotNull(lease, "Argument 'lease' can not be null");
 
+        // a changeFeedObserver processes changes mainly
         ChangeFeedObserver<T> changeFeedObserver = this.observerFactory.createObserver();
+        //
         PartitionProcessor processor = this.partitionProcessorFactory.create(lease, changeFeedObserver, this.partitionProcessItemType);
         LeaseRenewer renewer = new LeaseRenewerImpl(lease, this.leaseManager, this.changeFeedProcessorOptions.getLeaseRenewInterval());
 

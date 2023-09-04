@@ -47,16 +47,15 @@ class LeaseStoreImpl implements LeaseStore {
     // can be found from the lease container
     @Override
     public Mono<Boolean> isInitialized() {
-        // Q: what is a store marker name?
+        // q: what is a store marker name?
         //      1. containerPrefix + ".info"
         String markerDocId = this.getStoreMarkerName();
 
         // denotes a marker doc probably
-        // Q: how does it help?
+        // q: how does it help?
         //      1. Helps in lease synchronization
         InternalObjectNode doc = new InternalObjectNode();
         doc.setId(markerDocId);
-
 
         CosmosItemRequestOptions requestOptions = this.requestOptionsFactory.createItemRequestOptions(
             ServiceItemLeaseV1.fromDocument(doc));

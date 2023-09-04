@@ -58,15 +58,18 @@ class BootstrapperImpl implements Bootstrapper {
                     return Mono.empty();
                 } else {
                     logger.info("Acquire initialization lock");
-                    // attempt to create a lock document on the lease store - if conflict
-                    // then some other CFP instance has acquired the lock
+                    // 1. attempt to create a lock document on the lease store - if conflict
+                    //    then some other CFP instance has acquired the lock
+                    // 2. there is a marker document which denotes that the lease store has been
+                    //    initialized and a lock document which needs to be created / acquired
+                    //    before initializing the store
                     return this.leaseStore.acquireInitializationLock(this.lockTime)
                         .flatMap(lockAcquired -> {
                             this.isLockAcquired = lockAcquired;
 
                             if (!this.isLockAcquired) {
                                 logger.info("Another instance is initializing the store");
-                                // if lock could not be acquired delay
+                                // if lock could not be acquired then delay for some more time
                                 return Mono.just(isLockAcquired).delayElement(this.sleepTime, CosmosSchedulers.COSMOS_PARALLEL);
                             } else {
                                 // if lock acquired create the missing leases for each physical partition of the monitored container

@@ -52,6 +52,7 @@ class PartitionControllerImpl implements PartitionController {
 
     @Override
     public Mono<Void> initialize() {
+        // q: what is the cancellation token source?
         this.shutdownCts = new CancellationTokenSource();
         return this.loadLeases();
     }
@@ -63,7 +64,10 @@ class PartitionControllerImpl implements PartitionController {
     @Override
     public synchronized Mono<Lease> addOrUpdateLease(final Lease lease) {
 
+        // every partition has a worker task
         WorkerTask workerTask = this.currentlyOwnedPartitions.get(lease.getLeaseToken());
+
+        // q: why only update properties when the workerTask is running?
         if (workerTask != null && workerTask.isRunning()) {
             return this.leaseManager.updateProperties(lease)
                 .map(updatedLease -> {
@@ -76,11 +80,13 @@ class PartitionControllerImpl implements PartitionController {
         //      1. timestamp
         //      2. owner
         //      3. concurrencyToken <=> ETag (used with setIfMatchETag)
+        // below flow is started when the worker task is not running
         return this.leaseManager.acquire(lease)
             .map(updatedLease -> {
                 // WorkerTask basically is:
                 //      1. Runs the partitionSupervisor
                 //      2. Scoped to one partition / lease.
+                //      3. Lease is scoped to an EPK
                 WorkerTask checkTask = this.currentlyOwnedPartitions.get(lease.getLeaseToken());
                 if (checkTask == null) {
                     logger.info("Lease with token {}: acquired.", updatedLease.getLeaseToken());
@@ -115,7 +121,7 @@ class PartitionControllerImpl implements PartitionController {
         // query leases owned by current host
         // q: is lease prefix + host combo to be checked - correct
         return this.leaseContainer.getOwnedLeases()
-            .flatMap( lease -> {
+            .flatMap(lease -> {
                 logger.info("Lease with token {}: Acquired on startup.", lease.getLeaseToken());
                 return this.addOrUpdateLease(lease);
             }).then();

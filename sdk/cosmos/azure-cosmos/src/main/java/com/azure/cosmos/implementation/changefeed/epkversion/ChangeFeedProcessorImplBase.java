@@ -134,8 +134,9 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
      */
     @Override
     public Mono<Void> start() {
-        // Q: what is a partitionManager
+        // Q: what is a partitionManager?
         if (this.partitionManager == null) {
+            // build the partitionManager first
             return this.initializeCollectionPropertiesForBuild()
                     .flatMap(value -> this.getLeaseStoreManager().flatMap(this::buildPartitionManager))
                     .flatMap(partitionManager1 -> {
@@ -255,7 +256,11 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
         return lsn;
     }
 
+    // q: what does this method do?
+    //      1. Initializes the following:
+    //          a) Sets the databaseResourceId, databaseId, collectionResourceId, collectionId
     private Mono<ChangeFeedProcessor> initializeCollectionPropertiesForBuild() {
+        // a context client here performs data plane operations typically
         return this.feedContextClient
                 .readDatabase(this.feedContextClient.getDatabaseClient(), null)
                 .map(databaseResourceResponse -> {
@@ -263,7 +268,7 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
                     this.databaseId = databaseResourceResponse.getProperties().getId();
                     return this.databaseResourceId;
                 })
-                .flatMap( id -> this.feedContextClient
+                .flatMap(id -> this.feedContextClient
                         .readContainer(this.feedContextClient.getContainerClient(), null)
                         .map(documentCollectionResourceResponse -> {
                             this.collectionResourceId = documentCollectionResourceResponse.getProperties().getResourceId();
@@ -277,6 +282,7 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
 
             return this.leaseContextClient.readContainerSettings(this.leaseContextClient.getContainerClient(), null)
                     .flatMap(collectionSettings -> {
+                        // q: why should the lease container be partitioned by id?
                         if (!this.isContainerPartitionedById(collectionSettings)) {
                             return Mono.error(new IllegalArgumentException("The lease collection must have partition key equal to id."));
                         }
@@ -359,6 +365,8 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
                 this.changeFeedMode);
 
         Bootstrapper bootstrapper;
+
+        // always true
         if (this.canBootstrapFromPkRangeIdVersionLeaseStore()) {
 
             String pkRangeIdVersionLeasePrefix = this.getPkRangeIdVersionLeasePrefix();
@@ -425,6 +433,10 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
                 this.scheduler
         );
 
+        // what is needed to build a partitionManager?
+        //      1. Bootstrapper
+        //      2. PartitionController
+        //      3. PartitionLoadBalancer
         PartitionManager partitionManager = new PartitionManagerImpl(bootstrapper, partitionController, partitionLoadBalancer);
 
         return Mono.just(partitionManager);

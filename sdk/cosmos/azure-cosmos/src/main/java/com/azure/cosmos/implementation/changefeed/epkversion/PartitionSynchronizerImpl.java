@@ -136,14 +136,14 @@ class PartitionSynchronizerImpl implements PartitionSynchronizer {
         return this.leaseContainer
             .getAllLeases()
             //  collecting this as a list is important because it will still call flatMapMany even if the list is empty.
-            //  when initializing, all leases will return empty list.
+            //  when initializing, getAllLeases will return empty list.
             .collectList()
             .flatMapMany(leaseList -> {
                 return Flux.fromIterable(partitionKeyRanges)
                            .flatMap(pkRange -> {
                                // check if there are epk based leases for the partitionKeyRange
                                // If there is at least one, then we assume there are others
-                               // that cover the rest of the full partition range
+                               // that cover the rest of the full partition key range
                                // based on the fact that the lease store was always
                                // initialized for the full collection
                                // TODO:(kuthapar) what if some epkRange did not create successfully?
