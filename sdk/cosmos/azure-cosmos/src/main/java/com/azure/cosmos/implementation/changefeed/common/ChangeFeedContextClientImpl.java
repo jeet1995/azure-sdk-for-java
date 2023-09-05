@@ -137,6 +137,8 @@ public class ChangeFeedContextClientImpl implements ChangeFeedContextClient {
         Flux<FeedResponse<T>> feedResponseFlux =
             clientWrapper
                 .getCollectionCache()
+                // q: when is resolveByName used / resolveByRid used?
+                //      1. resolveByName is used probably because collectionLink is passed.
                 .resolveByNameAsync(
                     null,
                     BridgeInternal.extractContainerSelfLink(collectionLink),

@@ -224,6 +224,8 @@ public final class ChangeFeedProcessorOptions {
      * @param startContinuation the start request continuation token to start looking for changes after.
      * @return the string representing a continuation token that will be used to get item feeds starting with.
      */
+    // setting the continuation token makes sense if the lease store is not initialized
+    // if the lease store is initialized, it probably has some continuation token mapped to each lease
     public ChangeFeedProcessorOptions setStartContinuation(String startContinuation) {
         this.startContinuation = startContinuation;
         return this;

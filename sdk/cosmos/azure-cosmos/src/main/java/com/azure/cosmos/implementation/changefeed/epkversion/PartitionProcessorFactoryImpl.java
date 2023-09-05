@@ -58,6 +58,7 @@ class PartitionProcessorFactoryImpl<T> implements PartitionProcessorFactory<T> {
 
         ChangeFeedState state;
 
+        // partitionProcessor needs to start from some continuation token
         if (Strings.isNullOrWhiteSpace(lease.getContinuationToken())) {
             // lease has no continuation token
             state = new ChangeFeedStateV1(

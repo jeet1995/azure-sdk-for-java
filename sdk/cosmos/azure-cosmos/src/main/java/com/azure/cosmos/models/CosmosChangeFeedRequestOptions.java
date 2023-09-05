@@ -255,6 +255,11 @@ public final class CosmosChangeFeedRequestOptions {
     static CosmosChangeFeedRequestOptions createForProcessingFromContinuation(
         ChangeFeedState changeFeedState) {
 
+        // feedRange is an abstract concept which means some subset of the container
+        //      1. feedRangeEpk
+        //      2. feedRangePkr
+        //      3. feedRangePartitionKeyImpl
+        // q: what is the difference b/w feedRangePkr and feedRangePartitionKeyImpl?
         FeedRangeInternal feedRange = changeFeedState.getFeedRange();
         FeedRangeContinuation continuation = changeFeedState.getContinuation();
         ChangeFeedMode mode = changeFeedState.getMode();
@@ -264,6 +269,7 @@ public final class CosmosChangeFeedRequestOptions {
                 continuation.getCurrentContinuationToken();
             if (continuationToken != null) {
                 String etag = continuationToken.getToken();
+                // start from some eTag if continuation token is not null
                 return new CosmosChangeFeedRequestOptions(
                     feedRange,
                     ChangeFeedStartFromInternal.createFromETagAndFeedRange(etag, feedRange),
@@ -271,6 +277,7 @@ public final class CosmosChangeFeedRequestOptions {
                     changeFeedState);
             }
 
+            // start from beginning if no continuation token
             return new CosmosChangeFeedRequestOptions(
                 feedRange,
                 ChangeFeedStartFromInternal.createFromBeginning(),
@@ -278,6 +285,7 @@ public final class CosmosChangeFeedRequestOptions {
                 changeFeedState);
         }
 
+        // q: what is getStartFromSettings?
         return new CosmosChangeFeedRequestOptions(
             feedRange,
             changeFeedState.getStartFromSettings(),

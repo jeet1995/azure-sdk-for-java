@@ -356,14 +356,13 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
 
                 return Mono.error(ex);
             })
-            .map( documentResourceResponse -> ServiceItemLeaseV1.fromDocument(BridgeInternal.getProperties(documentResourceResponse)))
-            .flatMap( refreshedLease -> this.leaseUpdater.updateLease(
+            .map(documentResourceResponse -> ServiceItemLeaseV1.fromDocument(BridgeInternal.getProperties(documentResourceResponse)))
+            .flatMap(refreshedLease -> this.leaseUpdater.updateLease(
                 refreshedLease,
                 lease.getId(),
                 new PartitionKey(lease.getId()),
                 this.requestOptionsFactory.createItemRequestOptions(lease),
-                serverLease ->
-                {
+                serverLease -> {
                     if (serverLease.getOwner() == null) {
                         logger.info("Lease with token {} : lease was taken over and released by a different owner",
                             lease.getLeaseToken());

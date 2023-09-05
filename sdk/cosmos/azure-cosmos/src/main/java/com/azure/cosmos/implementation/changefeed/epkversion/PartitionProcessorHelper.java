@@ -61,8 +61,7 @@ public class PartitionProcessorHelper {
                 FeedRangeInternal feedRange,
                 ChangeFeedProcessorOptions processorOptions) {
 
-            if (!Strings.isNullOrWhiteSpace(processorOptions.getStartContinuation()))
-            {
+            if (!Strings.isNullOrWhiteSpace(processorOptions.getStartContinuation())) {
                 return ChangeFeedStartFromInternal.createFromETagAndFeedRange(
                         processorOptions.getStartContinuation(),
                         feedRange);
@@ -99,6 +98,8 @@ public class PartitionProcessorHelper {
         }
 
         private static CosmosChangeFeedRequestOptions createForProcessingFromContinuation(String continuationToken) {
+
+
             CosmosChangeFeedRequestOptions changeFeedRequestOptions =
                 CosmosChangeFeedRequestOptions.createForProcessingFromContinuation(continuationToken);
             // in epk version change feed processor, we are going to use new wire format to be consistent with full fidelity
