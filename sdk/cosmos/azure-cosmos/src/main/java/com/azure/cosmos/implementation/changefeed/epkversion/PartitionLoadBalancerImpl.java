@@ -95,10 +95,13 @@ class PartitionLoadBalancerImpl implements PartitionLoadBalancer {
 
     private Mono<Void> run(CancellationToken cancellationToken) {
         return Flux.just(this)
+             // gets the leases associated with some lease prefix
             .flatMap(value -> this.leaseContainer.getAllLeases())
             .collectList()
             .flatMap(allLeases -> {
                 if (cancellationToken.isCancellationRequested()) return Mono.empty();
+
+                // q: does a CFP instance steal only one lease at a time?
                 List<Lease> leasesToTake = this.partitionLoadBalancingStrategy.selectLeasesToTake(allLeases);
                 if (leasesToTake.size() > 0) {
                     this.logger.info("Found {} total leases, taking ownership of {}", allLeases.size(), leasesToTake.size());

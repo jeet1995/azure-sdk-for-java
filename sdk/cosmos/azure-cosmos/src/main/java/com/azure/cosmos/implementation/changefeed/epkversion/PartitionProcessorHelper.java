@@ -114,10 +114,14 @@ public class PartitionProcessorHelper {
     }
 
     private static class FullFidelityPartitionProcessorHelper {
+
+        // for FFCF, startFromBeginning and startFromStartTime do not work.
+        // if a continuation token has been provided - good otherwise startFromNow
         public static ChangeFeedStartFromInternal getStartFromSettings(
                 FeedRangeInternal feedRange,
                 ChangeFeedProcessorOptions processorOptions) {
 
+            // startContinuation provided by the end user
             if (!Strings.isNullOrWhiteSpace(processorOptions.getStartContinuation())) {
                 ChangeFeedState changeFeedState = ChangeFeedStateV1.fromString(processorOptions.getStartContinuation());
                 return ChangeFeedStartFromInternal.createFromETagAndFeedRange(

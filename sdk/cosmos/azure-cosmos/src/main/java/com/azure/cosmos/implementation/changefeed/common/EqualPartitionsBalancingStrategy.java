@@ -37,6 +37,7 @@ public class EqualPartitionsBalancingStrategy implements PartitionLoadBalancingS
         this.leaseExpirationInterval = leaseExpirationInterval;
     }
 
+    // allLeases is already scoped to a lease prefix
     @Override
     public List<Lease> selectLeasesToTake(List<Lease> allLeases) {
         Map<String, Integer> workerToPartitionCount = new HashMap<>();
@@ -45,7 +46,10 @@ public class EqualPartitionsBalancingStrategy implements PartitionLoadBalancingS
 
         this.categorizeLeases(allLeases, allPartitions, expiredLeases, workerToPartitionCount);
 
+        // unique no. of lease tokens / lease token corresponds to a partition
         int partitionCount = allPartitions.size();
+
+        // mapping b/w owner and lease
         int workerCount = workerToPartitionCount.size();
 
         if (partitionCount <= 0) {
@@ -56,9 +60,14 @@ public class EqualPartitionsBalancingStrategy implements PartitionLoadBalancingS
         int myCount = workerToPartitionCount.get(this.hostName);
         int partitionsNeededForMe = target - myCount;
 
+        // if there are expired leases, then select leases from expired leases only
+        // q: why is above the case though?
+        //      1. Expired leases are mapped to an EPK which are not being processed, so prioritize them.
         if (expiredLeases.size() > 0) {
             // We should try to pick at least one expired lease even if already overbooked when maximum partition count is not set.
             // If other CFP instances are running, limit the number of expired leases to acquire to maximum 1 (non-greedy acquiring).
+
+            // maxPartitionCount == 0 implies maxScaleCount is not set
             if ((this.maxPartitionCount == 0 && partitionsNeededForMe <= 0) || (partitionsNeededForMe > 1 && workerToPartitionCount.size() > 1)) {
                 partitionsNeededForMe = 1;
             }
@@ -80,17 +89,18 @@ public class EqualPartitionsBalancingStrategy implements PartitionLoadBalancingS
 
             // If we reach here with partitionsNeededForMe < 0, then it means the change feed processor instances has owned leases >= the maxScaleCount.
             // Then in this case, the change feed processor instance will not pick up any new leases.
-            if (partitionsNeededForMe <= 0)
-            {
+            if (partitionsNeededForMe <= 0) {
                 return new ArrayList<>();
             }
 
             return expiredLeases.subList(0, Math.min(partitionsNeededForMe, expiredLeases.size()));
         }
 
+        // when target >= myCount
         if (partitionsNeededForMe <= 0)
             return new ArrayList<Lease>();
 
+        // steals only one lease
         Lease stolenLease = getLeaseToSteal(workerToPartitionCount, target, partitionsNeededForMe, allPartitions);
         List<Lease> stolenLeases = new ArrayList<>();
 
@@ -139,6 +149,8 @@ public class EqualPartitionsBalancingStrategy implements PartitionLoadBalancingS
             target = (int)Math.ceil((double)partitionCount / workerCount);
         }
 
+        // set by maxScaleCount / minScaleCount - determines the no. of parallel
+        // workers that can be run
         if (this.maxPartitionCount > 0 && target > this.maxPartitionCount) {
             target = this.maxPartitionCount;
         }
@@ -159,6 +171,7 @@ public class EqualPartitionsBalancingStrategy implements PartitionLoadBalancingS
         for (Lease lease : allLeases) {
             // Debug.Assert(lease.LeaseToken != null, "TakeLeasesAsync: lease.LeaseToken cannot be null.");
 
+            // leaseToken is the partition associated with the lease
             allPartitions.put(lease.getLeaseToken(), lease);
 
             if (lease.getOwner() == null || lease.getOwner().isEmpty() || this.isExpired(lease)) {
@@ -167,6 +180,7 @@ public class EqualPartitionsBalancingStrategy implements PartitionLoadBalancingS
                 String assignedTo = lease.getOwner();
                 Integer count = workerToPartitionCount.get(assignedTo);
 
+                // records the no. of owners who have owned a particular lease
                 if (count != null) {
                     workerToPartitionCount.replace(assignedTo, count + 1);
                 } else {
@@ -180,6 +194,9 @@ public class EqualPartitionsBalancingStrategy implements PartitionLoadBalancingS
         }
     }
 
+    // a lease is considered to be expired on the following:
+    //      1. No owner / timestamp set
+    //      2. Gap b/w Lease timestamp and currentTime has gone beyond leaseExpirationInterval
     private boolean isExpired(Lease lease) {
         if (lease.getOwner() == null || lease.getOwner().isEmpty() || lease.getTimestamp() == null) {
             return true;
