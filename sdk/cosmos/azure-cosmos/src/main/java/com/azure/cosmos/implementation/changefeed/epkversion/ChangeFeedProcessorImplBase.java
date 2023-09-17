@@ -205,6 +205,7 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
                             CosmosChangeFeedRequestOptions options = this.createRequestOptionsForProcessingFromNow(lease.getFeedRange());
 
                             return this.feedContextClient
+                                    // query for CFPItem from the feed container - this way you'll get the latestLsn on documents for a given lease
                                     .createDocumentChangeFeedQuery(this.feedContextClient.getContainerClient(), options, ChangeFeedProcessorItem.class)
                                     .take(1)
                                     .map(feedResponse -> {
@@ -216,6 +217,8 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
                                         long estimatedLag = 0;
                                         long currentLsn;
                                         try {
+                                            // latestLsn is obtained from the continuation token in the feedResponse
+                                            // currentLsn is obtained form the continuation token in the lease
                                             latestLsn = getLsnFromEncodedContinuationToken(feedResponse.getContinuationToken());
                                             changeFeedProcessorState.setContinuationToken(feedResponse.getContinuationToken());
                                             if (Strings.isNullOrWhiteSpace(lease.getContinuationToken())) {
@@ -259,6 +262,7 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
     // q: what does this method do?
     //      1. Initializes the following:
     //          a) Sets the databaseResourceId, databaseId, collectionResourceId, collectionId
+    // q: what is the difference b/w resourceId and id?
     private Mono<ChangeFeedProcessor> initializeCollectionPropertiesForBuild() {
         // a context client here performs data plane operations typically
         return this.feedContextClient
