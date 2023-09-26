@@ -80,7 +80,6 @@ public class RxClientCollectionCache extends RxCollectionCache {
     protected Mono<DocumentCollection> getByNameAsync(MetadataDiagnosticsContext metaDataDiagnosticsContext, String resourceAddress, Map<String, Object> properties) {
         // TODO @fabianm wire up clientContext
         DocumentClientRetryPolicy retryPolicyInstance = new ClearingSessionContainerClientRetryPolicy(this.sessionContainer, this.retryPolicy.getRequestPolicy(null));
-        DocumentClientRetryPolicy retryPolicyInstance = new ClearingSessionContainerClientRetryPolicy(this.sessionContainer, this.retryPolicy.getRequestPolicy());
 
         // ClearingSessionContainerClientRetryPolicy needs the session container
         // to be cleared when a 404 / 1002 is returned

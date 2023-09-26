@@ -23,6 +23,7 @@ import java.time.Duration;
 /**
  * Implementation for LeaseStore.
  */
+// q: what is the difference b/w leaseStore and leaseStoreManager
 class LeaseStoreImpl implements LeaseStore {
     private final Logger logger = LoggerFactory.getLogger(LeaseStoreImpl.class);
     private final ChangeFeedContextClient client;
@@ -48,7 +49,7 @@ class LeaseStoreImpl implements LeaseStore {
     @Override
     public Mono<Boolean> isInitialized() {
         // q: what is a store marker name?
-        //      1. containerPrefix + ".info"
+        //      1. containerPrefix (actually the lease prefix) + ".info"
         String markerDocId = this.getStoreMarkerName();
 
         // denotes a marker doc probably
@@ -107,6 +108,10 @@ class LeaseStoreImpl implements LeaseStore {
         String lockId = this.getStoreLockName();
         InternalObjectNode containerDocument = new InternalObjectNode();
         containerDocument.setId(lockId);
+
+        // q: why is there a TTL on the existing lock document?
+        //      - if lock document is not deleted then a different CFP instance
+        //      will not be able to initialize the lease store
         BridgeInternal.setProperty(containerDocument, Constants.Properties.TTL, Long.valueOf(lockExpirationTime.getSeconds()).intValue());
 
         return this.client.createItem(
@@ -151,6 +156,7 @@ class LeaseStoreImpl implements LeaseStore {
         }
 
         // Q: what does setIfMatchETag do?
+        //      - delete a lock document iff it was created by the same CFP instance
         requestOptions.setIfMatchETag(this.lockETag);
 
         return this.client.deleteItem(lockId, new PartitionKey(lockId), requestOptions)
@@ -176,8 +182,7 @@ class LeaseStoreImpl implements LeaseStore {
             });
     }
 
-    private String getStoreMarkerName()
-    {
+    private String getStoreMarkerName() {
         return this.containerNamePrefix + ".info";
     }
 

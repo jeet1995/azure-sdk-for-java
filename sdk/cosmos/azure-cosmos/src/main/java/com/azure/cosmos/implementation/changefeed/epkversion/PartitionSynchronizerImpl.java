@@ -137,8 +137,14 @@ class PartitionSynchronizerImpl implements PartitionSynchronizer {
             .getAllLeases()
             //  collecting this as a list is important because it will still call flatMapMany even if the list is empty.
             //  when initializing, getAllLeases will return empty list.
+            // q: what is the issue with flatMapMany and the list is empty?
             .collectList()
+            // q: flatMap v/s flatMapMany
+            //      - flatMap: 1:1 async transformation
+            //      - flatMapMany: 1:N async transformation
             .flatMapMany(leaseList -> {
+                // q: why do we want to process a 'list' of leases?
+                //      - we want to compare a pkRange against all leases
                 return Flux.fromIterable(partitionKeyRanges)
                            .flatMap(pkRange -> {
                                // check if there are epk based leases for the partitionKeyRange
@@ -151,6 +157,8 @@ class PartitionSynchronizerImpl implements PartitionSynchronizer {
                                    Range<String> epkRange = ((FeedRangeEpkImpl) lease.getFeedRange()).getRange();
                                    //  We are creating the lease for the whole pkRange, so even if we find at least one, we should be good.
                                    //  This lease exists, no need to create one for this pkRange
+                                   // q: how do we know if a lease maps to a pkRange?
+                                   //   - check if epkRange associated with a lease has min equals pkRange min or max equals pkRange max
                                    return epkRange.getMin().equals(pkRange.getMinInclusive()) || epkRange.getMax().equals(pkRange.getMaxExclusive());
                                });
                                //   If there is no match, it means leases don't exist for these pkranges.

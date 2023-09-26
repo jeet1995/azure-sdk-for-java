@@ -24,7 +24,7 @@ class PartitionManagerImpl implements PartitionManager {
 
     @Override
     public Mono<Void> start() {
-        // initializes the lease store
+        // 1. initializes the lease store - create a marker document, acquire a lock, create missing leases
         return this.bootstrapper.initialize()
             // loads all leases owned by a particular host
             .then(this.partitionController.initialize())

@@ -179,8 +179,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
             });
     }
 
-    private CosmosItemRequestOptions getCreateIfMatchOptions(Lease lease) {
-        CosmosItemRequestOptions createIfMatchOptions = new CosmosItemRequestOptions();
+    private CosmosItemRequestOptions getCreateIfMatchOptions(CosmosItemRequestOptions createIfMatchOptions, Lease lease) {
         createIfMatchOptions.setIfMatchETag(lease.getConcurrencyToken());
 
         return createIfMatchOptions;

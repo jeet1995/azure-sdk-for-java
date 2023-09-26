@@ -335,6 +335,7 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
                 this.collectionResourceId);
     }
 
+    // q: why is it needed to append the lease prefix with the host, database id and collection id?
     private String getPkRangeIdVersionLeasePrefix() {
         String optionsPrefix = this.changeFeedProcessorOptions.getLeasePrefix();
 
@@ -370,7 +371,8 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
 
         Bootstrapper bootstrapper;
 
-        // always true
+        // always true for incremental mode
+        // always false for full-fidelity change feed mode since pkRangeId based lease won't exist for FFCF
         if (this.canBootstrapFromPkRangeIdVersionLeaseStore()) {
 
             String pkRangeIdVersionLeasePrefix = this.getPkRangeIdVersionLeasePrefix();
@@ -384,6 +386,8 @@ public abstract class ChangeFeedProcessorImplBase<T> implements ChangeFeedProces
                     .hostName(this.hostName)
                     .build();
 
+            // q: why is this pkrIdVersionLeaseStoreBootstrapper needed?
+            //      1. for customers migrating from handleChanges to handleLatestVersionChanges
             bootstrapper = new PkRangeIdVersionLeaseStoreBootstrapperImpl(
                 synchronizer,
                 leaseStoreManager,
