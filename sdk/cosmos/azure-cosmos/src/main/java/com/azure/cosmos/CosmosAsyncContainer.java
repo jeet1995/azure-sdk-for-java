@@ -16,11 +16,11 @@ import com.azure.cosmos.implementation.InternalObjectNode;
 import com.azure.cosmos.implementation.ItemDeserializer;
 import com.azure.cosmos.implementation.Offer;
 import com.azure.cosmos.implementation.OperationType;
+import com.azure.cosmos.implementation.PartitionKeyHelper;
 import com.azure.cosmos.implementation.Paths;
 import com.azure.cosmos.implementation.RequestOptions;
 import com.azure.cosmos.implementation.ResourceResponse;
 import com.azure.cosmos.implementation.ResourceType;
-import com.azure.cosmos.implementation.RxDocumentClientImpl;
 import com.azure.cosmos.implementation.Utils;
 import com.azure.cosmos.implementation.WriteRetryPolicy;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
@@ -361,11 +361,11 @@ public class CosmosAsyncContainer {
     private <T> Mono<CosmosItemResponse<T>> replaceItemWithTrackingId(Class<T> itemType,
                                                                       String itemId,
                                                                       Document doc,
-                                                                      CosmosItemRequestOptions options,
+                                                                      RequestOptions requestOptions,
                                                                       String trackingId) {
 
         checkNotNull(trackingId, "Argument 'trackingId' must not be null.");
-        return replaceItemInternalCore(itemType, itemId, doc, options, trackingId)
+        return replaceItemInternalCore(itemType, itemId, doc, requestOptions, trackingId)
             .onErrorResume(throwable -> {
                 Throwable error = throwable instanceof CompletionException ? throwable.getCause() : throwable;
 
@@ -382,8 +382,6 @@ public class CosmosAsyncContainer {
                 if (cosmosException.getStatusCode() != HttpConstants.StatusCodes.PRECONDITION_FAILED) {
                     return Mono.error(cosmosException);
                 }
-
-                RequestOptions requestOptions = ModelBridgeInternal.toRequestOptions(options);
 
                 Mono<CosmosItemResponse<T>> readMono =
                     this.getDatabase().getDocClientWrapper()
@@ -409,7 +407,7 @@ public class CosmosAsyncContainer {
                                 readResponse,
                                 200,
                                 cosmosException.getRequestCharge(),
-                                this.isContentResponseOnWriteEffectivelyEnabled(options)));
+                                this.isContentResponseOnWriteEffectivelyEnabled(requestOptions)));
                         }
 
                         return Mono.error(cosmosException);
@@ -418,7 +416,7 @@ public class CosmosAsyncContainer {
     }
 
     private <T> Mono<CosmosItemResponse<T>> createItemWithTrackingId(
-        T item, CosmosItemRequestOptions options, String trackingId) {
+        T item, RequestOptions options, String trackingId) {
 
         checkNotNull(trackingId, "Argument 'trackingId' must not be null.");
 
@@ -443,8 +441,7 @@ public class CosmosAsyncContainer {
                 InternalObjectNode internalObjectNode = InternalObjectNode.fromObjectToInternalObjectNode(item);
                 String itemId = internalObjectNode.getId();
 
-                CosmosItemRequestOptions readRequestOptions = itemOptionsAccessor
-                    .clone(options);
+                RequestOptions readRequestOptions = new RequestOptions(options);
                 readRequestOptions.setConsistencyLevel(null);
 
                 @SuppressWarnings("unchecked")
@@ -462,16 +459,15 @@ public class CosmosAsyncContainer {
                             }
 
                             PartitionKeyDefinition pkDef = collection.getPartitionKey();
-                            PartitionKeyInternal partitionKeyInternal = RxDocumentClientImpl
+                            PartitionKeyInternal partitionKeyInternal = PartitionKeyHelper
                                 .extractPartitionKeyValueFromDocument(internalObjectNode, pkDef);
-                            RequestOptions requestOptions = ModelBridgeInternal.toRequestOptions(readRequestOptions);
                             PartitionKey partitionKey = ImplementationBridgeHelpers
                                 .PartitionKeyHelper
                                     .getPartitionKeyAccessor()
                                     .toPartitionKey(partitionKeyInternal);
-                            requestOptions.setPartitionKey(partitionKey);
+                            readRequestOptions.setPartitionKey(partitionKey);
 
-                            return clientWrapper.readDocument(getItemLink(itemId), requestOptions)
+                            return clientWrapper.readDocument(getItemLink(itemId), readRequestOptions)
                                                 .map(response -> {
                                                     mergeDiagnostics(response, cosmosException);
                                                     return ModelBridgeInternal
@@ -502,7 +498,7 @@ public class CosmosAsyncContainer {
             });
     }
 
-    private boolean isContentResponseOnWriteEffectivelyEnabled(CosmosItemRequestOptions options) {
+    private boolean isContentResponseOnWriteEffectivelyEnabled(RequestOptions options) {
         Boolean requestOptionsContentResponseEnabled = null;
         if (options != null) {
             requestOptionsContentResponseEnabled = options.isContentResponseOnWriteEnabled();
@@ -525,11 +521,12 @@ public class CosmosAsyncContainer {
         String trackingId = null;
         CosmosItemRequestOptions effectiveOptions = getEffectiveOptions(nonIdempotentWriteRetryPolicy, options);
 
+        RequestOptions requestOptions =  ModelBridgeInternal.toRequestOptions(effectiveOptions);
         if (nonIdempotentWriteRetryPolicy.isEnabled() && nonIdempotentWriteRetryPolicy.useTrackingIdProperty()) {
             trackingId = UUID.randomUUID().toString();
-            responseMono = createItemWithTrackingId(item, effectiveOptions, trackingId);
+            responseMono = createItemWithTrackingId(item, requestOptions, trackingId);
         } else {
-            responseMono = createItemInternalCore(item, effectiveOptions, null);
+            responseMono = createItemInternalCore(item, requestOptions, null);
         }
 
         CosmosAsyncClient client = database
@@ -546,19 +543,17 @@ public class CosmosAsyncContainer {
                 ModelBridgeInternal.getConsistencyLevel(effectiveOptions),
                 OperationType.Create,
                 ResourceType.Document,
-                client.getEffectiveDiagnosticsThresholds(
-                    itemOptionsAccessor.getDiagnosticsThresholds(effectiveOptions)),
+                requestOptions,
                 trackingId);
     }
 
     private <T> Mono<CosmosItemResponse<T>> createItemInternalCore(
         T item,
-        CosmosItemRequestOptions options,
+        RequestOptions requestOptions,
         String trackingId) {
 
         @SuppressWarnings("unchecked")
         Class<T> itemType = (Class<T>) item.getClass();
-        RequestOptions requestOptions = ModelBridgeInternal.toRequestOptions(options);
         requestOptions.setTrackingId(trackingId);
         return database.getDocClientWrapper()
                    .createDocument(getLink(),
@@ -657,8 +652,6 @@ public class CosmosAsyncContainer {
                 queryOptionsAccessor.withEmptyPageDiagnosticsEnabled(nonNullOptions, true)
                 : nonNullOptions;
 
-            queryOptionsAccessor.applyMaxItemCount(options, pagedFluxOptions);
-
             pagedFluxOptions.setTracerAndTelemetryInformation(
                 this.readAllItemsSpanName,
                 database.getId(),
@@ -708,8 +701,6 @@ public class CosmosAsyncContainer {
      * error.
      */
     public <T> CosmosPagedFlux<T> queryItems(String query, Class<T> classType) {
-
-        /*read*/
         return queryItemsInternal(new SqlQuerySpec(query), new CosmosQueryRequestOptions(), classType);
     }
 
@@ -943,7 +934,6 @@ public class CosmosAsyncContainer {
     <T> CosmosPagedFlux<T> queryItemsInternal(
         SqlQuerySpec sqlQuerySpec, CosmosQueryRequestOptions cosmosQueryRequestOptions, Class<T> classType) {
         if (cosmosQueryRequestOptions != null) {
-            // why is setting the partition key and feed range at the same time not allowed?
             if (cosmosQueryRequestOptions.getPartitionKey() != null && cosmosQueryRequestOptions
                                                                            .getFeedRange() != null) {
                 throw new IllegalArgumentException("Setting partitionKey and feedRange at the same time is not " +
@@ -967,9 +957,6 @@ public class CosmosAsyncContainer {
                 queryOptionsAccessor.withEmptyPageDiagnosticsEnabled(nonNullOptions, true)
                 : nonNullOptions;
             String spanName = this.queryItemsSpanName;
-
-            // max item per page is set on CosmosPagedFluxOptions instance
-            queryOptionsAccessor.applyMaxItemCount(options, pagedFluxOptions);
 
             pagedFluxOptions.setTracerAndTelemetryInformation(
                 spanName,

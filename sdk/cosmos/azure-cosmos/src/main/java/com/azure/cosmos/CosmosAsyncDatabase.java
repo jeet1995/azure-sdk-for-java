@@ -10,6 +10,7 @@ import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.Offer;
 import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.Paths;
+import com.azure.cosmos.implementation.RequestOptions;
 import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.models.CosmosClientEncryptionKeyProperties;
@@ -1348,6 +1349,7 @@ public class CosmosAsyncDatabase {
             DiagnosticsProvider.COSMOS_CALL_DEPTH_VAL);
         final CosmosContainerRequestOptions requestOptions = options == null ? new CosmosContainerRequestOptions() :
             options;
+
         Mono<CosmosContainerResponse> responseMono =
             container.read(requestOptions, nestedContext).onErrorResume(exception -> {
                 final Throwable unwrappedException = Exceptions.unwrap(exception);
@@ -1360,9 +1362,6 @@ public class CosmosAsyncDatabase {
                 return Mono.error(unwrappedException);
             });
 
-        CosmosDiagnosticsThresholds requestDiagnosticThresholds = options != null ?
-            ModelBridgeInternal.toRequestOptions(options).getDiagnosticsThresholds() : null;
-
         return this.client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
             responseMono,
             context,
@@ -1373,7 +1372,7 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Create,
             ResourceType.DocumentCollection,
-            client.getEffectiveDiagnosticsThresholds(requestDiagnosticThresholds));
+            ModelBridgeInternal.toRequestOptions(requestOptions));
     }
 
     private Mono<CosmosContainerResponse> createContainerInternal(
@@ -1381,13 +1380,12 @@ public class CosmosAsyncDatabase {
         CosmosContainerRequestOptions options,
         Context context) {
         String spanName = "createContainer." + containerProperties.getId();
+        RequestOptions nonNullRequestOptions =
+            options != null ? ModelBridgeInternal.toRequestOptions(options) : new RequestOptions();
         Mono<CosmosContainerResponse> responseMono = getDocClientWrapper()
             .createCollection(this.getLink(), ModelBridgeInternal.getV2Collection(containerProperties),
-                ModelBridgeInternal.toRequestOptions(options))
+                nonNullRequestOptions)
             .map(ModelBridgeInternal::createCosmosContainerResponse).single();
-
-        CosmosDiagnosticsThresholds requestDiagnosticThresholds =
-            ModelBridgeInternal.toRequestOptions(options).getDiagnosticsThresholds();
 
         return this.client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
             responseMono,
@@ -1399,17 +1397,16 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Create,
             ResourceType.DocumentCollection,
-            client.getEffectiveDiagnosticsThresholds(requestDiagnosticThresholds));
+            nonNullRequestOptions);
     }
 
     Mono<CosmosDatabaseResponse> readInternal(CosmosDatabaseRequestOptions options, Context context) {
         String spanName = "readDatabase." + this.getId();
+        RequestOptions nonNullRequestOptions =
+            options != null ? ModelBridgeInternal.toRequestOptions(options) : new RequestOptions();
         Mono<CosmosDatabaseResponse> responseMono = getDocClientWrapper()
-            .readDatabase(getLink(), ModelBridgeInternal.toRequestOptions(options))
+            .readDatabase(getLink(), nonNullRequestOptions)
             .map(ModelBridgeInternal::createCosmosDatabaseResponse).single();
-
-        CosmosDiagnosticsThresholds requestDiagnosticThresholds =
-            ModelBridgeInternal.toRequestOptions(options).getDiagnosticsThresholds();
 
         return this.client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
             responseMono,
@@ -1421,17 +1418,16 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Read,
             ResourceType.Database,
-            client.getEffectiveDiagnosticsThresholds(requestDiagnosticThresholds));
+            nonNullRequestOptions);
     }
 
     private Mono<CosmosDatabaseResponse> deleteInternal(CosmosDatabaseRequestOptions options, Context context) {
         String spanName = "deleteDatabase." + this.getId();
+        RequestOptions nonNullRequestOptions =
+            options != null ? ModelBridgeInternal.toRequestOptions(options) : new RequestOptions();
         Mono<CosmosDatabaseResponse> responseMono = getDocClientWrapper()
-            .deleteDatabase(getLink(), ModelBridgeInternal.toRequestOptions(options))
+            .deleteDatabase(getLink(), nonNullRequestOptions)
             .map(ModelBridgeInternal::createCosmosDatabaseResponse).single();
-
-        CosmosDiagnosticsThresholds requestDiagnosticThresholds =
-            ModelBridgeInternal.toRequestOptions(options).getDiagnosticsThresholds();
 
         return this.client.getDiagnosticsProvider().traceEnabledCosmosResponsePublisher(
             responseMono,
@@ -1443,7 +1439,7 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Delete,
             ResourceType.Database,
-            client.getEffectiveDiagnosticsThresholds(requestDiagnosticThresholds));
+            nonNullRequestOptions);
     }
 
     private Mono<CosmosUserResponse> createUserInternal(CosmosUserProperties userProperties, Context context) {
@@ -1462,7 +1458,7 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Create,
             ResourceType.User,
-            client.getEffectiveDiagnosticsThresholds(null));
+            null);
     }
 
     private Mono<CosmosUserResponse> upsertUserInternal(CosmosUserProperties userProperties, Context context) {
@@ -1480,7 +1476,7 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Upsert,
             ResourceType.User,
-            client.getEffectiveDiagnosticsThresholds(null));
+            null);
     }
 
     private Mono<CosmosClientEncryptionKeyResponse> createClientEncryptionKeyInternal(CosmosClientEncryptionKeyProperties keyProperties, Context context) {
@@ -1502,7 +1498,7 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Create,
             ResourceType.ClientEncryptionKey,
-            client.getEffectiveDiagnosticsThresholds(null));
+            null);
     }
 
     private Mono<ThroughputResponse> replaceThroughputInternal(ThroughputProperties throughputProperties, Context context) {
@@ -1521,7 +1517,7 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Replace,
             ResourceType.Offer,
-            client.getEffectiveDiagnosticsThresholds(null));
+            null);
     }
 
     private Mono<ThroughputResponse> replaceThroughputInternal(Mono<CosmosDatabaseResponse> responseMono, ThroughputProperties throughputProperties) {
@@ -1567,7 +1563,7 @@ public class CosmosAsyncDatabase {
             null,
             OperationType.Read,
             ResourceType.Offer,
-            client.getEffectiveDiagnosticsThresholds(null));
+            null);
     }
 
     private Mono<ThroughputResponse> readThroughputInternal(Mono<CosmosDatabaseResponse> responseMono) {

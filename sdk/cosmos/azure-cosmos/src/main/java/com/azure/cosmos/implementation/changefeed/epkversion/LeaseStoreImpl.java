@@ -75,14 +75,17 @@ class LeaseStoreImpl implements LeaseStore {
             });
     }
 
- @Override
+    @Override
     public Mono<Boolean> markInitialized() {
         String markerDocId = this.getStoreMarkerName();
         InternalObjectNode containerDocument = new InternalObjectNode();
         containerDocument.setId(markerDocId);
 
-        // create marker item on lease collection
-        return this.client.createItem(this.leaseCollectionLink, containerDocument, new CosmosItemRequestOptions(), false)
+        return this.client.createItem(
+            this.leaseCollectionLink,
+                containerDocument,
+                this.requestOptionsFactory.createItemRequestOptions(ServiceItemLeaseV1.fromDocument(containerDocument)),
+                false)
             .map( item -> {
                 return true;
             })
@@ -106,7 +109,11 @@ class LeaseStoreImpl implements LeaseStore {
         containerDocument.setId(lockId);
         BridgeInternal.setProperty(containerDocument, Constants.Properties.TTL, Long.valueOf(lockExpirationTime.getSeconds()).intValue());
 
-        return this.client.createItem(this.leaseCollectionLink, containerDocument, new CosmosItemRequestOptions(), false)
+        return this.client.createItem(
+            this.leaseCollectionLink,
+                containerDocument,
+                this.requestOptionsFactory.createItemRequestOptions(ServiceItemLeaseV1.fromDocument(containerDocument)),
+                false)
             .map(documentResourceResponse -> {
                 if (BridgeInternal.getProperties(documentResourceResponse) != null) {
                     // store ETag can be obtained from the document then lock has been acquired
