@@ -84,6 +84,10 @@ class ChangeFeedFetcher<T> extends Fetcher<T> {
                 requestOptionProperties,
                 retryPolicyInstance.getRetryContext(),
                 () -> this.getOperationContextText());
+
+            // q: what is the retryPolicy execution order (maybe 1 or 2)?
+            //   - 1. PartitionKeyRangeGoneRetryPolicy -> InvalidPartitionExceptionRetryPolicy -> RenameCollectionAwareClientRetryPolicy -> ClientRetryPolicy -> FeedRangeContinuationFeedRangeGoneRetryPolicy
+            //   - 2. PartitionKeyRangeGoneRetryPolicy -> InvalidPartitionExceptionRetryPolicy -> ClientRetryPolicy -> FeedRangeContinuationFeedRangeGoneRetryPolicy
             this.createRequestFunc = () -> {
                 RxDocumentServiceRequest request = createRequestFunc.get();
                 this.feedRangeContinuationFeedRangeGoneRetryPolicy.onBeforeSendRequest(request);
@@ -221,6 +225,8 @@ class ChangeFeedFetcher<T> extends Fetcher<T> {
                         return Mono.just(ShouldRetryResult.noRetry());
                     }
 
+                    // there are two possibilities here:
+                    //     1. either the changeFeedState has a null / non-null continuation token
                     if (this.state.getContinuation() == null) {
                         final FeedRangeInternal feedRange = this.state.getFeedRange();
                         final Mono<Range<String>> effectiveRangeMono = feedRange.getNormalizedEffectiveRange(

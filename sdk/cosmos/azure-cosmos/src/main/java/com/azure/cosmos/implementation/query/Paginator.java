@@ -111,6 +111,7 @@ public class Paginator {
 
         return Flux.defer(() -> {
             Flux<Flux<FeedResponse<T>>> generate = Flux.generate(
+                // q: does fetcherFactory::get create a new ChangeFeedFetcher instance for each
                 fetcherFactory::get,
                 (tFetcher, sink) -> {
                     if (tFetcher.shouldFetchMore()) {
