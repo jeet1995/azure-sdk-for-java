@@ -17,7 +17,7 @@ class ChangeFeedStartFromNowImpl extends ChangeFeedStartFromInternal {
     @Override
     public void populatePropertyBag() {
 
-            super.populatePropertyBag();
+        super.populatePropertyBag();
 
         synchronized(this) {
             setProperty(

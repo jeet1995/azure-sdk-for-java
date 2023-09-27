@@ -54,6 +54,7 @@ class PartitionControllerImpl implements PartitionController {
     public Mono<Void> initialize() {
         // q: what is the cancellation token source?
         this.shutdownCts = new CancellationTokenSource();
+        // loads leases associated with a particular owner & lease prefix
         return this.loadLeases();
     }
 
@@ -82,13 +83,14 @@ class PartitionControllerImpl implements PartitionController {
         //      1. timestamp
         //      2. owner
         //      3. concurrencyToken <=> ETag (used with setIfMatchETag)
-        // below flow is started when the worker task is not running
+        // below flow is started when the worker task is not running / worker task is null
         return this.leaseManager.acquire(lease)
             .map(updatedLease -> {
                 // WorkerTask basically is:
                 //      1. Runs the partitionSupervisor
                 //      2. Scoped to one partition / lease.
                 //      3. Lease is scoped to an EPK
+                // q: why check again if checkTask is null or not?
                 WorkerTask checkTask = this.currentlyOwnedPartitions.get(lease.getLeaseToken());
                 if (checkTask == null) {
                     logger.info("Lease with token {}: acquired.", updatedLease.getLeaseToken());

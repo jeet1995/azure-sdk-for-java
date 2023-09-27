@@ -152,6 +152,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
 
     @Override
     public Mono<Lease> createLeaseIfNotExist(FeedRangeEpkImpl feedRange, String continuationToken) {
+        // if the call site is from PartitionSynchronizerImpl then continuationToken is null
         return this.createLeaseIfNotExist(feedRange, continuationToken, null);
     }
 
@@ -160,6 +161,8 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
         checkNotNull(feedRange, "Argument 'feedRanges' should not be null");
 
         String leaseToken = feedRange.getRange().getMin() + "-" + feedRange.getRange().getMax();
+
+        // leaseDocId is the combination of lease prefix and lease token
         String leaseDocId = this.getDocumentId(leaseToken);
 
         ServiceItemLeaseV1 documentServiceLease = new ServiceItemLeaseV1()
@@ -174,7 +177,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
             this.settings.getLeaseCollectionLink(),
                 documentServiceLease,
                 this.requestOptionsFactory.createItemRequestOptions(documentServiceLease),
-                false)
+                false /* automaticIdGenerationEnabled: property not used */)
             .onErrorResume( ex -> {
                 if (ex instanceof CosmosException) {
                     CosmosException e = (CosmosException) ex;
@@ -193,6 +196,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
 
                 InternalObjectNode document = BridgeInternal.getProperties(documentResourceResponse);
 
+                // q: why does the id need to be set?
                 return documentServiceLease
                     .withId(document.getId())
                     .withETag(document.getETag())
@@ -391,7 +395,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
             throw new IllegalArgumentException("lease");
         }
 
-        // if lease is owned by a different CFP instance
+        // if lease is owned by a different CFP instance - lease has been stolen by another CFP instance
         if (lease.getOwner() != null && !lease.getOwner().equalsIgnoreCase(this.settings.getHostName())) {
             logger.info("Lease with token '{}' : lease was taken over by owner '{}' before lease item update",
                 lease.getLeaseToken(), lease.getOwner());
@@ -402,9 +406,10 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
         return this.leaseUpdater.updateLease(
             lease /* came from the leaseContainer */,
             lease.getId(),
-            new PartitionKey(lease.getId()),
+            new PartitionKey(lease.getId()), /* a lease is partitioned by id */
             this.requestOptionsFactory.createItemRequestOptions(lease),
-            // Q: how is 'lease' and 'serverLease' different?
+            // q: how is 'lease' and 'serverLease' different?
+            //      - serverLease is a lambda function argument
             serverLease -> {
                 if (serverLease.getOwner() != null && !serverLease.getOwner().equalsIgnoreCase(lease.getOwner())) {
                     logger.info("Lease with token '{}' : lease was taken over by owner '{}'",
@@ -507,8 +512,7 @@ class LeaseStoreManagerImpl implements LeaseStoreManager, LeaseStoreManager.Leas
             .map(ServiceItemLeaseV1::fromDocument);
     }
 
-    private String getDocumentId(String leaseToken)
-    {
+    private String getDocumentId(String leaseToken) {
         return this.getPartitionLeasePrefix() + leaseToken;
     }
 

@@ -59,17 +59,20 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
             return Mono.empty();
         }
 
+        // localLease is the lease which got locally updated
         localLease.setTimestamp(Instant.now());
 
         // cachedLease is returned from the service
         // why are we setting these properties on the cachedLease?
         // it is as though we are playing around with the same references but two different named bindings
+        // cachedLease is what is used for replacement in the backend, localLease is just a copy
         cachedLease.setServiceItemLease(localLease);
 
         return
             Mono.just(this)
             .flatMap( value -> this.tryReplaceLease(cachedLease, itemId, partitionKey, requestOptions))
             .map(leaseDocument -> {
+                // 'leaseDocument' is the response from the service
                 cachedLease.setServiceItemLease(ServiceItemLeaseV1.fromDocument(leaseDocument));
                 return cachedLease;
             })
@@ -100,6 +103,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
                             cachedLease.getLeaseToken(),
                             cachedLease.getConcurrencyToken(),
                             serverLease.getOwner(),
+                            // concurrency token could map to the etag
                             serverLease.getConcurrencyToken());
 
                         // Check if we still have the expected ownership on the target lease.
@@ -112,6 +116,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
                         }
 
                         cachedLease.setTimestamp(Instant.now());
+                        // q: what is a concurrency token in a lease?
                         cachedLease.setConcurrencyToken(serverLease.getConcurrencyToken());
 
                         throw new LeaseConflictException(cachedLease, "Lease update failed");
@@ -148,6 +153,9 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
             String itemId,
             PartitionKey partitionKey,
             CosmosItemRequestOptions cosmosItemRequestOptions) throws LeaseLostException {
+
+        // ChangeFeedContextClient is like a decorator for CosmosAsyncContainer
+        //      - composes reactor calls with an additional publishOn call
         return this.client.replaceItem(
                 itemId,
                 partitionKey,
@@ -163,6 +171,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
                             return Mono.empty();
                         }
                         // two replace requests on the ID + pkVal pair on two or more regions
+                        // q: how is this status code returned by the service when if-match request header is set?
                         case HTTP_STATUS_CODE_CONFLICT: {
                             // q: why is a LeaseConflictException not thrown?
                             throw new LeaseLostException(lease, ex, false);

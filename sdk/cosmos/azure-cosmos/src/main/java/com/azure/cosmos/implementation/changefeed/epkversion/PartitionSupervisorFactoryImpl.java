@@ -58,7 +58,9 @@ class PartitionSupervisorFactoryImpl<T> implements PartitionSupervisorFactory {
 
         // a changeFeedObserver processes changes mainly
         ChangeFeedObserver<T> changeFeedObserver = this.observerFactory.createObserver();
-        //
+
+        // a partitionProcessor is scoped to a lease / physical partition
+        // in order to create a partitionProcessor, a changeFeedState is needed to be created from the lease
         PartitionProcessor processor = this.partitionProcessorFactory.create(lease, changeFeedObserver, this.partitionProcessItemType);
         LeaseRenewer renewer = new LeaseRenewerImpl(lease, this.leaseManager, this.changeFeedProcessorOptions.getLeaseRenewInterval());
 
