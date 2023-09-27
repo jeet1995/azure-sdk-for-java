@@ -68,6 +68,8 @@ class PartitionControllerImpl implements PartitionController {
         WorkerTask workerTask = this.currentlyOwnedPartitions.get(lease.getLeaseToken());
 
         // q: why only update properties when the workerTask is running?
+        //      - workerTask.isRunning returns true when workerTask is instantiated and not terminated
+        // q: when does the worker task start to run?
         if (workerTask != null && workerTask.isRunning()) {
             return this.leaseManager.updateProperties(lease)
                 .map(updatedLease -> {

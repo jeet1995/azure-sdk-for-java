@@ -694,8 +694,7 @@ public class CosmosQueryRequestOptions {
     }
 
     CosmosQueryRequestOptions withEmptyPageDiagnosticsEnabled(boolean emptyPageDiagnosticsEnabled) {
-        if (this.emptyPageDiagnosticsEnabled == emptyPageDiagnosticsEnabled)
-        {
+        if (this.emptyPageDiagnosticsEnabled == emptyPageDiagnosticsEnabled) {
             return this;
         }
 

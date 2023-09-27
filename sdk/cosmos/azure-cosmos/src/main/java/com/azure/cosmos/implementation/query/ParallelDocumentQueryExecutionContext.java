@@ -453,6 +453,11 @@ public class ParallelDocumentQueryExecutionContext<T>
                 this.getOperationContextTextProvider().get());
         }
         return Flux.mergeSequential(obs, fluxConcurrency, fluxPrefetch)
+            // q: what does transformDeferred do?
+            //      - transform source flux to a target flux
+            //      - 'transform' - transformation occurs as part of assembly
+            //      - 'transformDeferred' - transformation occurs with each subscription
+            //  q: why is transformDeferred used here?
             .transformDeferred(new EmptyPagesFilterTransformer<>(
                 new RequestChargeTracker(),
                 this.cosmosQueryRequestOptions,

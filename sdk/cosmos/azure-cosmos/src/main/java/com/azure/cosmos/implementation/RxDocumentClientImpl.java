@@ -937,6 +937,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
 
         // q: why do we need a correlationActivityId?
         // q: who sets a correlationActivityId?
+        //      - as of now not set by the end user but instead randomized.
         UUID correlationActivityIdOfRequestOptions = ImplementationBridgeHelpers
             .CosmosQueryRequestOptionsHelper
             .getCosmosQueryRequestOptionsAccessor()

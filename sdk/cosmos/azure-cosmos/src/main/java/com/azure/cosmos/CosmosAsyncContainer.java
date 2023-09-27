@@ -933,6 +933,8 @@ public class CosmosAsyncContainer {
 
     <T> CosmosPagedFlux<T> queryItemsInternal(
         SqlQuerySpec sqlQuerySpec, CosmosQueryRequestOptions cosmosQueryRequestOptions, Class<T> classType) {
+        // q: why can't partition key and feed range be set at the same time?
+        //      1. partition key is a single point whereas feed range is a range.
         if (cosmosQueryRequestOptions != null) {
             if (cosmosQueryRequestOptions.getPartitionKey() != null && cosmosQueryRequestOptions
                                                                            .getFeedRange() != null) {
@@ -940,7 +942,7 @@ public class CosmosAsyncContainer {
                                                        "allowed");
             }
         }
-        // CosmosPagedFlux uses a CosmosPagedFluxOptions -> Flux<FeedResponse> func
+        // CosmosPagedFlux encapsulates a CosmosPagedFluxOptions -> Flux<FeedResponse> func
         return UtilBridgeInternal.createCosmosPagedFlux(queryItemsInternalFunc(sqlQuerySpec, cosmosQueryRequestOptions, classType));
     }
 
@@ -952,10 +954,16 @@ public class CosmosAsyncContainer {
             CosmosQueryRequestOptions nonNullOptions =
                 cosmosQueryRequestOptions != null ? cosmosQueryRequestOptions : new CosmosQueryRequestOptions();
 
-            // what is empty page diagnostics
+            // q: what is empty page diagnostics?
+            //      1. to log empty page diagnostics
+            // q: when is empty page diagnostics enabled?
+            //      1. when transport-level tracing is enabled [or] metric registry snapshot is not null.
             CosmosQueryRequestOptions options = clientAccessor.shouldEnableEmptyPageDiagnostics(client) ?
                 queryOptionsAccessor.withEmptyPageDiagnosticsEnabled(nonNullOptions, true)
                 : nonNullOptions;
+
+            // q: what is a span in metrics?
+            //     - span is like a scope for metrics where the scope 'spans' an operation
             String spanName = this.queryItemsSpanName;
 
             pagedFluxOptions.setTracerAndTelemetryInformation(
@@ -969,10 +977,12 @@ public class CosmosAsyncContainer {
                 options.getConsistencyLevel(),
                 client.getEffectiveDiagnosticsThresholds(queryOptionsAccessor.getDiagnosticsThresholds(options)));
 
-            // why is max item set back on CosmosQueryRequestOptions
+            // q: why is max item set back on CosmosQueryRequestOptions?
+            //      - probably because this value needs to be sent as part of the request headers
             setContinuationTokenAndMaxItemCount(pagedFluxOptions, options);
 
             // initialize a diagnostics tracker for cancelled requests
+            // q: isn't there a risk of shared state?
             ImplementationBridgeHelpers
                 .CosmosQueryRequestOptionsHelper
                 .getCosmosQueryRequestOptionsAccessor()
