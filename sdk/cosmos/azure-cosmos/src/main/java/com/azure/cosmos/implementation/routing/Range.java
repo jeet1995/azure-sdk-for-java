@@ -42,6 +42,7 @@ public final class Range<T extends Comparable<T>> extends JsonSerializable {
         super(jsonString);
     }
 
+    // q: why use instance methods in constructor?
     public Range(T min, T max, boolean isMinInclusive, boolean isMaxInclusive) {
         this.setMin(min);
         this.setMax(max);

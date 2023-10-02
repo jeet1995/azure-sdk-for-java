@@ -100,6 +100,7 @@ public final class SqlQuerySpec {
      *
      * @return the query parameters.
      */
+    // q: is instantiating a new list each time for 'parameters' a perf concern?
     public List<SqlParameter> getParameters() {
         if (this.parameters == null) {
             Collection<SqlParameter> sqlParameters = this.jsonSerializable.getCollection("parameters", SqlParameter.class);

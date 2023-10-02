@@ -948,6 +948,8 @@ public class CosmosAsyncContainer {
 
     <T> Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> queryItemsInternalFunc(
         SqlQuerySpec sqlQuerySpec, CosmosQueryRequestOptions cosmosQueryRequestOptions, Class<T> classType) {
+
+        // pagedFluxOptions is instantiated from within CosmosPagedFlux
         Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> pagedFluxOptionsFluxFunction = (pagedFluxOptions -> {
 
             CosmosAsyncClient client = this.getDatabase().getClient();
@@ -966,6 +968,7 @@ public class CosmosAsyncContainer {
             //     - span is like a scope for metrics where the scope 'spans' an operation
             String spanName = this.queryItemsSpanName;
 
+            // a setter which bulk sets properties
             pagedFluxOptions.setTracerAndTelemetryInformation(
                 spanName,
                 database.getId(),

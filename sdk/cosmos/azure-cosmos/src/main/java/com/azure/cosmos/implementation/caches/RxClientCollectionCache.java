@@ -88,6 +88,7 @@ public class RxClientCollectionCache extends RxCollectionCache {
                 retryPolicyInstance);
     }
 
+    // retryPolicyInstance here maps to ClearingSessionContainerClientRetryPolicy
     private Mono<DocumentCollection> readCollectionAsync(MetadataDiagnosticsContext metaDataDiagnosticsContext,
                                                          String collectionLink,
                                                          DocumentClientRetryPolicy retryPolicyInstance,

@@ -929,7 +929,9 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         String parentResourceLink,
         SqlQuerySpec sqlQuery,
         CosmosQueryRequestOptions options,
+        // type of the resource being queried
         Class<T> klass,
+        // enum associated with the resource
         ResourceType resourceTypeEnum) {
 
         // append parentResourceLink and resourceTypeEnum
@@ -952,6 +954,10 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         // Trying to put this logic as low as the query pipeline
         // Since for parallelQuery, each partition will have its own request, so at this point, there will be no request associate with this retry policy.
         // For default document context, it already wired up InvalidPartitionExceptionRetry, but there is no harm to wire it again here
+        // q: when is InvalidPartitionExceptionRetryPolicy needed?
+        //      - when name cache is stale (410/1000)
+        // q: what can cause 410/1000?
+        //      - collection delete/recreate?
         InvalidPartitionExceptionRetryPolicy invalidPartitionExceptionRetryPolicy = new InvalidPartitionExceptionRetryPolicy(
             this.collectionCache,
             null,
@@ -965,7 +971,6 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
     }
 
     private <T> Flux<FeedResponse<T>> createQueryInternal(
-            //
             String resourceLink,
             SqlQuerySpec sqlQuery,
             CosmosQueryRequestOptions options,
@@ -3195,6 +3200,8 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
     @Override
     public <T> Flux<FeedResponse<T>> queryDocuments(
         String collectionLink,
+        // q: what is sqlQuerySpec?
+        //      - encapsulates the query text and parameters required by the query
         SqlQuerySpec querySpec,
         CosmosQueryRequestOptions options,
         Class<T> classOfT) {

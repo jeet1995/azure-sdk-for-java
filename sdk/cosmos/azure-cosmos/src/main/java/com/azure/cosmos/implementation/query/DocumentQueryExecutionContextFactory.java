@@ -119,6 +119,8 @@ public class DocumentQueryExecutionContextFactory {
                 endTime);
         }
 
+        // isScopedToSinglePartition - queryOptions has the partition key set on it - query is scoped
+        // to a single logical partition and therefore 1 physical partition
         if (queryPlanCachingEnabled &&
                 isScopedToSinglePartition(cosmosQueryRequestOptions) &&
                 queryPlanCache.containsKey(query.getQueryText())) {
@@ -144,6 +146,10 @@ public class DocumentQueryExecutionContextFactory {
 
                 Instant endTime = Instant.now();
 
+                // q: why for query plan caching the query has to be scoped to a single partition?
+                //      - because queryInfo spans multiple partitions for cross-partition query
+                //      - hard to figure out if same query will target same partitions
+                //      - single-partitioned query partition mapping - more predictable?
                 if (queryPlanCachingEnabled && isScopedToSinglePartition(cosmosQueryRequestOptions)) {
                     tryCacheQueryPlan(query, partitionedQueryExecutionInfo, queryPlanCache);
                 }
@@ -174,6 +180,7 @@ public class DocumentQueryExecutionContextFactory {
             queryRanges = Collections.singletonList(range);
         }
 
+        // when query should be scoped to some feedRange
         if (cosmosQueryRequestOptions != null && cosmosQueryRequestOptions.getFeedRange() != null) {
             FeedRange userProvidedFeedRange = cosmosQueryRequestOptions.getFeedRange();
             return queryExecutionContext.getTargetRange(collection.getResourceId(),
@@ -229,6 +236,9 @@ public class DocumentQueryExecutionContextFactory {
         SqlQuerySpec query,
         PartitionedQueryExecutionInfo partitionedQueryExecutionInfo,
         Map<String, PartitionedQueryExecutionInfo> queryPlanCache) {
+
+        // if query has certain kind of clauses then cannot be cached
+        // reason: queryInfo changes on a per-query basis
         if (canCacheQuery(partitionedQueryExecutionInfo.getQueryInfo()) && !queryPlanCache.containsKey(query.getQueryText())) {
             if (queryPlanCache.size() >= Constants.QUERYPLAN_CACHE_SIZE) {
                 logger.warn("Clearing query plan cache as it has reached the maximum size : {}", queryPlanCache.size());
@@ -299,7 +309,7 @@ public class DocumentQueryExecutionContextFactory {
 
         // q: what can be the child of a collection?
         //      1. Document
-        //      2. Attachment
+        //      2. Attachment - a ref to some blob/media file
         //      3. Conflict
         //      4. Schema
         if (resourceTypeEnum.isCollectionChild()) {

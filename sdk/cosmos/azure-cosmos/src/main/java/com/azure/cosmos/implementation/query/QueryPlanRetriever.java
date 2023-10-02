@@ -44,6 +44,8 @@ class QueryPlanRetriever {
         final Map<String, String> requestHeaders = new HashMap<>();
         requestHeaders.put(HttpConstants.HttpHeaders.CONTENT_TYPE, RuntimeConstants.MediaTypes.JSON);
         requestHeaders.put(HttpConstants.HttpHeaders.IS_QUERY_PLAN_REQUEST, TRUE);
+
+        // query clauses supported
         requestHeaders.put(HttpConstants.HttpHeaders.SUPPORTED_QUERY_FEATURES, SUPPORTED_QUERY_FEATURES);
         requestHeaders.put(HttpConstants.HttpHeaders.QUERY_VERSION, HttpConstants.Versions.QUERY_VERSION);
 
@@ -58,6 +60,11 @@ class QueryPlanRetriever {
                                                                                  resourceLink,
                                                                                  requestHeaders);
         request.useGatewayMode = true;
+
+        // q: why is it necessary to serialize JSON to byte buffer?
+        //      - refer to PR link: https://github.com/Azure/azure-sdk-for-java/pull/7983
+        //      - Objective: 1-hop deserialization & serialization
+        //      - POJO to ByteBuf in write path; byte[] to POJO in read path
         request.setByteBuffer(ModelBridgeInternal.serializeJsonToByteBuffer(sqlQuerySpec));
 
         // TODO @fabianm wire up clientContext

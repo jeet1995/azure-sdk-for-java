@@ -112,7 +112,7 @@ public abstract class FeedRangeInternal extends JsonSerializable implements Feed
         Mono<Utils.ValueHolder<DocumentCollection>> collectionResolutionMono
     ) {
         return this.getEffectiveRange(routingMapProvider, metadataDiagnosticsCtx, collectionResolutionMono)
-                   .map(FeedRangeInternal::normalizeRange);
+                   .map(range -> normalizeRange(range));
     }
 
     private static String addToEffectivePartitionKey(
