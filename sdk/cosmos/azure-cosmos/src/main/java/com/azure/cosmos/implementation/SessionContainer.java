@@ -22,6 +22,7 @@ import static com.azure.cosmos.implementation.Utils.ValueHolder;
 public final class SessionContainer implements ISessionContainer {
     private final Logger logger = LoggerFactory.getLogger(SessionContainer.class);
 
+    // multi-level hashmap (rid -> session token)
     /**
      * SESSION token cache that maps collection ResourceID to session tokens
      */
@@ -55,22 +56,25 @@ public final class SessionContainer implements ISessionContainer {
 
     String getSessionToken(String collectionLink) {
 
+        // q: what is pathInfo?
         PathInfo pathInfo = new PathInfo(false, null, null, false);
         ConcurrentHashMap<String, ISessionToken> partitionKeyRangeIdToTokenMap = null;
+
+        // parse the collectionLink and store the segments in pathInfo
         if (PathsHelper.tryParsePathSegments(collectionLink, pathInfo, null)) {
-            Long UniqueDocumentCollectionId = null;
+            Long uniqueDocumentCollectionId = null;
             if (pathInfo.isNameBased) {
                 String collectionName = PathsHelper.getCollectionPath(pathInfo.resourceIdOrFullName);
-                UniqueDocumentCollectionId = this.collectionNameToCollectionResourceId.get(collectionName);
+                uniqueDocumentCollectionId = this.collectionNameToCollectionResourceId.get(collectionName);
             } else {
                 ResourceId resourceId = ResourceId.parse(pathInfo.resourceIdOrFullName);
                 if (resourceId.getDocumentCollection() != 0) {
-                    UniqueDocumentCollectionId = resourceId.getUniqueDocumentCollectionId();
+                    uniqueDocumentCollectionId = resourceId.getUniqueDocumentCollectionId();
                 }
             }
 
-            if (UniqueDocumentCollectionId != null) {
-                partitionKeyRangeIdToTokenMap = this.collectionResourceIdToSessionTokens.get(UniqueDocumentCollectionId);
+            if (uniqueDocumentCollectionId != null) {
+                partitionKeyRangeIdToTokenMap = this.collectionResourceIdToSessionTokens.get(uniqueDocumentCollectionId);
             }
         }
 
