@@ -92,6 +92,10 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
         new ThresholdBasedAvailabilityStrategy(
             Duration.ofMillis(1), Duration.ofMillis(10)
         );
+    private final static ThresholdBasedAvailabilityStrategy reproAvailabilityStrategy =
+        new ThresholdBasedAvailabilityStrategy(
+            Duration.ofMillis(500), Duration.ofMillis(100)
+        );
     private final static ThresholdBasedAvailabilityStrategy reluctantThresholdAvailabilityStrategy =
         new ThresholdBasedAvailabilityStrategy(
             Duration.ofSeconds(10), Duration.ofSeconds(1)
@@ -156,7 +160,11 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
 
     private BiConsumer<CosmosAsyncContainer, FaultInjectionOperationType> injectReadSessionNotAvailableIntoFirstRegionOnly = null;
 
+    private BiConsumer<CosmosAsyncContainer, FaultInjectionOperationType> injectReadSessionNotAvailableIntoSecondAndThirdRegion = null;
+
     private BiConsumer<CosmosAsyncContainer, FaultInjectionOperationType> injectReadSessionNotAvailableIntoAllExceptFirstRegion = null;
+
+    private BiConsumer<CosmosAsyncContainer, FaultInjectionOperationType> injectTimeoutIntoFirstRegion = null;
 
     private BiConsumer<CosmosAsyncContainer, FaultInjectionOperationType> injectTransitTimeoutIntoFirstRegionOnly = null;
 
@@ -271,8 +279,14 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
             this.injectReadSessionNotAvailableIntoAllExceptFirstRegion =
                 (c, operationType) -> injectReadSessionNotAvailableError(c, this.getAllRegionsExceptFirst(), operationType, ALL_PARTITIONS);
 
+            this.injectReadSessionNotAvailableIntoSecondAndThirdRegion =
+                (c, operationType) -> injectReadSessionNotAvailableError(c, this.getAllRegionsExceptFirst(), operationType, ALL_PARTITIONS);
+
             this.injectTransitTimeoutIntoFirstRegionOnly =
                 (c, operationType) -> injectTransitTimeout(c, this.getFirstRegion(), operationType);
+
+            this.injectTimeoutIntoFirstRegion =
+                (c, operationType) -> injectServerGenerated408(c, this.getFirstRegion(), operationType, ALL_PARTITIONS);
 
             this.injectTransitTimeoutIntoAllRegions =
                 (c, operationType) -> injectTransitTimeout(c, this.writeableRegions, operationType);
@@ -368,19 +382,48 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
             //    Diagnostics context validation callback
             // },
 
+//            // This test injects 404/1002 across all regions for the read operation after the initial creation
+//            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
+//            // It is expected to fail with a 404/1002 - the validation will make sure that cross regional
+//            // execution via availability strategy was happening (but also failed)
+//            new Object[] {
+//                "404-1002_AllRegions_RemotePreferred",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoAllRegions,
+//                validateStatusCodeIsReadSessionNotAvailableError,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
             // This test injects 404/1002 across all regions for the read operation after the initial creation
             // The region switch hint for 404/1002 is remote - meaning no local retries are happening
             // It is expected to fail with a 404/1002 - the validation will make sure that cross regional
             // execution via availability strategy was happening (but also failed)
+//            new Object[] {
+//                "Legit404_404-1002_SecondAndThirdRegion_RemotePreferred_ReproAvailabilityStrategy",
+//                Duration.ofSeconds(3),
+//                reproAvailabilityStrategy,
+//                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoSecondAndThirdRegion,
+//                validateStatusCodeIsReadSessionNotAvailableError, // Too many local retries to allow cross regional failover within e2e timeout
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+              // This test injects 408 timeouts (as transit timeouts) into all regions.
+              // Expected outcome is a 408 after doing cross regional retries via availability strategy
+              // against all regions
             new Object[] {
-                "404-1002_AllRegions_RemotePreferred",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+                "408_FirstRegion",
+                Duration.ofSeconds(3),
+                reproAvailabilityStrategy,
+                noRegionSwitchHint,
                 ConnectionMode.DIRECT,
                 sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoAllRegions,
-                validateStatusCodeIsReadSessionNotAvailableError,
+                injectTimeoutIntoFirstRegion,
+                validateStatusCodeIsOperationCancelled,
                 validateDiagnosticsContextHasDiagnosticsForAllRegions
             },
 
@@ -389,381 +432,382 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
             // The availability strategy has a high threshold - so, it is expected that the successful response
             // as a cross-regional retry triggered by the ClientRetryPolicy of the initial operation finishes the Mono
             // successfully with 200 - OK>
-            new Object[] {
-                "404-1002_OnlyFirstRegion_RemotePreferred_ReluctantAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                reluctantThresholdAvailabilityStrategy,
-                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoFirstRegionOnly,
-                validateStatusCodeIs200Ok,
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
-            },
+//            new Object[] {
+//                "404-1002_OnlyFirstRegion_RemotePreferred_ReluctantAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                reluctantThresholdAvailabilityStrategy,
+//                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoFirstRegionOnly,
+//                validateStatusCodeIs200Ok,
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
+//            },
+//
+//            // This test injects 404/1002 for the read operation after the initial creation into the local region only.
+//            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
+//            // The availability strategy is very aggressive with a short threshold - so, it is expected that the
+//            // successful response comes from the operation being executed against the second region after hitting
+//            // threshold.
+//            new Object[] {
+//                "404-1002_OnlyFirstRegion_RemotePreferred_EagerAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoFirstRegionOnly,
+//                validateStatusCodeIs200Ok,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+//
+//            // Only injects 404/1002 into secondary region - just ensure that no cross regional execution
+//            // is even happening
+//            new Object[] {
+//                "404-1002_AllExceptFirstRegion_RemotePreferred",
+//                Duration.ofSeconds(1),
+//                defaultAvailabilityStrategy,
+//                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoAllExceptFirstRegion,
+//                validateStatusCodeIs200Ok,
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
+//            },
+//
+//            // This test simulates 404/1002 across all regions for the read operation after the initial creation
+//            // The region switch hint for 404/1002 is local - meaning many local retries are happening which leads
+//            // to the operations triggered by the availability strategy against each region will all timeout because
+//            // they haven't finished the "local retries" before hitting end-to-end timeout
+//            // It is expected to fail with a 404/1002 - the validation will make sure that cross regional
+//            // execution via availability strategy was happening (but also failed)
+//            new Object[] {
+//                "404-1002_AllRegions_LocalPreferred",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoAllRegions,
+//                validateStatusCodeIsOperationCancelled,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+//
+//            // This test injects 404/1002 for the read operation after the initial creation into the local region only.
+//            // The region switch hint for 404/1002 is local - meaning many local retries are happening which leads
+//            // to the operation triggered against the local region timing out. So, it is expected that the
+//            // successful response comes from the operation being executed against the second region after hitting
+//            // threshold.
+//            new Object[] {
+//                "404-1002_OnlyFirstRegion_LocalPreferred",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoFirstRegionOnly,
+//                validateStatusCodeIs200Ok,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+//
+//            // Only injects 404/1002 into secondary region - just ensure that no cross regional execution
+//            // is even happening
+//            new Object[] {
+//                "404-1002_AllExceptFirstRegion_LocalPreferred",
+//                Duration.ofSeconds(1),
+//                defaultAvailabilityStrategy,
+//                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoAllExceptFirstRegion,
+//                validateStatusCodeIs200Ok,
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
+//            },
+//
+//            // This test injects 404/1002 for the read operation after the initial creation into the local region only.
+//            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
+//            // No availability strategy so, it is expected that the successful response
+//            // from a cross-regional retry triggered by the ClientRetryPolicy of the initial operation finishes the Mono
+//            // successfully with 200 - OK>
+//            new Object[] {
+//                "404-1002_OnlyFirstRegion_RemotePreferred_NoAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                null,
+//                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoFirstRegionOnly,
+//                validateStatusCodeIs200Ok, // First operation will failover from region 1 to region 2 quickly enough
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
+//            },
+//
+//            // This test injects 404/1002 for the read operation after the initial creation into the local region only.
+//            // The region switch hint for 404/1002 is local -  meaning many local retries are happening which leads
+//            // to the operation triggered against the local region timing out.
+//            // No availability strategy - so, it is expected that we see a timeout (operation cancellation) after
+//            // e2e timeout, because the local 404/1002 retries are still ongoing and no cross-regional retry
+//            // is triggered yet.
+//            new Object[] {
+//                "404-1002_OnlyFirstRegion_LocalPreferred_NoAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                null,
+//                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectReadSessionNotAvailableIntoFirstRegionOnly,
+//                validateStatusCodeIsOperationCancelled, // Too many local retries to allow cross regional failover within e2e timeout
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
+//            },
+//
+//            // This test injects 404/102 only in the local region. The actual read operation is intentionally for
+//            // a document id that won't exist - so, expected result is a 404/0
+//            // The region switch hint for 404/1002 is local - meaning many local retries are happening which leads
+//            // to the operation triggered against the local region timing out.
+//            // The goal of this test case is to ensure that non-transient errors (like the 404/0) retrieved from the
+//            // hedging against the second region will complete the composite Mono (even when the initial operation
+//            // against the local region is still ongoing).
+//            new Object[] {
+//                "Legit404_404-1002_OnlyFirstRegion_LocalPreferred",
+//                Duration.ofSeconds(1),
+//                defaultAvailabilityStrategy,
+//                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                "SomeNonExistingId",
+//                injectReadSessionNotAvailableIntoFirstRegionOnly,
+//                // Too many local retries to allow cross regional failover within e2e timeout, but after
+//                // threshold remote region returns 404/0
+//                validateStatusCodeIsLegitNotFound,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+//
+//            // This test injects 404/102 only in the local region. The actual read operation is intentionally for
+//            // a document id that won't exist - so, expected result is a 404/0
+//            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
+//            // Which means the ClientRetryPolicy for the initial operation would failover to the second region and
+//            // should result in the 404/0 being returned
+//            new Object[] {
+//                "Legit404_404-1002_OnlyFirstRegion_RemotePreferred_NoAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                null,
+//                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                "SomeNonExistingId",
+//                injectReadSessionNotAvailableIntoFirstRegionOnly,
+//                validateStatusCodeIsLegitNotFound, // Too many local retries to allow cross regional failover within e2e timeout
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
+//            },
 
-            // This test injects 404/1002 for the read operation after the initial creation into the local region only.
-            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
-            // The availability strategy is very aggressive with a short threshold - so, it is expected that the
-            // successful response comes from the operation being executed against the second region after hitting
-            // threshold.
-            new Object[] {
-                "404-1002_OnlyFirstRegion_RemotePreferred_EagerAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoFirstRegionOnly,
-                validateStatusCodeIs200Ok,
-                validateDiagnosticsContextHasDiagnosticsForAllRegions
-            },
-
-            // Only injects 404/1002 into secondary region - just ensure that no cross regional execution
-            // is even happening
-            new Object[] {
-                "404-1002_AllExceptFirstRegion_RemotePreferred",
-                Duration.ofSeconds(1),
-                defaultAvailabilityStrategy,
-                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoAllExceptFirstRegion,
-                validateStatusCodeIs200Ok,
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
-            },
-
-            // This test simulates 404/1002 across all regions for the read operation after the initial creation
-            // The region switch hint for 404/1002 is local - meaning many local retries are happening which leads
-            // to the operations triggered by the availability strategy against each region will all timeout because
-            // they haven't finished the "local retries" before hitting end-to-end timeout
-            // It is expected to fail with a 404/1002 - the validation will make sure that cross regional
-            // execution via availability strategy was happening (but also failed)
-            new Object[] {
-                "404-1002_AllRegions_LocalPreferred",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoAllRegions,
-                validateStatusCodeIsOperationCancelled,
-                validateDiagnosticsContextHasDiagnosticsForAllRegions
-            },
-
-            // This test injects 404/1002 for the read operation after the initial creation into the local region only.
-            // The region switch hint for 404/1002 is local - meaning many local retries are happening which leads
-            // to the operation triggered against the local region timing out. So, it is expected that the
-            // successful response comes from the operation being executed against the second region after hitting
-            // threshold.
-            new Object[] {
-                "404-1002_OnlyFirstRegion_LocalPreferred",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoFirstRegionOnly,
-                validateStatusCodeIs200Ok,
-                validateDiagnosticsContextHasDiagnosticsForAllRegions
-            },
-
-            // Only injects 404/1002 into secondary region - just ensure that no cross regional execution
-            // is even happening
-            new Object[] {
-                "404-1002_AllExceptFirstRegion_LocalPreferred",
-                Duration.ofSeconds(1),
-                defaultAvailabilityStrategy,
-                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoAllExceptFirstRegion,
-                validateStatusCodeIs200Ok,
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
-            },
-
-            // This test injects 404/1002 for the read operation after the initial creation into the local region only.
-            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
-            // No availability strategy so, it is expected that the successful response
-            // from a cross-regional retry triggered by the ClientRetryPolicy of the initial operation finishes the Mono
-            // successfully with 200 - OK>
-            new Object[] {
-                "404-1002_OnlyFirstRegion_RemotePreferred_NoAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                null,
-                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoFirstRegionOnly,
-                validateStatusCodeIs200Ok, // First operation will failover from region 1 to region 2 quickly enough
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
-            },
-
-            // This test injects 404/1002 for the read operation after the initial creation into the local region only.
-            // The region switch hint for 404/1002 is local -  meaning many local retries are happening which leads
-            // to the operation triggered against the local region timing out.
-            // No availability strategy - so, it is expected that we see a timeout (operation cancellation) after
-            // e2e timeout, because the local 404/1002 retries are still ongoing and no cross-regional retry
-            // is triggered yet.
-            new Object[] {
-                "404-1002_OnlyFirstRegion_LocalPreferred_NoAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                null,
-                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectReadSessionNotAvailableIntoFirstRegionOnly,
-                validateStatusCodeIsOperationCancelled, // Too many local retries to allow cross regional failover within e2e timeout
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
-            },
-
-            // This test injects 404/102 only in the local region. The actual read operation is intentionally for
-            // a document id that won't exist - so, expected result is a 404/0
-            // The region switch hint for 404/1002 is local - meaning many local retries are happening which leads
-            // to the operation triggered against the local region timing out.
-            // The goal of this test case is to ensure that non-transient errors (like the 404/0) retrieved from the
-            // hedging against the second region will complete the composite Mono (even when the initial operation
-            // against the local region is still ongoing).
-            new Object[] {
-                "Legit404_404-1002_OnlyFirstRegion_LocalPreferred",
-                Duration.ofSeconds(1),
-                defaultAvailabilityStrategy,
-                CosmosRegionSwitchHint.LOCAL_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                "SomeNonExistingId",
-                injectReadSessionNotAvailableIntoFirstRegionOnly,
-                // Too many local retries to allow cross regional failover within e2e timeout, but after
-                // threshold remote region returns 404/0
-                validateStatusCodeIsLegitNotFound,
-                validateDiagnosticsContextHasDiagnosticsForAllRegions
-            },
-
-            // This test injects 404/102 only in the local region. The actual read operation is intentionally for
-            // a document id that won't exist - so, expected result is a 404/0
-            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
-            // Which means the ClientRetryPolicy for the initial operation would failover to the second region and
-            // should result in the 404/0 being returned
-            new Object[] {
-                "Legit404_404-1002_OnlyFirstRegion_RemotePreferred_NoAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                null,
-                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                "SomeNonExistingId",
-                injectReadSessionNotAvailableIntoFirstRegionOnly,
-                validateStatusCodeIsLegitNotFound, // Too many local retries to allow cross regional failover within e2e timeout
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
-            },
-
-            // This test injects 404/102 only in the local region. The actual read operation is intentionally for
-            // a document id that won't exist - so, expected result is a 404/0
-            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
-            // Which means the cross-regional retry initiated by the ClientRetryPolicy of the initial operation
-            // should result in returning 404/0
-            new Object[] {
-                "Legit404_OnlyFirstRegion_RemotePreferred",
-                Duration.ofSeconds(5),
-                reluctantThresholdAvailabilityStrategy,
-                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
-                ConnectionMode.DIRECT,
-                "SomeNonExistingId",
-                injectReadSessionNotAvailableIntoFirstRegionOnly,
-                validateStatusCodeIsLegitNotFound, // Too many local retries to allow cross regional failover within e2e timeout
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
-            },
-
-
-            // This test injects 408 timeouts (as transit timeouts) into all regions.
-            // Expected outcome is a 408 after doing cross regional retries via availability strategy
-            // against all regions
-            new Object[] {
-                "408_AllRegions",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectTransitTimeoutIntoAllRegions,
-                validateStatusCodeIsOperationCancelled,
-                validateDiagnosticsContextHasDiagnosticsForAllRegions
-            },
-
-            // This test injects 408 timeouts (as transit timeouts) into the local region only.
-            // Expected outcome is a successful response from the cross-regional retry from availability strategy
-            // against the secondary region.
-            new Object[] {
-                "408_FirstRegionOnly",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectTransitTimeoutIntoFirstRegionOnly,
-                validateStatusCodeIs200Ok,
-                validateDiagnosticsContextHasDiagnosticsForAllRegions
-            },
-
-            // This test injects 408 timeouts (as transit timeouts) into all regions.
-            // There is no availability strategy - so, expected outcome is a timeout with diagnostics for just
-            // the local region
-            new Object[] {
-                "408_AllRegions_NoAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                noAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectTransitTimeoutIntoAllRegions,
-                validateStatusCodeIsOperationCancelled,
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
-            },
-
-            // This test injects 408 timeouts (as transit timeouts) into the local region only.
-            // There is no availability strategy - the e2e timeouts is very high. This test evaluates whether
-            // cross regional retry would eventually kick-in for the 408s even without availability strategy.
-            //
-            // NOTE - local retries for 408 would basically retry forever in local region
-            // even within 30 seconds no cross-regional retry is happening
-            //
-            new Object[] {
-               "408_FirstRegionOnly_NoAvailabilityStrategy_LongE2ETimeout",
-               Duration.ofSeconds(90),
-               noAvailabilityStrategy,
-               noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-               sameDocumentIdJustCreated,
-               injectTransitTimeoutIntoFirstRegionOnly,
-               validateStatusCodeIs200Ok,
-               validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
-            },
-
-            // This test injects 408 timeouts (as transit timeouts) into the local region only.
-            // There is no availability strategy - the e2e timeout is shorter than the NetworkRequestTimeout - so,
-            // a timeout is expected with diagnostics only for the local region
-            new Object[] {
-                "408_FirstRegionOnly_NoAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                noAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectTransitTimeoutIntoFirstRegionOnly,
-                validateStatusCodeIsOperationCancelled,
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
-            },
-
-            // This test injects 503 (Service Unavailable) into the local region only.
-            // No availability strategy exists - expected outcome is a successful response from the cross-regional
-            // retry issued in the client retry policy
-            new Object[] {
-               "503_FirstRegionOnly_NoAvailabilityStrategy",
-               Duration.ofSeconds(90),
-               noAvailabilityStrategy,
-               noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-               sameDocumentIdJustCreated,
-               injectServiceUnavailableIntoFirstRegionOnly,
-               validateStatusCodeIs200Ok,
-               validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
-            },
-
-            // This test injects 503 (Service Unavailable) into the local region only.
-            // Expected outcome is a successful retry either by the cross-regional retry triggered in the
-            // ClientRetryPolicy of the initial execution or the one triggered by the availability strategy
-            // whatever happens first
-            new Object[] {
-                "503_FirstRegionOnly",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectServiceUnavailableIntoFirstRegionOnly,
-                validateStatusCodeIs200Ok,
-                validateDiagnosticsContextHasDiagnosticsForOneOrTwoRegionsButAlwaysContactedSecondRegion
-            },
-
-            // This test injects 503 (Service Unavailable) into all regions.
-            // Expected outcome is a timeout due to ongoing retries in both operations triggered by
-            // availability strategy. Diagnostics should contain two operations.
-            new Object[] {
-                "503_AllRegions",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectServiceUnavailableIntoAllRegions,
-                validateStatusCodeIsServiceUnavailable,
-                validateDiagnosticsContextHasDiagnosticsForAllRegions
-            },
-
-            // This test injects 500 (Internal Server Error) into all regions.
-            //
-            // Currently, 500 (Internal Server error) is not ever retried. Neither in the Consistency Reader
-            // nor ClientRetryPolicy - so, a 500 will immediately fail the Mono and there will only
-            // be diagnostics for the first region
-            new Object[] {
-               "500_FirstRegionOnly_NoAvailabilityStrategy",
-               Duration.ofSeconds(90),
-               noAvailabilityStrategy,
-               noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-               sameDocumentIdJustCreated,
-               injectInternalServerErrorIntoFirstRegionOnly,
-               validateStatusCodeIsInternalServerError,
-               validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
-            },
-
-            // This test injects 500 (Internal Server Error) into all regions.
-            //
-            // Currently, 500 (Internal Server error) is not ever retried. Neither in the Consistency Reader
-            // nor ClientRetryPolicy - so, a 500 will immediately fail the Mono and there will only
-            // be diagnostics for the first region
-            new Object[] {
-                "500_FirstRegionOnly_DefaultAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                defaultAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectInternalServerErrorIntoFirstRegionOnly,
-                validateStatusCodeIsInternalServerError,
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
-            },
-
-            // This test injects 500 (Internal Server Error) into all regions.
-            //
-            // Currently, 500 (Internal Server error) is not ever retried. Neither in the Consistency Reader
-            // nor ClientRetryPolicy - so, a 500 will immediately fail the Mono and there will only
-            // be diagnostics for the first region
-            new Object[] {
-                "500_AllRegions_DefaultAvailabilityStrategy",
-                Duration.ofSeconds(1),
-                defaultAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.DIRECT,
-                sameDocumentIdJustCreated,
-                injectInternalServerErrorIntoAllRegions,
-                validateStatusCodeIsInternalServerError,
-                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
-            },
-
-            // GATEWAY
-            // -------
-
-            // This test injects Gateway transit timeout into the local region only.
-            // Expected outcome is a successful retry by the availability strategy
-            new Object[] {
-                "GW_408_FirstRegionOnly",
-                Duration.ofSeconds(1),
-                eagerThresholdAvailabilityStrategy,
-                noRegionSwitchHint,
-                ConnectionMode.GATEWAY,
-                sameDocumentIdJustCreated,
-                injectGatewayTransitTimeoutIntoFirstRegionOnly,
-                validateStatusCodeIs200Ok,
-                validateDiagnosticsContextHasDiagnosticsForOneOrTwoRegionsButAlwaysContactedSecondRegion
-            },
+//
+//            // This test injects 404/102 only in the local region. The actual read operation is intentionally for
+//            // a document id that won't exist - so, expected result is a 404/0
+//            // The region switch hint for 404/1002 is remote - meaning no local retries are happening
+//            // Which means the cross-regional retry initiated by the ClientRetryPolicy of the initial operation
+//            // should result in returning 404/0
+//            new Object[] {
+//                "Legit404_OnlyFirstRegion_RemotePreferred",
+//                Duration.ofSeconds(5),
+//                reluctantThresholdAvailabilityStrategy,
+//                CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
+//                ConnectionMode.DIRECT,
+//                "SomeNonExistingId",
+//                injectReadSessionNotAvailableIntoFirstRegionOnly,
+//                validateStatusCodeIsLegitNotFound, // Too many local retries to allow cross regional failover within e2e timeout
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
+//            },
+//
+//
+//            // This test injects 408 timeouts (as transit timeouts) into all regions.
+//            // Expected outcome is a 408 after doing cross regional retries via availability strategy
+//            // against all regions
+//            new Object[] {
+//                "408_AllRegions",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectTransitTimeoutIntoAllRegions,
+//                validateStatusCodeIsOperationCancelled,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+//
+//            // This test injects 408 timeouts (as transit timeouts) into the local region only.
+//            // Expected outcome is a successful response from the cross-regional retry from availability strategy
+//            // against the secondary region.
+//            new Object[] {
+//                "408_FirstRegionOnly",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectTransitTimeoutIntoFirstRegionOnly,
+//                validateStatusCodeIs200Ok,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+//
+//            // This test injects 408 timeouts (as transit timeouts) into all regions.
+//            // There is no availability strategy - so, expected outcome is a timeout with diagnostics for just
+//            // the local region
+//            new Object[] {
+//                "408_AllRegions_NoAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                noAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectTransitTimeoutIntoAllRegions,
+//                validateStatusCodeIsOperationCancelled,
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
+//            },
+//
+//            // This test injects 408 timeouts (as transit timeouts) into the local region only.
+//            // There is no availability strategy - the e2e timeouts is very high. This test evaluates whether
+//            // cross regional retry would eventually kick-in for the 408s even without availability strategy.
+//            //
+//            // NOTE - local retries for 408 would basically retry forever in local region
+//            // even within 30 seconds no cross-regional retry is happening
+//            //
+//            new Object[] {
+//               "408_FirstRegionOnly_NoAvailabilityStrategy_LongE2ETimeout",
+//               Duration.ofSeconds(90),
+//               noAvailabilityStrategy,
+//               noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//               sameDocumentIdJustCreated,
+//               injectTransitTimeoutIntoFirstRegionOnly,
+//               validateStatusCodeIs200Ok,
+//               validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
+//            },
+//
+//            // This test injects 408 timeouts (as transit timeouts) into the local region only.
+//            // There is no availability strategy - the e2e timeout is shorter than the NetworkRequestTimeout - so,
+//            // a timeout is expected with diagnostics only for the local region
+//            new Object[] {
+//                "408_FirstRegionOnly_NoAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                noAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectTransitTimeoutIntoFirstRegionOnly,
+//                validateStatusCodeIsOperationCancelled,
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
+//            },
+//
+//            // This test injects 503 (Service Unavailable) into the local region only.
+//            // No availability strategy exists - expected outcome is a successful response from the cross-regional
+//            // retry issued in the client retry policy
+//            new Object[] {
+//               "503_FirstRegionOnly_NoAvailabilityStrategy",
+//               Duration.ofSeconds(90),
+//               noAvailabilityStrategy,
+//               noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//               sameDocumentIdJustCreated,
+//               injectServiceUnavailableIntoFirstRegionOnly,
+//               validateStatusCodeIs200Ok,
+//               validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegionButWithRegionalFailover
+//            },
+//
+//            // This test injects 503 (Service Unavailable) into the local region only.
+//            // Expected outcome is a successful retry either by the cross-regional retry triggered in the
+//            // ClientRetryPolicy of the initial execution or the one triggered by the availability strategy
+//            // whatever happens first
+//            new Object[] {
+//                "503_FirstRegionOnly",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectServiceUnavailableIntoFirstRegionOnly,
+//                validateStatusCodeIs200Ok,
+//                validateDiagnosticsContextHasDiagnosticsForOneOrTwoRegionsButAlwaysContactedSecondRegion
+//            },
+//
+//            // This test injects 503 (Service Unavailable) into all regions.
+//            // Expected outcome is a timeout due to ongoing retries in both operations triggered by
+//            // availability strategy. Diagnostics should contain two operations.
+//            new Object[] {
+//                "503_AllRegions",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectServiceUnavailableIntoAllRegions,
+//                validateStatusCodeIsServiceUnavailable,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+//
+//            // This test injects 500 (Internal Server Error) into all regions.
+//            //
+//            // Currently, 500 (Internal Server error) is not ever retried. Neither in the Consistency Reader
+//            // nor ClientRetryPolicy - so, a 500 will immediately fail the Mono and there will only
+//            // be diagnostics for the first region
+//            new Object[] {
+//               "500_FirstRegionOnly_NoAvailabilityStrategy",
+//               Duration.ofSeconds(90),
+//               noAvailabilityStrategy,
+//               noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//               sameDocumentIdJustCreated,
+//               injectInternalServerErrorIntoFirstRegionOnly,
+//               validateStatusCodeIsInternalServerError,
+//               validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
+//            },
+//
+//            // This test injects 500 (Internal Server Error) into all regions.
+//            //
+//            // Currently, 500 (Internal Server error) is not ever retried. Neither in the Consistency Reader
+//            // nor ClientRetryPolicy - so, a 500 will immediately fail the Mono and there will only
+//            // be diagnostics for the first region
+//            new Object[] {
+//                "500_FirstRegionOnly_DefaultAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                defaultAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectInternalServerErrorIntoFirstRegionOnly,
+//                validateStatusCodeIsInternalServerError,
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
+//            },
+//
+//            // This test injects 500 (Internal Server Error) into all regions.
+//            //
+//            // Currently, 500 (Internal Server error) is not ever retried. Neither in the Consistency Reader
+//            // nor ClientRetryPolicy - so, a 500 will immediately fail the Mono and there will only
+//            // be diagnostics for the first region
+//            new Object[] {
+//                "500_AllRegions_DefaultAvailabilityStrategy",
+//                Duration.ofSeconds(1),
+//                defaultAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectInternalServerErrorIntoAllRegions,
+//                validateStatusCodeIsInternalServerError,
+//                validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion
+//            },
+//
+//            // GATEWAY
+//            // -------
+//
+//            // This test injects Gateway transit timeout into the local region only.
+//            // Expected outcome is a successful retry by the availability strategy
+//            new Object[] {
+//                "GW_408_FirstRegionOnly",
+//                Duration.ofSeconds(1),
+//                eagerThresholdAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.GATEWAY,
+//                sameDocumentIdJustCreated,
+//                injectGatewayTransitTimeoutIntoFirstRegionOnly,
+//                validateStatusCodeIs200Ok,
+//                validateDiagnosticsContextHasDiagnosticsForOneOrTwoRegionsButAlwaysContactedSecondRegion
+//            },
         };
     }
 
@@ -4232,6 +4276,27 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
         String ruleName = "serverErrorRule-read-session-unavailable-" + UUID.randomUUID();
         FaultInjectionServerErrorResult badSessionTokenServerErrorResult = FaultInjectionResultBuilders
             .getResultBuilder(FaultInjectionServerErrorType.READ_SESSION_NOT_AVAILABLE)
+            .build();
+
+        inject(
+            ruleName,
+            containerWithSeveralWriteableRegions,
+            applicableRegions,
+            operationType,
+            badSessionTokenServerErrorResult,
+            applicableFeedRange
+        );
+    }
+
+    private static void injectServerGenerated408(
+        CosmosAsyncContainer containerWithSeveralWriteableRegions,
+        List<String> applicableRegions,
+        FaultInjectionOperationType operationType,
+        FeedRange applicableFeedRange) {
+
+        String ruleName = "serverErrorRule-server-generated-408-" + UUID.randomUUID();
+        FaultInjectionServerErrorResult badSessionTokenServerErrorResult = FaultInjectionResultBuilders
+            .getResultBuilder(FaultInjectionServerErrorType.TIMEOUT)
             .build();
 
         inject(
