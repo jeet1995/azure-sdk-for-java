@@ -182,6 +182,10 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
 
     private BiConsumer<CosmosAsyncContainer, FaultInjectionOperationType> injectGatewayTransitTimeoutIntoFirstRegionOnly = null;
 
+    private BiConsumer<CosmosAsyncContainer, FaultInjectionOperationType> injectPartitionIsSplittingIntoFirstRegion = null;
+
+    private BiConsumer<CosmosAsyncContainer, FaultInjectionOperationType> injectPartitionIsMigratingIntoFirstRegion = null;
+
     private Consumer<CosmosDiagnosticsContext> validateDiagnosticsContextHasDiagnosticsForAllRegions = null;
 
     private Consumer<CosmosDiagnosticsContext> validateDiagnosticsContextHasDiagnosticsForOnlyFirstRegion = null;
@@ -303,6 +307,14 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
             this.injectInternalServerErrorIntoAllRegions =
                 (c, operationType) -> injectInternalServerError(c, this.writeableRegions, operationType);
 
+            this.injectPartitionIsSplittingIntoFirstRegion =
+                (c, operationType) -> injectPartitionIsSplitting(
+                    c, this.getFirstRegion(), operationType);
+
+            this.injectPartitionIsMigratingIntoFirstRegion =
+                (c, operationType) -> injectPartitionIsMigrating(
+                    c, this.getFirstRegion(), operationType);
+
             this.injectQueryPlanTransitTimeoutIntoFirstRegionOnly =
                 (c, operationType) -> injectGatewayTransitTimeout(
                     c, this.getFirstRegion(), FaultInjectionOperationType.METADATA_REQUEST_QUERY_PLAN);
@@ -415,18 +427,39 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
               // This test injects 408 timeouts (as transit timeouts) into all regions.
               // Expected outcome is a 408 after doing cross regional retries via availability strategy
               // against all regions
+//            new Object[] {
+//                "408_FirstRegion",
+//                Duration.ofSeconds(3),
+//                reproAvailabilityStrategy,
+//                noRegionSwitchHint,
+//                ConnectionMode.DIRECT,
+//                sameDocumentIdJustCreated,
+//                injectTimeoutIntoFirstRegion,
+//                validateStatusCodeIsOperationCancelled,
+//                validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
+//            new Object[] {
+//              "PartitionSplit_FirstRegion",
+//              Duration.ofSeconds(50),
+//              noAvailabilityStrategy,
+//              noRegionSwitchHint,
+//              ConnectionMode.DIRECT,
+//              sameDocumentIdJustCreated,
+//              injectPartitionIsSplittingIntoFirstRegion,
+//              validateStatusCodeIsServiceUnavailable,
+//              validateDiagnosticsContextHasDiagnosticsForAllRegions
+//            },
             new Object[] {
-                "408_FirstRegion",
-                Duration.ofSeconds(3),
-                reproAvailabilityStrategy,
+                "PartitionMigrating_FirstRegion",
+                Duration.ofSeconds(50),
+                noAvailabilityStrategy,
                 noRegionSwitchHint,
                 ConnectionMode.DIRECT,
                 sameDocumentIdJustCreated,
-                injectTimeoutIntoFirstRegion,
-                validateStatusCodeIsOperationCancelled,
+                injectPartitionIsMigratingIntoFirstRegion,
+                validateStatusCodeIsServiceUnavailable,
                 validateDiagnosticsContextHasDiagnosticsForAllRegions
             },
-
             // This test injects 404/1002 for the read operation after the initial creation into the local region only.
             // The region switch hint for 404/1002 is remote - meaning no local retries are happening
             // The availability strategy has a high threshold - so, it is expected that the successful response
@@ -4391,6 +4424,48 @@ public class FaultInjectionWithAvailabilityStrategyTests extends TestSuiteBase {
             serviceUnavailableResult,
             null
         );
+    }
+
+    private static void injectPartitionIsSplitting(
+        CosmosAsyncContainer containerWithSeveralWriteableRegions,
+        List<String> applicableRegions,
+        FaultInjectionOperationType faultInjectionOperationType) {
+
+        String ruleName = "serverErrorRule-partitionIsSplitting-" + UUID.randomUUID();
+        FaultInjectionServerErrorResult serviceUnavailableResult = FaultInjectionResultBuilders
+            .getResultBuilder(FaultInjectionServerErrorType.PARTITION_IS_SPLITTING)
+            .build();
+
+        inject(
+            ruleName,
+            containerWithSeveralWriteableRegions,
+            applicableRegions,
+            faultInjectionOperationType,
+            serviceUnavailableResult,
+            null
+        );
+
+    }
+
+    private static void injectPartitionIsMigrating(
+        CosmosAsyncContainer containerWithSeveralWriteableRegions,
+        List<String> applicableRegions,
+        FaultInjectionOperationType faultInjectionOperationType) {
+
+        String ruleName = "serverErrorRule-partitionIsMigrating-" + UUID.randomUUID();
+        FaultInjectionServerErrorResult serviceUnavailableResult = FaultInjectionResultBuilders
+            .getResultBuilder(FaultInjectionServerErrorType.PARTITION_IS_MIGRATING)
+            .build();
+
+        inject(
+            ruleName,
+            containerWithSeveralWriteableRegions,
+            applicableRegions,
+            faultInjectionOperationType,
+            serviceUnavailableResult,
+            null
+        );
+
     }
 
     private void execute(
