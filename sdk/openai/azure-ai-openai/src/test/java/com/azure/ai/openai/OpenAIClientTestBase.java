@@ -112,7 +112,9 @@ public abstract class OpenAIClientTestBase extends TestProxyTestBase {
     private void addTestRecordCustomSanitizers() {
         interceptorManager.addSanitizers(Arrays.asList(
             new TestProxySanitizer("$..key", null, "REDACTED", TestProxySanitizerType.BODY_KEY),
-            new TestProxySanitizer("$..endpoint", null, "https://REDACTED", TestProxySanitizerType.BODY_KEY)
+            new TestProxySanitizer("$..endpoint", null, "https://REDACTED", TestProxySanitizerType.BODY_KEY),
+            new TestProxySanitizer("Content-Type", "(^multipart\\/form-data; boundary=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{2})",
+                "multipart\\/form-data; boundary=BOUNDARY", TestProxySanitizerType.HEADER)
         ));
     }
 
@@ -171,7 +173,7 @@ public abstract class OpenAIClientTestBase extends TestProxyTestBase {
     void getChatCompletionsAzureChatSearchRunner(BiConsumer<String, ChatCompletionsOptions> testRunner) {
         ChatCompletionsOptions chatCompletionsOptions = new ChatCompletionsOptions(
             Arrays.asList(new ChatMessage(ChatRole.USER, "What does PR complete mean?")));
-        testRunner.accept("gpt-4-0613", chatCompletionsOptions);
+        testRunner.accept("gpt-35-turbo-16k", chatCompletionsOptions);
     }
 
     void getEmbeddingRunner(BiConsumer<String, EmbeddingsOptions> testRunner) {

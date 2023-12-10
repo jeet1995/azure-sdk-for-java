@@ -8,7 +8,6 @@ import com.azure.cosmos.CosmosDiagnostics;
 import com.azure.cosmos.CosmosDiagnosticsThresholds;
 import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfig;
 import com.azure.cosmos.implementation.Configs;
-import com.azure.cosmos.implementation.CosmosPagedFluxOptions;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.RequestOptions;
 import com.azure.cosmos.implementation.Strings;
@@ -41,7 +40,7 @@ public class CosmosQueryRequestOptions {
     private int maxBufferedItemCount;
     private int responseContinuationTokenLimitInKb;
     private Integer maxItemCount;
-    private String requestContinuationToken;
+    private String requestContinuation;
     private PartitionKey partitionkey;
     private boolean queryMetricsEnabled;
     private Map<String, Object> properties;
@@ -59,8 +58,8 @@ public class CosmosQueryRequestOptions {
     private Function<JsonNode, ?> itemFactoryMethod;
     private String queryName;
     private CosmosEndToEndOperationLatencyPolicyConfig cosmosEndToEndOperationLatencyPolicyConfig;
-    private List<CosmosDiagnostics> cancelledRequestDiagnosticsTracker = new ArrayList<>();
     private List<String> excludeRegions;
+    private List<CosmosDiagnostics> cancelledRequestDiagnosticsTracker = new ArrayList<>();
 
     /**
      * Instantiates a new query request options.
@@ -87,7 +86,7 @@ public class CosmosQueryRequestOptions {
         this.maxBufferedItemCount = options.maxBufferedItemCount;
         this.responseContinuationTokenLimitInKb = options.responseContinuationTokenLimitInKb;
         this.maxItemCount = options.maxItemCount;
-        this.requestContinuationToken = options.requestContinuationToken;
+        this.requestContinuation = options.requestContinuation;
         this.partitionkey = options.partitionkey;
         this.queryMetricsEnabled = options.queryMetricsEnabled;
         this.emptyPagesAllowed = options.emptyPagesAllowed;
@@ -396,18 +395,18 @@ public class CosmosQueryRequestOptions {
      *
      * @return the request continuation.
      */
-    String getRequestContinuationToken() {
-        return this.requestContinuationToken;
+    String getRequestContinuation() {
+        return this.requestContinuation;
     }
 
     /**
      * Sets the request continuation token.
      *
-     * @param requestContinuationToken the request continuation.
+     * @param requestContinuation the request continuation.
      * @return the CosmosQueryRequestOptions.
      */
-    CosmosQueryRequestOptions setRequestContinuationToken(String requestContinuationToken) {
-        this.requestContinuationToken = requestContinuationToken;
+    CosmosQueryRequestOptions setRequestContinuation(String requestContinuation) {
+        this.requestContinuation = requestContinuation;
         return this;
     }
 
@@ -694,7 +693,8 @@ public class CosmosQueryRequestOptions {
     }
 
     CosmosQueryRequestOptions withEmptyPageDiagnosticsEnabled(boolean emptyPageDiagnosticsEnabled) {
-        if (this.emptyPageDiagnosticsEnabled == emptyPageDiagnosticsEnabled) {
+        if (this.emptyPageDiagnosticsEnabled == emptyPageDiagnosticsEnabled)
+        {
             return this;
         }
 
@@ -723,6 +723,11 @@ public class CosmosQueryRequestOptions {
     static void initialize() {
         ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.setCosmosQueryRequestOptionsAccessor(
             new ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.CosmosQueryRequestOptionsAccessor() {
+
+                @Override
+                public CosmosQueryRequestOptions clone(CosmosQueryRequestOptions toBeCloned) {
+                    return new CosmosQueryRequestOptions(toBeCloned);
+                }
 
                 @Override
                 public void setOperationContext(CosmosQueryRequestOptions queryRequestOptions,
@@ -784,16 +789,6 @@ public class CosmosQueryRequestOptions {
                 }
 
                 @Override
-                public CosmosQueryRequestOptions setEmptyPageDiagnosticsEnabled(CosmosQueryRequestOptions queryRequestOptions, boolean emptyPageDiagnosticsEnabled) {
-                    return queryRequestOptions.setEmptyPageDiagnosticsEnabled(emptyPageDiagnosticsEnabled);
-                }
-
-                @Override
-                public CosmosQueryRequestOptions withEmptyPageDiagnosticsEnabled(CosmosQueryRequestOptions queryRequestOptions, boolean emptyPageDiagnosticsEnabled) {
-                    return queryRequestOptions.withEmptyPageDiagnosticsEnabled(emptyPageDiagnosticsEnabled);
-                }
-
-                @Override
                 @SuppressWarnings("unchecked")
                 public <T> Function<JsonNode, T> getItemFactoryMethod(
                     CosmosQueryRequestOptions queryRequestOptions, Class<T> classOfT) {
@@ -846,22 +841,6 @@ public class CosmosQueryRequestOptions {
                 }
 
                 @Override
-                public void applyMaxItemCount(
-                    CosmosQueryRequestOptions requestOptions,
-                    CosmosPagedFluxOptions fluxOptions) {
-
-                    if (requestOptions == null || requestOptions.getMaxItemCount() == null || fluxOptions == null) {
-                        return;
-                    }
-
-                    if (fluxOptions.getMaxItemCount() != null) {
-                        return;
-                    }
-
-                    fluxOptions.setMaxItemCount(requestOptions.getMaxItemCount());
-                }
-
-                @Override
                 public CosmosEndToEndOperationLatencyPolicyConfig getEndToEndOperationLatencyPolicyConfig(CosmosQueryRequestOptions options) {
                     return options.getEndToEndOperationLatencyConfig();
                 }
@@ -876,6 +855,26 @@ public class CosmosQueryRequestOptions {
                     List<CosmosDiagnostics> cancelledRequestDiagnosticsTracker) {
 
                     options.setCancelledRequestDiagnosticsTracker(cancelledRequestDiagnosticsTracker);
+                }
+
+                @Override
+                public void setAllowEmptyPages(CosmosQueryRequestOptions options, boolean emptyPagesAllowed) {
+                    options.setEmptyPagesAllowed(emptyPagesAllowed);
+                }
+
+                @Override
+                public boolean getAllowEmptyPages(CosmosQueryRequestOptions options) {
+                    return options.isEmptyPagesAllowed();
+                }
+
+                @Override
+                public Integer getMaxItemCount(CosmosQueryRequestOptions options) {
+                    return options.getMaxItemCount();
+                }
+
+                @Override
+                public String getRequestContinuation(CosmosQueryRequestOptions options) {
+                    return options.getRequestContinuation();
                 }
 
                 @Override

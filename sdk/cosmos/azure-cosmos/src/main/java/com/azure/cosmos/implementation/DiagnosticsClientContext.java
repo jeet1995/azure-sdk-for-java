@@ -8,6 +8,7 @@ import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosContainerProactiveInitConfig;
 import com.azure.cosmos.CosmosDiagnostics;
 import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfig;
+import com.azure.cosmos.SessionRetryOptions;
 import com.azure.cosmos.implementation.clienttelemetry.ClientTelemetry;
 import com.azure.cosmos.implementation.guava27.Strings;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -34,6 +35,8 @@ public interface DiagnosticsClientContext {
 
     String getUserAgent();
 
+    CosmosDiagnostics getMostRecentlyCreatedDiagnostics();
+
     final class DiagnosticsClientConfigSerializer extends StdSerializer<DiagnosticsClientConfig> {
         private final static Logger logger = LoggerFactory.getLogger(DiagnosticsClientConfigSerializer.class);
         public final static DiagnosticsClientConfigSerializer INSTANCE = new DiagnosticsClientConfigSerializer();
@@ -59,6 +62,7 @@ public interface DiagnosticsClientContext {
                 generator.writeStringField("machineId", ClientTelemetry.getMachineId(clientConfig));
                 generator.writeStringField("connectionMode", clientConfig.getConnectionMode().toString());
                 generator.writeNumberField("numberOfClients", clientConfig.getActiveClientsCount());
+                generator.writeStringField("excrgns", clientConfig.excludedRegionsRelatedConfig());
                 generator.writeObjectFieldStart("clientEndpoints");
                 for (Map.Entry<String, Integer> entry: clientConfig.clientMap.entrySet()) {
                     try {
@@ -78,8 +82,9 @@ public interface DiagnosticsClientContext {
                 }
                 generator.writeEndObject();
                 generator.writeStringField("consistencyCfg", clientConfig.consistencyRelatedConfig());
-                generator.writeStringField("proactiveInit", clientConfig.proactivelyInitializedContainersAsString);
+                generator.writeStringField("proactiveInitCfg", clientConfig.proactivelyInitializedContainersAsString);
                 generator.writeStringField("e2ePolicyCfg", clientConfig.endToEndOperationLatencyPolicyConfigAsString);
+                generator.writeStringField("sessionRetryCfg", clientConfig.sessionRetryOptionsAsString);
             } catch (Exception e) {
                 logger.debug("unexpected failure", e);
             }
@@ -105,11 +110,12 @@ public interface DiagnosticsClientContext {
         private String endToEndOperationLatencyPolicyConfigAsString;
         private boolean endpointDiscoveryEnabled;
         private boolean multipleWriteRegionsEnabled;
-
         private String rntbdConfigAsString;
         private ConnectionMode connectionMode;
         private String machineId;
         private boolean replicaValidationEnabled = Configs.isReplicaAddressValidationEnabled();
+        private ConnectionPolicy connectionPolicy;
+        private String sessionRetryOptionsAsString;
 
         public DiagnosticsClientConfig withMachineId(String machineId) {
             this.machineId = machineId;
@@ -150,6 +156,11 @@ public interface DiagnosticsClientContext {
                     .map(r -> DiagnosticsClientConfigSerializer.SPACE_PATTERN.matcher(r.toLowerCase(Locale.ROOT)).replaceAll(""))
                     .collect(Collectors.joining(","));
             }
+            return this;
+        }
+
+        public DiagnosticsClientConfig withConnectionPolicy(ConnectionPolicy connectionPolicy) {
+            this.connectionPolicy = connectionPolicy;
             return this;
         }
 
@@ -202,6 +213,16 @@ public interface DiagnosticsClientContext {
             return this;
         }
 
+        public DiagnosticsClientConfig withSessionRetryOptions(SessionRetryOptions sessionRetryOptions) {
+            if (sessionRetryOptions == null) {
+                this.sessionRetryOptionsAsString = "";
+            } else {
+                this.sessionRetryOptionsAsString = sessionRetryOptions.toString();
+            }
+
+            return this;
+        }
+
         public ConnectionMode getConnectionMode() {
             return connectionMode;
         }
@@ -247,6 +268,14 @@ public interface DiagnosticsClientContext {
             return Strings.lenientFormat("(consistency: %s, mm: %s, prgns: [%s])", this.consistencyLevel,
                 this.multipleWriteRegionsEnabled,
                 preferredRegionsAsString);
+        }
+
+        private String excludedRegionsRelatedConfig() {
+            if (this.connectionPolicy == null) {
+                return "[]";
+            } else {
+                return this.connectionPolicy.getExcludedRegionsAsString();
+            }
         }
     }
 }
