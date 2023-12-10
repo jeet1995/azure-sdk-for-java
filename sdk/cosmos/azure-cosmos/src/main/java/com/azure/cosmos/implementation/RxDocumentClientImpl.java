@@ -510,7 +510,6 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             this.retryPolicy = new RetryPolicy(this, this.globalEndpointManager, this.connectionPolicy);
             this.resetSessionTokenRetryPolicy = retryPolicy;
             CpuMemoryMonitor.register(this);
-            // maps String -> PartitionedQueryExecutionInfo
             this.queryPlanCache = new ConcurrentHashMap<>();
             this.apiType = apiType;
             this.clientTelemetryConfig = clientTelemetryConfig;
@@ -956,16 +955,27 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
     private <T> Flux<FeedResponse<T>> createQuery(
         String parentResourceLink,
         SqlQuerySpec sqlQuery,
-        CosmosQueryRequestOptions options,
+        QueryFeedOperationState state,
         Class<T> klass,
         ResourceType resourceTypeEnum) {
 
+        return createQuery(parentResourceLink, sqlQuery, state, klass, resourceTypeEnum, this);
+    }
+
+    private <T> Flux<FeedResponse<T>> createQuery(
+        String parentResourceLink,
+        SqlQuerySpec sqlQuery,
+        QueryFeedOperationState state,
+        Class<T> klass,
+        ResourceType resourceTypeEnum,
+        DiagnosticsClientContext innerDiagnosticsFactory) {
+
         String resourceLink = parentResourceLinkToQueryLink(parentResourceLink, resourceTypeEnum);
 
-        UUID correlationActivityIdOfRequestOptions = ImplementationBridgeHelpers
-            .CosmosQueryRequestOptionsHelper
-            .getCosmosQueryRequestOptionsAccessor()
-            .getCorrelationActivityId(options);
+        CosmosQueryRequestOptions nonNullQueryOptions = state.getQueryOptions();
+
+        UUID correlationActivityIdOfRequestOptions = qryOptAccessor
+            .getCorrelationActivityId(nonNullQueryOptions);
         UUID correlationActivityId = correlationActivityIdOfRequestOptions != null ?
             correlationActivityIdOfRequestOptions : randomUuid();
 
@@ -1017,7 +1027,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
 
         Flux<? extends IDocumentQueryExecutionContext<T>> executionContext =
             DocumentQueryExecutionContextFactory
-                .createDocumentQueryExecutionContextAsync(this, queryClient, resourceTypeEnum, klass, sqlQuery,
+                .createDocumentQueryExecutionContextAsync(diagnosticsClientContext, queryClient, resourceTypeEnum, klass, sqlQuery,
                                                           options, resourceLink, false, activityId,
                                                           Configs.isQueryPlanCachingEnabled(), queryPlanCache, isQueryCancelledOnTimeout);
 
