@@ -970,6 +970,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         ResourceType resourceTypeEnum,
         DiagnosticsClientContext innerDiagnosticsFactory) {
 
+        // an example of parent resource link is this - the "parent resource type" of a "document" is "document collection"
         String resourceLink = parentResourceLinkToQueryLink(parentResourceLink, resourceTypeEnum);
 
         CosmosQueryRequestOptions nonNullQueryOptions = state.getQueryOptions();
@@ -981,6 +982,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
 
         final AtomicBoolean isQueryCancelledOnTimeout = new AtomicBoolean(false);
 
+        // Q: how does IDocumentQueryClient help?
         IDocumentQueryClient queryClient = documentQueryClientImpl(RxDocumentClientImpl.this, getOperationContextAndListenerTuple(nonNullQueryOptions));
 
         // Trying to put this logic as low as the query pipeline
@@ -1025,6 +1027,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             UUID activityId,
             final AtomicBoolean isQueryCancelledOnTimeout) {
 
+        // 1. a flux of execution contexts is created for each query operation
         Flux<? extends IDocumentQueryExecutionContext<T>> executionContext =
             DocumentQueryExecutionContextFactory
                 .createDocumentQueryExecutionContextAsync(diagnosticsClientContext, queryClient, resourceTypeEnum, klass, sqlQuery,

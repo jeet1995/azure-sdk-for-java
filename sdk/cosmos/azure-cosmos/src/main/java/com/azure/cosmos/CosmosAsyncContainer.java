@@ -943,6 +943,9 @@ public class CosmosAsyncContainer {
         return UtilBridgeInternal.createCosmosPagedFlux(queryItemsInternalFunc(sqlQuerySpec, cosmosQueryRequestOptions, classType));
     }
 
+    // 1. this function type is applied in the byPage call on CosmosPagedFlux
+    // Q: who instantiates "cosmosQueryRequestOptions"? there have been CRIs with such instances
+    // being shared across query operations
     <T> Function<CosmosPagedFluxOptions, Flux<FeedResponse<T>>> queryItemsInternalFunc(
         SqlQuerySpec sqlQuerySpec, CosmosQueryRequestOptions cosmosQueryRequestOptions, Class<T> classType) {
         CosmosAsyncClient client = this.getDatabase().getClient();
