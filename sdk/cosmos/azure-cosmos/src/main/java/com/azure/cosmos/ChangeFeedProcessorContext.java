@@ -3,6 +3,8 @@
 
 package com.azure.cosmos;
 
+import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
+import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.util.Beta;
 
 import java.util.function.BiConsumer;
@@ -16,7 +18,7 @@ import java.util.function.BiConsumer;
  * NOTE: This interface is not designed to be implemented by end users.
  * */
 @Beta(value = Beta.SinceVersion.V4_51_0, warningText = Beta.PREVIEW_SUBJECT_TO_CHANGE_WARNING)
-public interface ChangeFeedProcessorContext {
+public interface ChangeFeedProcessorContext<T> {
     /**
      * Gets the lease token corresponding to the source of
      * a batch of change feed documents.
@@ -25,4 +27,8 @@ public interface ChangeFeedProcessorContext {
      * */
     @Beta(value = Beta.SinceVersion.V4_51_0, warningText = Beta.PREVIEW_SUBJECT_TO_CHANGE_WARNING)
     String getLeaseToken();
+
+    FeedResponse<T> getFeedResponse();
+
+    CosmosChangeFeedRequestOptions getCosmosChangeFeedRequestOptions();
 }

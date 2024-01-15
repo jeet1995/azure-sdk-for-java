@@ -141,7 +141,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 if (documentFeedResponse.getResults() != null && documentFeedResponse.getResults().size() > 0) {
                     logger.info("Lease with token {}: processing {} feeds with owner {}.",
                         this.lease.getLeaseToken(), documentFeedResponse.getResults().size(), this.lease.getOwner());
-                    return this.dispatchChanges(documentFeedResponse, continuationState)
+                    return this.dispatchChanges(documentFeedResponse, continuationState, this.options)
                         .doOnError(throwable -> logger.debug(
                             "Lease with token {}: Exception was thrown from thread {}",
                             this.lease.getLeaseToken(),
@@ -312,6 +312,21 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
             response,
             continuationState,
             this.checkpointer);
+
+        return this.observer.processChanges(context, response.getResults());
+    }
+
+    private Mono<Void> dispatchChanges(
+        FeedResponse<T> response,
+        ChangeFeedState continuationState,
+        CosmosChangeFeedRequestOptions changeFeedRequestOptions) {
+
+        ChangeFeedObserverContext<T> context = new ChangeFeedObserverContextImpl<>(
+            lease.getLeaseToken(),
+            response,
+            continuationState,
+            this.checkpointer,
+            changeFeedRequestOptions);
 
         return this.observer.processChanges(context, response.getResults());
     }

@@ -82,7 +82,7 @@ public class ChangeFeedProcessorBuilder {
     private Consumer<List<JsonNode>> incrementalModeLeaseConsumerPkRangeIdVersion;
     private Consumer<List<ChangeFeedProcessorItem>> incrementalModeLeaseConsumerEpkVersion;
     private Consumer<List<ChangeFeedProcessorItem>> fullFidelityModeLeaseConsumer;
-    private BiConsumer<List<ChangeFeedProcessorItem>, ChangeFeedProcessorContext> fullFidelityModeLeaseWithContextConsumer;
+    private BiConsumer<List<ChangeFeedProcessorItem>, ChangeFeedProcessorContext<ChangeFeedProcessorItem>> fullFidelityModeLeaseWithContextConsumer;
     private ChangeFeedMode changeFeedMode = ChangeFeedMode.INCREMENTAL;
     private LeaseVersion leaseVersion = LeaseVersion.PARTITION_KEY_BASED_LEASE;
 
@@ -233,7 +233,7 @@ public class ChangeFeedProcessorBuilder {
      */
     @Beta(value = Beta.SinceVersion.V4_51_0, warningText = Beta.PREVIEW_SUBJECT_TO_CHANGE_WARNING)
     public ChangeFeedProcessorBuilder handleAllVersionsAndDeletesChanges(
-        BiConsumer<List<ChangeFeedProcessorItem>, ChangeFeedProcessorContext> biConsumer) {
+        BiConsumer<List<ChangeFeedProcessorItem>, ChangeFeedProcessorContext<ChangeFeedProcessorItem>> biConsumer) {
 
         checkNotNull(biConsumer, "biConsumer cannot be null");
         checkArgument(this.fullFidelityModeLeaseConsumer == null,

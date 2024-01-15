@@ -6,6 +6,7 @@ package com.azure.cosmos.implementation.changefeed.common;
 import com.azure.cosmos.implementation.changefeed.ChangeFeedObserverContext;
 import com.azure.cosmos.implementation.changefeed.Lease;
 import com.azure.cosmos.implementation.changefeed.PartitionCheckpointer;
+import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
 import com.azure.cosmos.models.FeedResponse;
 import reactor.core.publisher.Mono;
 
@@ -17,6 +18,7 @@ public class ChangeFeedObserverContextImpl<T> implements ChangeFeedObserverConte
     private final String leaseToken;
     private final FeedResponse<T> feedResponse;
     private final ChangeFeedState continuationState;
+    private final CosmosChangeFeedRequestOptions changeFeedRequestOptions;
 
 
     public ChangeFeedObserverContextImpl(String leaseToken) {
@@ -24,6 +26,7 @@ public class ChangeFeedObserverContextImpl<T> implements ChangeFeedObserverConte
         this.checkpointer = null;
         this.feedResponse = null;
         this.continuationState = null;
+        this.changeFeedRequestOptions = null;
     }
 
     public ChangeFeedObserverContextImpl(String leaseToken,
@@ -34,6 +37,21 @@ public class ChangeFeedObserverContextImpl<T> implements ChangeFeedObserverConte
         this.feedResponse = feedResponse;
         this.checkpointer = checkpointer;
         this.continuationState = continuationState;
+        this.changeFeedRequestOptions = null;
+    }
+
+    public ChangeFeedObserverContextImpl(
+        String leaseToken,
+        FeedResponse<T> feedResponse,
+        ChangeFeedState continuationState,
+        PartitionCheckpointer checkpointer,
+        CosmosChangeFeedRequestOptions changeFeedRequestOptions) {
+
+        this.leaseToken = leaseToken;
+        this.feedResponse = feedResponse;
+        this.checkpointer = checkpointer;
+        this.continuationState = continuationState;
+        this.changeFeedRequestOptions = changeFeedRequestOptions;
     }
 
     /**
@@ -48,6 +66,11 @@ public class ChangeFeedObserverContextImpl<T> implements ChangeFeedObserverConte
     @Override
     public Mono<Lease> checkpoint() {
         return this.checkpointer.checkpointPartition(this.continuationState);
+    }
+
+    @Override
+    public CosmosChangeFeedRequestOptions getCosmosChangeFeedRequestOptions() {
+        return this.changeFeedRequestOptions;
     }
 
     /**
@@ -65,4 +88,6 @@ public class ChangeFeedObserverContextImpl<T> implements ChangeFeedObserverConte
     public FeedResponse<T> getFeedResponse() {
         return this.feedResponse;
     }
+
+
 }

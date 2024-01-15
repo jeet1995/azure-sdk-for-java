@@ -17,14 +17,14 @@ import java.util.function.Consumer;
 public class DefaultObserver<T> implements ChangeFeedObserver<T> {
     private static final Logger log = LoggerFactory.getLogger(DefaultObserver.class);
     private final Consumer<List<T>> consumer;
-    private final BiConsumer<List<T>, ChangeFeedProcessorContext> biConsumer;
+    private final BiConsumer<List<T>, ChangeFeedProcessorContext<T>> biConsumer;
 
     public DefaultObserver(Consumer<List<T>> consumer) {
         this.consumer = consumer;
         this.biConsumer = null;
     }
 
-    public DefaultObserver(BiConsumer<List<T>, ChangeFeedProcessorContext> biConsumer) {
+    public DefaultObserver(BiConsumer<List<T>, ChangeFeedProcessorContext<T>> biConsumer) {
         this.biConsumer = biConsumer;
         this.consumer = null;
     }
@@ -47,7 +47,7 @@ public class DefaultObserver<T> implements ChangeFeedObserver<T> {
             if (consumer != null) {
                 consumer.accept(docs);
             } else if (biConsumer != null) {
-                biConsumer.accept(docs, new ChangeFeedProcessorContextImpl<>(context));
+                biConsumer.accept(docs, new ChangeFeedProcessorContextImpl<T>(context));
             }
 
             log.info("Done processing from thread {}", Thread.currentThread().getId());

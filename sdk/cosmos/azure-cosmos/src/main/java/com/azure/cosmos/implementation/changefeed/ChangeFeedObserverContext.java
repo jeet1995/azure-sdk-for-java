@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.azure.cosmos.implementation.changefeed;
 
+import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
 import com.azure.cosmos.models.FeedResponse;
 import reactor.core.publisher.Mono;
 
@@ -34,4 +35,6 @@ public interface ChangeFeedObserverContext<T> {
      * @return a representation of the deferred computation of this call.
      */
     Mono<Lease> checkpoint();
+
+    CosmosChangeFeedRequestOptions getCosmosChangeFeedRequestOptions();
 }
