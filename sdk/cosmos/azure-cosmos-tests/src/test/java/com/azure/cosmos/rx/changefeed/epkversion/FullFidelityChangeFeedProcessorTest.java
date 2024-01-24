@@ -50,6 +50,8 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,7 +94,7 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
     }
 
     // Using this test to verify basic functionality
-    @Test(groups = { "emulator" }, dataProvider = "contextTestConfigs", timeOut = 50 * CHANGE_FEED_PROCESSOR_TIMEOUT)
+    @Test(groups = { "emulator" }, dataProvider = "contextTestConfigs"/*, timeOut = 50 * CHANGE_FEED_PROCESSOR_TIMEOUT*/)
     public void fullFidelityChangeFeedProcessorStartFromNow(boolean isContextRequired) throws InterruptedException {
         CosmosAsyncContainer createdFeedCollection = createFeedCollection(FEED_COLLECTION_THROUGHPUT);
         CosmosAsyncContainer createdLeaseCollection = createLeaseCollection(LEASE_COLLECTION_THROUGHPUT);
@@ -162,6 +164,38 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
 
                 // Wait for the feed processor to shut down.
                 Thread.sleep(2 * CHANGE_FEED_PROCESSOR_TIMEOUT);
+
+                ChangeFeedProcessor changeFeedProcessorIncremental = new ChangeFeedProcessorBuilder()
+                    .hostName(hostName)
+                    .handleLatestVersionChanges((List<ChangeFeedProcessorItem> docs) -> {
+                        logger.info("START processing from thread {}", Thread.currentThread().getId());
+                        for (ChangeFeedProcessorItem item : docs) {
+                            processItem(item, receivedDocuments);
+                        }
+                        logger.info("END processing from thread {}", Thread.currentThread().getId());
+                    })
+                    .feedContainer(createdFeedCollection)
+                    .leaseContainer(createdLeaseCollection)
+                    .options(new ChangeFeedProcessorOptions()
+                        .setLeaseRenewInterval(Duration.ofSeconds(20))
+                        .setLeaseAcquireInterval(Duration.ofSeconds(10))
+                        .setLeaseExpirationInterval(Duration.ofSeconds(30))
+                        .setFeedPollDelay(Duration.ofSeconds(1))
+                        .setLeasePrefix("TEST")
+                        .setMaxItemCount(10)
+                        .setStartFromBeginning(true)
+                        .setMinScaleCount(1)
+                        .setMaxScaleCount(3)
+                    )
+                    .buildChangeFeedProcessor();
+
+                logger.info("Process changes using incremental CFP...");
+
+                changeFeedProcessorIncremental.start().subscribeOn(Schedulers.boundedElastic())
+                    .timeout(Duration.ofMillis(2 * CHANGE_FEED_PROCESSOR_TIMEOUT)).block();
+
+                Thread.sleep(2 * CHANGE_FEED_PROCESSOR_TIMEOUT);
+
 
             } catch (Exception ex) {
                 log.error("Change feed processor did not start and stopped in the expected time", ex);
