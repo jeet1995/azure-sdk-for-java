@@ -181,7 +181,6 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
                         .setLeaseAcquireInterval(Duration.ofSeconds(10))
                         .setLeaseExpirationInterval(Duration.ofSeconds(30))
                         .setFeedPollDelay(Duration.ofSeconds(1))
-                        .setLeasePrefix("TEST")
                         .setMaxItemCount(10)
                         .setStartFromBeginning(true)
                         .setMinScaleCount(1)
