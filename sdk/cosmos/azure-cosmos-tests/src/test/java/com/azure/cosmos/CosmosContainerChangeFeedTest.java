@@ -104,7 +104,7 @@ public class CosmosContainerChangeFeedTest extends TestSuiteBase {
         createdAsyncDatabase = client.asyncClient().getDatabase(createdDatabase.getId());
     }
 
-    @Test(groups = { "emulator" }/*, timeOut = TIMEOUT * 5*/)
+    @Test(groups = { "emulator" }, timeOut = TIMEOUT * 5)
     public void asyncChangeFeed_fromBeginning_incremental_forFullRange() throws Exception {
         this.createContainer(
             (cp) -> cp.setChangeFeedPolicy(ChangeFeedPolicy.createLatestVersionPolicy())

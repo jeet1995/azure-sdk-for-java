@@ -1091,13 +1091,13 @@ public class TestSuiteBase extends CosmosAsyncClientTest {
         List<CosmosClientBuilder> cosmosConfigurations = new ArrayList<>();
 
         for (Protocol protocol : protocols) {
-//            testConsistencies.forEach(consistencyLevel -> cosmosConfigurations.add(createDirectRxDocumentClient(
-//                consistencyLevel,
-//                protocol,
-//                isMultiMasterEnabled,
-//                preferredLocations,
-//                contentResponseOnWriteEnabled,
-//                retryOnThrottledRequests)));
+            testConsistencies.forEach(consistencyLevel -> cosmosConfigurations.add(createDirectRxDocumentClient(
+                consistencyLevel,
+                protocol,
+                isMultiMasterEnabled,
+                preferredLocations,
+                contentResponseOnWriteEnabled,
+                retryOnThrottledRequests)));
         }
 
         cosmosConfigurations.forEach(c -> {
