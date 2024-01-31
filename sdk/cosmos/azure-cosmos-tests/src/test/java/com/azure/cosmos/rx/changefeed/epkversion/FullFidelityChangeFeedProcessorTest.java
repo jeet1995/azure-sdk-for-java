@@ -529,13 +529,7 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
                     .hostName(hostName)
                     .feedContainer(createdFeedCollection)
                     .leaseContainer(createdLeaseCollection)
-                    .handleAllVersionsAndDeletesChanges((docs) -> {
-                        for (ChangeFeedProcessorItem doc : docs) {
-                            String docId = doc.getCurrent().get("id").asText();
-                            logger.info("FFCF change feed processing with id : {}", docId);
-                            documentsFetchedByFfcfCfp.add(docId);
-                        }
-                    });
+                    .handleAllVersionsAndDeletesChanges(changeFeedProcessorHandler(receivedDocuments));
 
                 ChangeFeedProcessor fullFidelityChangeFeedProcessor = fullFidelityChangeFeedProcessorBuilder
                     .buildChangeFeedProcessor();
@@ -567,7 +561,8 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
                         logger.info("Lease container document : {}", OBJECT_MAPPER.writeValueAsString(lease));
                     }
                 }
-                assertThat(documentsFetchedByFfcfCfp.size()).isEqualTo(5);
+
+                validateChangeFeedProcessing(fullFidelityChangeFeedProcessor, createdDocuments, receivedDocuments, FEED_COUNT);
 
                 fullFidelityChangeFeedProcessor.stop().subscribeOn(Schedulers.boundedElastic())
                     .timeout(Duration.ofMillis(2 * CHANGE_FEED_PROCESSOR_TIMEOUT))
