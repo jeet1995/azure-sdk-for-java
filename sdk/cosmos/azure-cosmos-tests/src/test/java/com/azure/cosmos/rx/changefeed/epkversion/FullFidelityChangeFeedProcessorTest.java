@@ -14,7 +14,6 @@ import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfigBuilder;
 import com.azure.cosmos.ThroughputControlGroupConfig;
 import com.azure.cosmos.ThroughputControlGroupConfigBuilder;
 import com.azure.cosmos.implementation.AsyncDocumentClient;
-import com.azure.cosmos.implementation.CosmosSchedulers;
 import com.azure.cosmos.implementation.InternalObjectNode;
 import com.azure.cosmos.implementation.TestConfigurations;
 import com.azure.cosmos.implementation.Utils;
@@ -493,7 +492,7 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
                 Thread.sleep(2 * CHANGE_FEED_PROCESSOR_TIMEOUT);
                 logger.info("Validating changes now");
 
-                validateChangeFeedProcessing(incrementalChangeFeedProcessor, createdDocuments, receivedDocuments, FEED_COUNT / 2);
+                validateChangeFeedProcessing(createdDocuments, receivedDocuments, FEED_COUNT / 2);
 
                 // incrementalChangeFeedProcessor.stop().subscribeOn(Schedulers.boundedElastic()).timeout(Duration.ofMillis(CHANGE_FEED_PROCESSOR_TIMEOUT)).subscribe();
 
@@ -540,9 +539,6 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
                     .timeout(Duration.ofMillis(2 * CHANGE_FEED_PROCESSOR_TIMEOUT))
                     .subscribe();
 
-                createdDocuments = new ArrayList<>();
-                // setupReadFeedDocuments(createdDocuments, new HashMap<>(), createdFeedCollection, 10);
-
                 Thread.sleep(30_000);
 
                 leaseDocuments =
@@ -562,7 +558,8 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
                     }
                 }
 
-                validateChangeFeedProcessing(fullFidelityChangeFeedProcessor, createdDocuments, receivedDocuments, FEED_COUNT);
+                Thread.sleep(2 * CHANGE_FEED_PROCESSOR_TIMEOUT);
+                validateChangeFeedProcessing(createdDocuments, receivedDocuments, FEED_COUNT);
 
                 fullFidelityChangeFeedProcessor.stop().subscribeOn(Schedulers.boundedElastic())
                     .timeout(Duration.ofMillis(2 * CHANGE_FEED_PROCESSOR_TIMEOUT))
@@ -1834,27 +1831,9 @@ public class FullFidelityChangeFeedProcessorTest extends TestSuiteBase {
         };
     }
 
-    void validateChangeFeedProcessing(ChangeFeedProcessor changeFeedProcessor,
-                                      List<InternalObjectNode> createdDocuments,
+    void validateChangeFeedProcessing(List<InternalObjectNode> createdDocuments,
                                       Map<String, ChangeFeedProcessorItem> receivedDocuments,
                                       int expectedFeedCount) {
-        List<ChangeFeedProcessorState> cfpCurrentState = changeFeedProcessor
-            .getCurrentState()
-            .map(state -> {
-                try {
-                    log.info(OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(state));
-                } catch (JsonProcessingException ex) {
-                    log.error("Unexpected", ex);
-                }
-                return state;
-            })
-            .block();
-
-        assertThat(cfpCurrentState).isNotNull().as("Change Feed Processor current state");
-// commenting this since CFP was stopped after hitting a certain document count
-//        for (ChangeFeedProcessorState item : cfpCurrentState) {
-//            assertThat(item.getHostName()).isEqualTo(hostName).as("Change Feed Processor ownership");
-//        }
 
         // Added this validation for now to verify received list has something - easy way to see size not being 10
         assertThat(receivedDocuments.size()).isEqualTo(expectedFeedCount);
