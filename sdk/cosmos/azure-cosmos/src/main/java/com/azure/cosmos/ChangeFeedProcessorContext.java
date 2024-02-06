@@ -30,5 +30,5 @@ public interface ChangeFeedProcessorContext<T> {
 
     FeedResponse<T> getFeedResponse();
 
-    CosmosChangeFeedRequestOptions getCosmosChangeFeedRequestOptions();
+    String getReadableContinuationFromRequest();
 }

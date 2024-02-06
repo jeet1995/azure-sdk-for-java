@@ -48,6 +48,7 @@ public final class CosmosChangeFeedRequestOptions {
     private Function<JsonNode, ?> itemFactoryMethod;
     private CosmosDiagnosticsThresholds thresholds;
     private List<String> excludeRegions;
+    private volatile String lastSeenReadableContinuationToken;
 
     private CosmosChangeFeedRequestOptions(
         FeedRangeInternal feedRange,
@@ -190,6 +191,14 @@ public final class CosmosChangeFeedRequestOptions {
 
         this.thresholds = operationSpecificThresholds;
         return this;
+    }
+
+    public void setLastSeenReadableContinuationToken(String lastSeenReadableContinuationToken) {
+        this.lastSeenReadableContinuationToken = lastSeenReadableContinuationToken;
+    }
+
+    public String getLastSeenReadableContinuationToken() {
+        return lastSeenReadableContinuationToken;
     }
 
     boolean isSplitHandlingDisabled() {

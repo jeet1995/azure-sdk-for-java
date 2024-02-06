@@ -26,6 +26,7 @@ import com.azure.cosmos.implementation.feedranges.FeedRangeEpkImpl;
 import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.ModelBridgeInternal;
+import io.netty.handler.codec.base64.Base64Decoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -33,6 +34,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkArgument;
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
@@ -53,7 +55,6 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
     private final Class<T> itemType;
     private final ChangeFeedMode changeFeedMode;
     private volatile RuntimeException resultException;
-
     private volatile String lastServerContinuationToken;
     private volatile boolean hasMoreResults;
     private final FeedRangeThroughputControlConfigManager feedRangeThroughputControlConfigManager;
@@ -116,6 +117,9 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                     this.options.setThroughputControlGroupName(configValueHolder.v.getGroupName());
                 }
 
+                // this.options.setLastSeenReadableContinuationToken(new String(Base64.getUrlDecoder().decode(ModelBridgeInternal.getChangeFeedContinuationState(this.options).toString())));
+                this.options.setLastSeenReadableContinuationToken(ModelBridgeInternal.getChangeFeedContinuationState(this.options).toJson());
+
                 return this.documentClient.createDocumentChangeFeedQuery(
                         this.settings.getCollectionSelfLink(),
                         this.options,
@@ -139,9 +143,12 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 this.hasMoreResults = !ModelBridgeInternal.noChanges(documentFeedResponse);
 
                 if (documentFeedResponse.getResults() != null && documentFeedResponse.getResults().size() > 0) {
-                    logger.info("Lease with token {}: processing {} feeds with owner {}.",
-                        this.lease.getLeaseToken(), documentFeedResponse.getResults().size(), this.lease.getOwner());
-                    return this.dispatchChanges(documentFeedResponse, continuationState, this.options)
+                    logger.info("Lease with token {}: processing {} feeds with owner {}, continuation state from response : {}.",
+                        this.lease.getLeaseToken(), documentFeedResponse.getResults().size(), this.lease.getOwner(), new String(Base64.getDecoder().decode(continuationToken)));
+
+                    logger.info("Continuation token in request 2 : {}", new String(Base64.getUrlDecoder().decode(ModelBridgeInternal.getChangeFeedContinuationState(this.options).toString())));
+
+                    return this.dispatchChanges(documentFeedResponse, continuationState, this.options.getLastSeenReadableContinuationToken())
                         .doOnError(throwable -> logger.debug(
                             "Lease with token {}: Exception was thrown from thread {}",
                             this.lease.getLeaseToken(),
@@ -319,14 +326,14 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
     private Mono<Void> dispatchChanges(
         FeedResponse<T> response,
         ChangeFeedState continuationState,
-        CosmosChangeFeedRequestOptions changeFeedRequestOptions) {
+        String readableContinuationFromRequest) {
 
         ChangeFeedObserverContext<T> context = new ChangeFeedObserverContextImpl<>(
             lease.getLeaseToken(),
             response,
             continuationState,
             this.checkpointer,
-            changeFeedRequestOptions);
+            readableContinuationFromRequest);
 
         return this.observer.processChanges(context, response.getResults());
     }

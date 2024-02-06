@@ -37,12 +37,12 @@ public final class ChangeFeedProcessorContextImpl<T> implements ChangeFeedProces
     }
 
     @Override
-    public CosmosChangeFeedRequestOptions getCosmosChangeFeedRequestOptions() {
-        
+    public String getReadableContinuationFromRequest() {
+
         if (changeFeedObserverContext == null) {
             throw new IllegalStateException("changeFeedObserverContext cannot be null!");
         }
 
-        return changeFeedObserverContext.getCosmosChangeFeedRequestOptions();
+        return changeFeedObserverContext.getReadableContinuationFromRequest();
     }
 }

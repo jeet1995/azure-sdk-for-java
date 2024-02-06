@@ -36,5 +36,5 @@ public interface ChangeFeedObserverContext<T> {
      */
     Mono<Lease> checkpoint();
 
-    CosmosChangeFeedRequestOptions getCosmosChangeFeedRequestOptions();
+    String getReadableContinuationFromRequest();
 }
