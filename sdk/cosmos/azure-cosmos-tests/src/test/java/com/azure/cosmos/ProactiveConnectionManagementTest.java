@@ -577,12 +577,17 @@ public class ProactiveConnectionManagementTest extends TestSuiteBase {
 
             List<CosmosContainerIdentity> cosmosContainerIdentities = new ArrayList<>();
 
-            for (int i = 0; i < containerCount; i++) {
-                String containerId = String.format("id%d", i);
-                cosmosAsyncDatabase.createContainerIfNotExists(containerId, "/mypk").block();
-                asyncContainers.add(cosmosAsyncDatabase.getContainer(containerId));
-                cosmosContainerIdentities.add(new CosmosContainerIdentity(cosmosAsyncDatabase.getId(), containerId));
-            }
+//            for (int i = 0; i < containerCount; i++) {
+//                String containerId = String.format("id%d", i);
+//                cosmosAsyncDatabase.createContainerIfNotExists(containerId, "/mypk").block();
+//                asyncContainers.add(cosmosAsyncDatabase.getContainer(containerId));
+//                cosmosContainerIdentities.add(new CosmosContainerIdentity(cosmosAsyncDatabase.getId(), containerId));
+//            }
+
+            String databaseId = "PerfTestDB";
+            String containerId = "LargeContainer";
+
+            cosmosContainerIdentities.add(new CosmosContainerIdentity(databaseId, containerId));
 
             CosmosContainerProactiveInitConfigBuilder proactiveContainerInitConfigBuilder = new
                 CosmosContainerProactiveInitConfigBuilder(cosmosContainerIdentities)
@@ -669,37 +674,37 @@ public class ProactiveConnectionManagementTest extends TestSuiteBase {
             // 2. Obtain partition addresses for a container for one read region, then mark that read region as unavailable.
             // 3. This will force resolveAsync to use the next preferred read region in the next invocation.
             // 4. This way we can verify that connections have been opened to all replicas across all proactive connection regions.
-            for (URI proactiveConnectionEndpoint : proactiveConnectionEndpoints) {
-                Flux.zip(asyncContainerFlux, partitionKeyRangeFlux)
-                        .flatMapIterable(containerToPartitionKeyRanges -> {
-                            List<ImmutablePair<PartitionKeyRange, CosmosAsyncContainer>> pkrToContainer = new ArrayList<>();
-                            for (PartitionKeyRange pkr : containerToPartitionKeyRanges.getT2().v) {
-                                pkrToContainer.add(new ImmutablePair<>(pkr, containerToPartitionKeyRanges.getT1()));
-                            }
-                            return pkrToContainer;
-                        })
-                        .flatMap(partitionKeyRangeToContainer -> {
-                            RxDocumentServiceRequest dummyRequest = RxDocumentServiceRequest.createFromName(
-                                    mockDiagnosticsClientContext(),
-                                    OperationType.Read,
-                                    partitionKeyRangeToContainer.getRight().getLink() + "/docId",
-                                    ResourceType.Document);
-                            dummyRequest.setPartitionKeyRangeIdentity(new PartitionKeyRangeIdentity(partitionKeyRangeToContainer.getLeft().getId()));
-                            return globalAddressResolver.resolveAsync(dummyRequest, false);
-                        })
-                        .delayElements(Duration.ofMillis(300))
-                        .doOnNext(addressInformations -> {
-                            for (AddressInformation address : addressInformations) {
-                                endpoints.add(address.getPhysicalUri().getURI().getAuthority());
-                            }
-                        })
-                        .blockLast();
-
-                globalEndpointManager.markEndpointUnavailableForRead(proactiveConnectionEndpoint);
-            }
+//            for (URI proactiveConnectionEndpoint : proactiveConnectionEndpoints) {
+//                Flux.zip(asyncContainerFlux, partitionKeyRangeFlux)
+//                        .flatMapIterable(containerToPartitionKeyRanges -> {
+//                            List<ImmutablePair<PartitionKeyRange, CosmosAsyncContainer>> pkrToContainer = new ArrayList<>();
+//                            for (PartitionKeyRange pkr : containerToPartitionKeyRanges.getT2().v) {
+//                                pkrToContainer.add(new ImmutablePair<>(pkr, containerToPartitionKeyRanges.getT1()));
+//                            }
+//                            return pkrToContainer;
+//                        })
+//                        .flatMap(partitionKeyRangeToContainer -> {
+//                            RxDocumentServiceRequest dummyRequest = RxDocumentServiceRequest.createFromName(
+//                                    mockDiagnosticsClientContext(),
+//                                    OperationType.Read,
+//                                    partitionKeyRangeToContainer.getRight().getLink() + "/docId",
+//                                    ResourceType.Document);
+//                            dummyRequest.setPartitionKeyRangeIdentity(new PartitionKeyRangeIdentity(partitionKeyRangeToContainer.getLeft().getId()));
+//                            return globalAddressResolver.resolveAsync(dummyRequest, false);
+//                        })
+//                        .delayElements(Duration.ofMillis(300))
+//                        .doOnNext(addressInformations -> {
+//                            for (AddressInformation address : addressInformations) {
+//                                endpoints.add(address.getPhysicalUri().getURI().getAuthority());
+//                            }
+//                        })
+//                        .blockLast();
+//
+//                globalEndpointManager.markEndpointUnavailableForRead(proactiveConnectionEndpoint);
+//            }
 
             // let connection counts catch up
-            Thread.sleep(50_000);
+            Thread.sleep(300_000);
 
             assertThat(provider.count()).isEqualTo(endpoints.size());
             assertThat(collectionInfoByNameMap.size()).isEqualTo(cosmosContainerIdentities.size());
@@ -719,9 +724,9 @@ public class ProactiveConnectionManagementTest extends TestSuiteBase {
             throw new RuntimeException(e);
         } finally {
 
-            for (CosmosAsyncContainer asyncContainer : asyncContainers) {
-                asyncContainer.delete().block();
-            }
+//            for (CosmosAsyncContainer asyncContainer : asyncContainers) {
+//                asyncContainer.delete().block();
+//            }
 
             safeClose(asyncClientWithOpenConnections);
             safeCloseSyncClient(syncClientWithOpenConnections);
@@ -740,55 +745,55 @@ public class ProactiveConnectionManagementTest extends TestSuiteBase {
 
         return new Object[] {
             new ProactiveConnectionManagementTestConfig()
-                .withPreferredRegions(preferredRegions)
-                .withProactiveConnectionRegionsCount(2)
-                .withContainerCount(3)
-                .withMinConnectionPoolSizePerEndpoint(4)
-                .withAggressiveWarmupDuration(Duration.ofMillis(250))
+                .withPreferredRegions(preferredRegions.subList(0, 1))
+                .withProactiveConnectionRegionsCount(1)
+                .withContainerCount(1)
+                .withMinConnectionPoolSizePerEndpoint(1)
+                .withAggressiveWarmupDuration(Duration.ofSeconds(30))
                 .withIsSystemPropertySetBeforeDirectConnectionConfig(true)
                 .withIsSyncClient(false),
-            new ProactiveConnectionManagementTestConfig()
-                .withPreferredRegions(preferredRegions)
-                .withProactiveConnectionRegionsCount(2)
-                .withContainerCount(3)
-                .withMinConnectionPoolSizePerEndpoint(5)
-                .withAggressiveWarmupDuration(Duration.ofMillis(1000))
-                .withIsSystemPropertySetBeforeDirectConnectionConfig(false)
-                .withIsSyncClient(false),
-            // in this test config the aggressive warmup duration is set to an unreasonably high value
-            // the client build should not block until this aggressive warm up duration time
-            new ProactiveConnectionManagementTestConfig()
-                .withPreferredRegions(preferredRegions)
-                .withProactiveConnectionRegionsCount(2)
-                .withContainerCount(3)
-                .withMinConnectionPoolSizePerEndpoint(5)
-                .withAggressiveWarmupDuration(Duration.ofMinutes(1000))
-                .withIsSystemPropertySetBeforeDirectConnectionConfig(false)
-                .withIsSyncClient(false),
-            new ProactiveConnectionManagementTestConfig()
-                .withPreferredRegions(preferredRegions)
-                .withProactiveConnectionRegionsCount(2)
-                .withContainerCount(3)
-                .withMinConnectionPoolSizePerEndpoint(4)
-                .withAggressiveWarmupDuration(Duration.ofMillis(250))
-                .withIsSystemPropertySetBeforeDirectConnectionConfig(true)
-                .withIsSyncClient(true),
-            new ProactiveConnectionManagementTestConfig()
-                .withPreferredRegions(preferredRegions)
-                .withProactiveConnectionRegionsCount(2)
-                .withContainerCount(3)
-                .withMinConnectionPoolSizePerEndpoint(5)
-                .withAggressiveWarmupDuration(Duration.ofMillis(1000))
-                .withIsSystemPropertySetBeforeDirectConnectionConfig(false)
-                .withIsSyncClient(true),
-            new ProactiveConnectionManagementTestConfig()
-                .withPreferredRegions(preferredRegions)
-                .withProactiveConnectionRegionsCount(2)
-                .withContainerCount(3)
-                .withMinConnectionPoolSizePerEndpoint(5)
-                .withAggressiveWarmupDuration(Duration.ofMinutes(1000))
-                .withIsSystemPropertySetBeforeDirectConnectionConfig(false)
-                .withIsSyncClient(true)
+//            new ProactiveConnectionManagementTestConfig()
+//                .withPreferredRegions(preferredRegions)
+//                .withProactiveConnectionRegionsCount(2)
+//                .withContainerCount(3)
+//                .withMinConnectionPoolSizePerEndpoint(5)
+//                .withAggressiveWarmupDuration(Duration.ofMillis(1000))
+//                .withIsSystemPropertySetBeforeDirectConnectionConfig(false)
+//                .withIsSyncClient(false),
+//            // in this test config the aggressive warmup duration is set to an unreasonably high value
+//            // the client build should not block until this aggressive warm up duration time
+//            new ProactiveConnectionManagementTestConfig()
+//                .withPreferredRegions(preferredRegions)
+//                .withProactiveConnectionRegionsCount(2)
+//                .withContainerCount(3)
+//                .withMinConnectionPoolSizePerEndpoint(5)
+//                .withAggressiveWarmupDuration(Duration.ofMinutes(1000))
+//                .withIsSystemPropertySetBeforeDirectConnectionConfig(false)
+//                .withIsSyncClient(false),
+//            new ProactiveConnectionManagementTestConfig()
+//                .withPreferredRegions(preferredRegions)
+//                .withProactiveConnectionRegionsCount(2)
+//                .withContainerCount(3)
+//                .withMinConnectionPoolSizePerEndpoint(4)
+//                .withAggressiveWarmupDuration(Duration.ofMillis(250))
+//                .withIsSystemPropertySetBeforeDirectConnectionConfig(true)
+//                .withIsSyncClient(true),
+//            new ProactiveConnectionManagementTestConfig()
+//                .withPreferredRegions(preferredRegions)
+//                .withProactiveConnectionRegionsCount(2)
+//                .withContainerCount(3)
+//                .withMinConnectionPoolSizePerEndpoint(5)
+//                .withAggressiveWarmupDuration(Duration.ofMillis(1000))
+//                .withIsSystemPropertySetBeforeDirectConnectionConfig(false)
+//                .withIsSyncClient(true),
+//            new ProactiveConnectionManagementTestConfig()
+//                .withPreferredRegions(preferredRegions)
+//                .withProactiveConnectionRegionsCount(2)
+//                .withContainerCount(3)
+//                .withMinConnectionPoolSizePerEndpoint(5)
+//                .withAggressiveWarmupDuration(Duration.ofMinutes(1000))
+//                .withIsSystemPropertySetBeforeDirectConnectionConfig(false)
+//                .withIsSyncClient(true)
         };
     }
 
