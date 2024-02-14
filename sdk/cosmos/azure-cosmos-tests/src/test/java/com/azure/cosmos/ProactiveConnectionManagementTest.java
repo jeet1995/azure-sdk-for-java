@@ -752,7 +752,7 @@ public class ProactiveConnectionManagementTest extends TestSuiteBase {
                 .withProactiveConnectionRegionsCount(1)
                 .withContainerCount(1)
                 .withMinConnectionPoolSizePerEndpoint(2)
-                .withAggressiveWarmupDuration(Duration.ofSeconds(30))
+                .withAggressiveWarmupDuration(Duration.ofSeconds(15))
                 .withIsSystemPropertySetBeforeDirectConnectionConfig(true)
                 .withIsSyncClient(false),
 //            new ProactiveConnectionManagementTestConfig()
