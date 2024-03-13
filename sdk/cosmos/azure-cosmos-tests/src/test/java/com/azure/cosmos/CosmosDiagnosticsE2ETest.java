@@ -98,10 +98,10 @@ public class CosmosDiagnosticsE2ETest extends TestSuiteBase {
     @DataProvider
     public static Object[][] signalToErrorOn() {
         return new Object[][] {
-            //{SignalType.ON_ERROR},
+            {SignalType.ON_ERROR},
             {SignalType.CANCEL},
-            //{SignalType.ON_COMPLETE},
-            //{SignalType.ON_NEXT}
+            {SignalType.ON_COMPLETE},
+            {SignalType.ON_NEXT}
         };
     }
 
