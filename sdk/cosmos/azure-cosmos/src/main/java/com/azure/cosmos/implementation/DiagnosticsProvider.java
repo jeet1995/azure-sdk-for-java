@@ -317,15 +317,37 @@ public final class DiagnosticsProvider {
                 effectiveRequestCharge = exception.getRequestCharge();
                 effectiveDiagnostics = exception.getDiagnostics();
             }
+
+            if (System.getProperty("THROW_ON_ERROR").equals("true")) {
+                throw new RuntimeException("THROW_ON_ERROR");
+            }
+
             end(statusCode, subStatusCode, null, effectiveRequestCharge, effectiveDiagnostics, throwable, context, true);
         } catch (Throwable error) {
             this.handleErrors(error, 9905);
         }
     }
 
-    public void endSpan(Context context) {
+    public void endSpan(Context context, SignalType signalType) {
         // called in PagedFlux - needs to be exception less - otherwise will result in hanging Flux.
         try {
+
+            if (System.getProperty("THROW_ON_ERROR").equals("true") && signalType == SignalType.ON_ERROR) {
+                throw new RuntimeException("THROW_ON_ERROR");
+            }
+
+            if (System.getProperty("THROW_ON_COMPLETE").equals("true") && signalType == SignalType.ON_COMPLETE) {
+                throw new RuntimeException("THROW_ON_COMPLETE");
+            }
+
+            if (System.getProperty("THROW_ON_NEXT").equals("true") && signalType == SignalType.ON_NEXT) {
+                throw new RuntimeException("THROW_ON_NEXT");
+            }
+
+            if (System.getProperty("THROW_ON_CANCEL").equals("true") && signalType == SignalType.CANCEL) {
+                throw new RuntimeException("THROW_ON_CANCEL");
+            }
+
             end(200, 0, null, null, null,null, context, true);
         } catch (Throwable error) {
             this.handleErrors(error, 9904);
@@ -340,6 +362,11 @@ public final class DiagnosticsProvider {
     ) {
         // called in PagedFlux - needs to be exception less - otherwise will result in hanging Flux.
         try {
+
+            if (System.getProperty("THROW_ON_NEXT").equals("true")) {
+                throw new RuntimeException("THROW_ON_NEXT");
+            }
+
             this.recordPageCore(context, diagnostics, actualItemCount, requestCharge);
         } catch (Throwable error) {
             this.handleErrors(error, 9902);

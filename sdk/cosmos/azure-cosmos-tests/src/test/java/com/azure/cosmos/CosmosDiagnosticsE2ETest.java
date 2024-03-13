@@ -20,22 +20,36 @@ import com.azure.cosmos.models.FeedRange;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.rx.TestSuiteBase;
+import com.azure.cosmos.test.faultinjection.CosmosFaultInjectionHelper;
+import com.azure.cosmos.test.faultinjection.FaultInjectionCondition;
+import com.azure.cosmos.test.faultinjection.FaultInjectionConditionBuilder;
+import com.azure.cosmos.test.faultinjection.FaultInjectionConnectionType;
+import com.azure.cosmos.test.faultinjection.FaultInjectionOperationType;
+import com.azure.cosmos.test.faultinjection.FaultInjectionResultBuilders;
+import com.azure.cosmos.test.faultinjection.FaultInjectionRule;
+import com.azure.cosmos.test.faultinjection.FaultInjectionRuleBuilder;
+import com.azure.cosmos.test.faultinjection.FaultInjectionServerErrorResult;
+import com.azure.cosmos.test.faultinjection.FaultInjectionServerErrorType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -78,6 +92,16 @@ public class CosmosDiagnosticsE2ETest extends TestSuiteBase {
             {OperationType.Create},
             {OperationType.Delete},
             {OperationType.Query}
+        };
+    }
+
+    @DataProvider
+    public static Object[][] signalToErrorOn() {
+        return new Object[][] {
+            //{SignalType.ON_ERROR},
+            {SignalType.CANCEL},
+            //{SignalType.ON_COMPLETE},
+            //{SignalType.ON_NEXT}
         };
     }
 
@@ -294,6 +318,56 @@ public class CosmosDiagnosticsE2ETest extends TestSuiteBase {
         assertThat(systemExited.get()).isFalse();
     }
 
+    @Test(dataProvider = "signalToErrorOn")
+    public void testEndSpanExceptionInjection(SignalType signalType) {
+
+
+
+        MeterRegistry meterRegistry = ConsoleLoggingRegistryFactory.create(1);
+
+        CapturingLogger capturingLogger = new CapturingLogger();
+        CosmosClientTelemetryConfig clientTelemetryCfg = new CosmosClientTelemetryConfig()
+            .diagnosticsHandler(capturingLogger)
+            .metricsOptions(new CosmosMicrometerMetricsOptions().meterRegistry(meterRegistry));
+
+        CosmosClientBuilder builder = this
+            .getClientBuilder()
+            .clientTelemetryConfig(clientTelemetryCfg);
+
+        if ((signalType == SignalType.CANCEL || signalType == signalType.ON_ERROR) && builder.buildConnectionPolicy().getConnectionMode() != ConnectionMode.DIRECT) {
+            throw new SkipException("Failure injection only supported for DIRECT mode");
+        }
+
+        CosmosContainer container = this.getContainer(builder);
+
+        AtomicBoolean systemExited = new AtomicBoolean(false);
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                systemExited.set(true);
+            }
+        });
+
+        System.setProperty("THROW_ON_NEXT",  "false");
+        System.setProperty("THROW_ON_COMPLETE", "false");
+        System.setProperty("THROW_ON_ERROR", "false");
+        System.setProperty("THROW_ON_CANCEL", "false");
+
+        try {
+            executeQueryTestCaseWithExceptionInjected(container, signalType);
+            fail("Operation should fail...");
+        } catch (Exception e) {
+            assertThat(e.getCause() instanceof RuntimeException).isTrue();
+            assertThat(e.getMessage()).contains("THROW_ON");
+            assertThat(systemExited.get()).isFalse();
+        } finally {
+            System.clearProperty("THROW_ON_NEXT");
+            System.clearProperty("THROW_ON_COMPLETE");
+            System.clearProperty("THROW_ON_ERROR");
+            System.clearProperty("THROW_ON_CANCEL");
+        }
+    }
+
     @Test(groups = { "emulator" }, timeOut = TIMEOUT)
     public void OOMDiagnosticsHandler() throws InterruptedException {
         // validate when false, System.exit will not be called
@@ -378,6 +452,121 @@ public class CosmosDiagnosticsE2ETest extends TestSuiteBase {
             null);
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(201);
+    }
+
+    private void executeQueryTestCaseWithExceptionInjected(CosmosContainer container, SignalType signalType) {
+
+        // create 5 items
+        for (int i = 0; i < 5; i++) {
+            String id = UUID.randomUUID().toString();
+            CosmosItemResponse<ObjectNode> response = container.createItem(
+                getDocumentDefinition(id),
+                new PartitionKey(id),
+                null);
+        }
+
+        switch (signalType) {
+            case ON_NEXT:
+                System.setProperty("THROW_ON_NEXT", "true");
+                break;
+            case ON_COMPLETE:
+                System.setProperty("THROW_ON_COMPLETE", "true");
+                break;
+            case ON_ERROR:
+                System.setProperty("THROW_ON_ERROR", "true");
+                break;
+            case CANCEL:
+                System.setProperty("THROW_ON_CANCEL", "true");
+                break;
+            default:
+        }
+
+        Iterator<FeedResponse<ObjectNode>> iterator;
+
+        if (signalType == SignalType.CANCEL) {
+
+            // fault injection setup to inject a connection delay
+            // this connection delay injection will trigger connectTimeoutExceptions
+            FaultInjectionCondition faultInjectionCondition = new FaultInjectionConditionBuilder()
+                .connectionType(FaultInjectionConnectionType.DIRECT)
+//                .region("East US")
+                .operationType(FaultInjectionOperationType.QUERY_ITEM)
+                .build();
+
+            FaultInjectionServerErrorResult faultInjectionServerErrorResult = FaultInjectionResultBuilders
+                    .getResultBuilder(FaultInjectionServerErrorType.RESPONSE_DELAY)
+                    .delay(Duration.ofSeconds(6))
+                   .times(5)
+                    .build();
+
+            FaultInjectionRule faultInjectionRule = new FaultInjectionRuleBuilder("response-delay-" + UUID.randomUUID())
+                .condition(faultInjectionCondition)
+                .result(faultInjectionServerErrorResult)
+                .hitLimit(10)
+                //.duration(Duration.ofMinutes(5))
+                .build();
+//
+//            // keep a low operation-level e2e timeout when compared to connection timeout
+//            CosmosEndToEndOperationLatencyPolicyConfig e2eLatencyPolicyCfg
+//                = new CosmosEndToEndOperationLatencyPolicyConfigBuilder(Duration.ofMillis(1000)).build();
+
+            CosmosFaultInjectionHelper.configureFaultInjectionRules(container.asyncContainer, Arrays.asList(faultInjectionRule)).block();
+
+            container.asyncContainer
+                .queryItems("SELECT * FROM C",
+                    new CosmosQueryRequestOptions()
+                        .setMaxBufferedItemCount(1)
+                        /*.setCosmosEndToEndOperationLatencyPolicyConfig(e2eLatencyPolicyCfg)*/,
+                    ObjectNode.class)
+                .byPage(1)
+                .timeout(Duration.ofSeconds(1))
+                .blockFirst();
+        } else if (signalType == SignalType.ON_ERROR) {
+
+            // fault injection setup to inject a connection delay
+            // this connection delay injection will trigger connectTimeoutExceptions
+            FaultInjectionCondition faultInjectionCondition = new FaultInjectionConditionBuilder()
+                .connectionType(FaultInjectionConnectionType.DIRECT)
+//                .region("East US")
+                .operationType(FaultInjectionOperationType.QUERY_ITEM)
+                .build();
+
+            FaultInjectionServerErrorResult faultInjectionServerErrorResult = FaultInjectionResultBuilders
+                .getResultBuilder(FaultInjectionServerErrorType.INTERNAL_SERVER_ERROR)
+                .delay(Duration.ofSeconds(6))
+                .times(5)
+                .build();
+
+            FaultInjectionRule faultInjectionRule = new FaultInjectionRuleBuilder("internal-server-error-" + UUID.randomUUID())
+                .condition(faultInjectionCondition)
+                .result(faultInjectionServerErrorResult)
+                .hitLimit(10)
+                //.duration(Duration.ofMinutes(5))
+                .build();
+
+            CosmosFaultInjectionHelper.configureFaultInjectionRules(container.asyncContainer, Arrays.asList(faultInjectionRule)).block();
+
+
+            Iterable<FeedResponse<ObjectNode>> iterable = container
+                .queryItems("SELECT * FROM C", new CosmosQueryRequestOptions().setMaxBufferedItemCount(1), ObjectNode.class)
+                .iterableByPage(1);
+
+            iterator = iterable.iterator();
+
+            while (iterator.hasNext()) {
+                logger.info("Items fetched : {}", iterator.next().getResults().size());
+            }
+        } else {
+            Iterable<FeedResponse<ObjectNode>> iterable = container
+                .queryItems("SELECT * FROM C", new CosmosQueryRequestOptions().setMaxBufferedItemCount(1), ObjectNode.class)
+                .iterableByPage(1);
+
+            iterator = iterable.iterator();
+
+            while (iterator.hasNext()) {
+                logger.info("Items fetched : {}", iterator.next().getResults().size());
+            }
+        }
     }
 
     private ObjectNode getDocumentDefinition(String documentId) {

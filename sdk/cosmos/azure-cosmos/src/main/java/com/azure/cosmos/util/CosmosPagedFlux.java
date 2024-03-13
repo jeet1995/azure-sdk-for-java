@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.SignalType;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -206,7 +207,7 @@ public final class CosmosPagedFlux<T> extends ContinuablePagedFlux<String, T, Fe
                                 signal,
                                 Duration.ofNanos(feedResponseConsumerLatencyInNanos.get()));
 
-                            tracerProvider.endSpan(traceCtx);
+                            tracerProvider.endSpan(traceCtx, SignalType.ON_COMPLETE);
 
                             break;
                         case ON_NEXT:
@@ -236,13 +237,13 @@ public final class CosmosPagedFlux<T> extends ContinuablePagedFlux<String, T, Fe
                 .doOnCancel(() -> {
                     Context traceCtx = DiagnosticsProvider.getContextFromReactorOrNull(reactorCtx);
                     synchronized (lockHolder) {
-                        tracerProvider.endSpan(traceCtx);
+                        tracerProvider.endSpan(traceCtx, SignalType.CANCEL);
                     }
                 })
                 .doOnComplete(() -> {
                     Context traceCtx = DiagnosticsProvider.getContextFromReactorOrNull(reactorCtx);
                     synchronized(lockHolder) {
-                        tracerProvider.endSpan(traceCtx);
+                        tracerProvider.endSpan(traceCtx, SignalType.ON_COMPLETE);
                     }
                 }))
             .contextWrite(DiagnosticsProvider.setContextInReactor(tracerProvider.startSpan(
