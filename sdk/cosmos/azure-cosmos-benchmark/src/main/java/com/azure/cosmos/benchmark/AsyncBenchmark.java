@@ -167,6 +167,16 @@ abstract class AsyncBenchmark<T> {
                     ThroughputProperties.createManualThroughput(this.configuration.getThroughput())
                 ).block();
 
+                // add some delay to allow container to be created across multiple regions
+                // container creation across regions is an async operation
+                // without the delay a container may not be available to process reads / writes
+
+                try {
+                    Thread.sleep(30_000);
+                } catch (Exception exception) {
+                    throw new RuntimeException(exception);
+                }
+
                 cosmosAsyncContainer = cosmosAsyncDatabase.getContainer(this.configuration.getCollectionId());
                 logger.info("Collection {} is created for this test", this.configuration.getCollectionId());
                 collectionCreated = true;
