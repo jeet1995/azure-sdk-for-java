@@ -147,6 +147,11 @@ abstract class SyncBenchmark<T> {
         }
 
         cosmosClient = cosmosClientBuilder.buildClient();
+        CosmosClient syncClient = cosmosClientBuilder
+            .endpoint(configuration.getServiceEndpointForRunResultsUploadAccount())
+            .key(configuration.getMasterKeyForRunResultsUploadAccount())
+            .buildClient();
+
         try {
             cosmosDatabase = cosmosClient.getDatabase(this.configuration.getDatabaseId());
             cosmosDatabase.read();
@@ -247,7 +252,7 @@ abstract class SyncBenchmark<T> {
             resultReporter = CosmosTotalResultReporter
                 .forRegistry(
                     metricsRegistry,
-                    cosmosClient.getDatabase(configuration.getResultUploadDatabase()).getContainer(configuration.getResultUploadContainer()),
+                    syncClient.getDatabase(configuration.getResultUploadDatabase()).getContainer(configuration.getResultUploadContainer()),
                     configuration)
                 .convertRatesTo(TimeUnit.SECONDS)
                 .convertDurationsTo(TimeUnit.MILLISECONDS).build();

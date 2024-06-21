@@ -138,8 +138,11 @@ abstract class AsyncBenchmark<T> {
             cosmosClientBuilder = cosmosClientBuilder.gatewayMode(gatewayConnectionConfig);
         }
 
-        CosmosClient syncClient = cosmosClientBuilder.buildClient();
         cosmosClient = cosmosClientBuilder.buildAsyncClient();
+        CosmosClient syncClient = cosmosClientBuilder
+            .endpoint(configuration.getServiceEndpointForRunResultsUploadAccount())
+            .key(configuration.getMasterKeyForRunResultsUploadAccount())
+            .buildClient();
 
         try {
             cosmosAsyncDatabase = cosmosClient.getDatabase(this.configuration.getDatabaseId());
