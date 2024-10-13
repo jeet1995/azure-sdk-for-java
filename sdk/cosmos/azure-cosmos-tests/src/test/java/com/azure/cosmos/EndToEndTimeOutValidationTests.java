@@ -6,6 +6,8 @@ import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.OperationCancelledException;
 import com.azure.cosmos.implementation.TestConfigurations;
+import com.azure.cosmos.models.CosmosBatch;
+import com.azure.cosmos.models.CosmosBatchResponse;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosItemResponse;
@@ -184,6 +186,12 @@ public class EndToEndTimeOutValidationTests extends TestSuiteBase {
             .verify();
     }
 
+    static void verifyExpectErrorForBatchResponse(Mono<CosmosBatchResponse> cosmosBatchResponseMono) {
+        StepVerifier.create(cosmosBatchResponseMono)
+            .expectErrorMatches(throwable -> throwable instanceof OperationCancelledException)
+            .verify();
+    }
+
     @Test(groups = {"fast"}, timeOut = 10000L)
     public void queryItemWithEndToEndTimeoutPolicyInOptionsShouldTimeout() {
         if (getClientBuilder().buildConnectionPolicy().getConnectionMode() != ConnectionMode.DIRECT) {
@@ -325,6 +333,20 @@ public class EndToEndTimeOutValidationTests extends TestSuiteBase {
 
             // Should timeout after injected delay
             verifyExpectError(cosmosItemResponseMono);
+
+            CosmosBatch cosmosBatch = CosmosBatch.createCosmosBatch(new PartitionKey(obj.mypk));
+            cosmosBatch.readItemOperation(obj.id);
+
+            Mono<CosmosBatchResponse> cosmosBatchResponseMono = container.executeCosmosBatch(cosmosBatch);
+
+            StepVerifier.create(cosmosBatchResponseMono)
+                .expectNextCount(1)
+                .expectComplete()
+                .verify();
+
+            injectFailure(container, FaultInjectionOperationType.BATCH_ITEM, null);
+
+            verifyExpectErrorForBatchResponse(cosmosBatchResponseMono);
 
             String queryText = "select top 1 * from c";
             SqlQuerySpec sqlQuerySpec = new SqlQuerySpec(queryText);
