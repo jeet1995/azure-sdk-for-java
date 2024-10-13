@@ -1,6 +1,6 @@
 ## Release History
 
-### 4.63.1-hotfix0 (2024-10-14)
+### 4.63.1-hotfix (2024-10-14)
 
 #### Features Added
 
