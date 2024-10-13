@@ -1,5 +1,15 @@
 ## Release History
 
+### 4.63.1-hotfix0 (2024-10-14)
+
+#### Features Added
+
+#### Breaking Changes
+
+#### Bugs Fixed
+
+#### Other Changes
+
 ### 4.63.1 (2024-08-12)
 
 #### Bugs Fixed
