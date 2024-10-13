@@ -2,13 +2,9 @@
 
 ### 4.63.1-hotfix (2024-10-14)
 
-#### Features Added
-
-#### Breaking Changes
-
 #### Bugs Fixed
-
-#### Other Changes
+* Fixed an issue where cross region retries were not performed when preferred regions were not configured for `CosmosClient` / `CosmosAsyncClient` - See [PR 41653](https://github.com/Azure/azure-sdk-for-java/pull/41653)
+* Fixed an issue when a `Batch` operation hitting end-to-end timeout would not capture diagnostics correctly. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
 
 ### 4.63.1 (2024-08-12)
 
