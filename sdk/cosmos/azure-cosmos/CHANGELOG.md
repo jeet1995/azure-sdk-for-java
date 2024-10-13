@@ -2,15 +2,13 @@
 
 ### 4.63.3-hotfix (2024-10-14)
 
-#### Features Added
-
-#### Breaking Changes
-
 #### Bugs Fixed
+* Fixed an issue where holding onto `CosmosException` instance would hold a strong reference to an `RxDocumentClientImpl` preventing garbage collection of the latter. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
+* Fixed an issue when a `Batch` operation hitting end-to-end timeout would not capture diagnostics correctly. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
 
 #### Other Changes
 
-### 4.63.3 (2024-09-11)
+### 4.63.3 (2024-09-10)
 
 #### Bugs Fixed
 * Fixed an issue where `CosmosDiagnostics` being accumulated across all requests for `queryChangeFeed` - See [PR 41698](https://github.com/Azure/azure-sdk-for-java/pull/41698)
