@@ -3,8 +3,9 @@
 ### 4.63.4 (2024-10-15)
 
 #### Bugs Fixed
-* Fixed an issue where holding onto `CosmosException` instance would hold a strong reference to an `RxDocumentClientImpl` preventing garbage collection of the latter. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
+* Fixed an issue where holding onto a `CosmosException` instance would hold a strong reference to a `RxDocumentClientImpl` instance preventing garbage collection of the `RxDocumentClientImpl` instance. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
 * Fixed an issue when a `Batch` operation hitting end-to-end timeout would not capture diagnostics correctly. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
+* Fixed an issue where a `NullPointerException` was thrown with circuit breaker enabled and partition split / merge scenarios. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
 
 ### 4.63.3 (2024-09-10)
 
