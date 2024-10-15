@@ -1,6 +1,6 @@
 ## Release History
 
-### 4.63.4-hotfix (2024-10-14)
+### 4.63.4 (2024-10-15)
 
 #### Bugs Fixed
 * Fixed an issue where holding onto `CosmosException` instance would hold a strong reference to an `RxDocumentClientImpl` preventing garbage collection of the latter. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
