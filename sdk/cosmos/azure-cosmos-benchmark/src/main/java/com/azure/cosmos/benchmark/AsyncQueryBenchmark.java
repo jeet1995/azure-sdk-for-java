@@ -74,6 +74,10 @@ class AsyncQueryBenchmark extends AsyncBenchmark<FeedResponse<PojoizedJson>> {
         Random r = new Random();
         CosmosQueryRequestOptions options = new CosmosQueryRequestOptions();
 
+        boolean isQueryMetricsEnabled = this.configuration.isQueryMetricsEnabled();
+
+        options.setQueryMetricsEnabled(isQueryMetricsEnabled);
+
         if (configuration.getOperationType() == Configuration.Operation.QueryCross) {
 
             int index = r.nextInt(this.configuration.getNumberOfPreCreatedDocuments());

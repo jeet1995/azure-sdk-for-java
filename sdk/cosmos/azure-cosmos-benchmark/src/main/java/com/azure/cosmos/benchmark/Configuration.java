@@ -143,8 +143,11 @@ public class Configuration {
     @Parameter(names = "-isRegionScopedSessionContainerEnabled", description = "A flag to denote whether region scoped session container is enabled")
     private String isRegionScopedSessionContainerEnabled = String.valueOf(false);
 
-    @Parameter(names = "isPartitionLevelCircuitBreakerEnabled", description = "A flag to denote whether partition level circuit breaker is enabled.")
+    @Parameter(names = "-isPartitionLevelCircuitBreakerEnabled", description = "A flag to denote whether partition level circuit breaker is enabled.")
     private String isPartitionLevelCircuitBreakerEnabled = String.valueOf(true);
+
+    @Parameter(names = "-isQueryMetricsEnabled", description = "A flag to denote whether query metrics is enabled.")
+    private String isQueryMetricsEnabled = String.valueOf(true);
 
     @Parameter(names = "-operation", description = "Type of Workload:\n"
         + "\tReadThroughput- run a READ workload that prints only throughput *\n"
@@ -658,6 +661,10 @@ public class Configuration {
 
     public boolean isPartitionLevelCircuitBreakerEnabled() {
         return Boolean.parseBoolean(isPartitionLevelCircuitBreakerEnabled);
+    }
+
+    public boolean isQueryMetricsEnabled() {
+        return Boolean.parseBoolean(isQueryMetricsEnabled);
     }
 
     public void tryGetValuesFromSystem() {
