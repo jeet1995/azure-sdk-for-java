@@ -5,8 +5,10 @@ package com.azure.cosmos.implementation.routing;
 
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.CosmosExcludedRegions;
+import com.azure.cosmos.implementation.AvailabilityStrategyContext;
 import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.ConnectionPolicy;
+import com.azure.cosmos.implementation.CrossRegionAvailabilityContextForRxDocumentServiceRequest;
 import com.azure.cosmos.implementation.DatabaseAccount;
 import com.azure.cosmos.implementation.DatabaseAccountLocation;
 import com.azure.cosmos.implementation.ResourceType;
@@ -33,6 +35,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
 
 /**
  * Implements the abstraction to resolve target location for geo-replicated DatabaseAccount
@@ -161,11 +165,6 @@ public class LocationCache {
                 BridgeInternal.isEnableMultipleWriteLocations(databaseAccount));
     }
 
-    void onLocationPreferenceChanged(UnmodifiableList<String> preferredLocations) {
-        this.updateLocationCache(
-                null, null , preferredLocations, null);
-    }
-
     /**
      * Resolves request to service endpoint.
      * 1. If this is a write request
@@ -215,7 +214,7 @@ public class LocationCache {
     }
 
     public UnmodifiableList<URI> getApplicableWriteEndpoints(RxDocumentServiceRequest request) {
-        return this.getApplicableWriteEndpoints(request.requestContext.getExcludeRegions(), request.requestContext.getUnavailableRegionsForPartition());
+        return this.getApplicableWriteEndpoints(request, request.requestContext.getExcludeRegions(), request.requestContext.getUnavailableRegionsForPartition());
     }
 
     public UnmodifiableList<URI> getApplicableWriteEndpoints(List<String> excludedRegionsOnRequest, List<String> unavailableRegionsForPartition) {
@@ -234,25 +233,25 @@ public class LocationCache {
             effectiveExcludedRegions = excludedRegionsOnRequest;
         }
 
-        List<String> effectiveExcludedRegionsWithPartitionUnavailableRegions = new ArrayList<>(effectiveExcludedRegions);
-
-        if (unavailableRegionsForPartition != null) {
-            effectiveExcludedRegionsWithPartitionUnavailableRegions.addAll(unavailableRegionsForPartition);
-        }
-
         // filter regions based on the exclude region config
         return this.getApplicableEndpoints(
+            null,
+            this.locationInfo.effectivePreferredLocations,
             writeEndpoints,
+            this.locationInfo.hubRegionalEndpoint,
             this.locationInfo.regionNameByWriteEndpoint,
+            this.locationInfo.availableWriteEndpointByLocation,
             this.defaultEndpoint,
-            effectiveExcludedRegionsWithPartitionUnavailableRegions);
+            effectiveExcludedRegions,
+            unavailableRegionsForPartition);
     }
 
     public UnmodifiableList<URI> getApplicableReadEndpoints(RxDocumentServiceRequest request) {
-        return this.getApplicableReadEndpoints(request.requestContext.getExcludeRegions(), request.requestContext.getUnavailableRegionsForPartition());
+        return this.getApplicableReadEndpoints(request, request.requestContext.getExcludeRegions(), request.requestContext.getUnavailableRegionsForPartition());
     }
 
-    public UnmodifiableList<URI> getApplicableReadEndpoints(List<String> excludedRegionsOnRequest, List<String> unavailableRegionsForPartition) {
+    public UnmodifiableList<URI> getApplicableReadEndpoints(
+        List<String> excludedRegionsOnRequest, List<String> unavailableRegionsForPartition) {
         UnmodifiableList<URI> readEndpoints = this.getReadEndpoints();
         Supplier<CosmosExcludedRegions> excludedRegionsSupplier = this.connectionPolicy.getExcludedRegionsSupplier();
 
@@ -267,41 +266,257 @@ public class LocationCache {
             effectiveExcludedRegions = excludedRegionsOnRequest;
         }
 
-        List<String> effectiveExcludedRegionsWithPartitionUnavailableRegions = new ArrayList<>(effectiveExcludedRegions);
+        // filter regions based on the exclude region config
+        return this.getApplicableEndpoints(
+            null,
+            this.locationInfo.effectivePreferredLocations,
+            readEndpoints,
+            this.locationInfo.hubRegionalEndpoint,
+            this.locationInfo.regionNameByReadEndpoint,
+            this.locationInfo.availableReadEndpointByLocation,
+            this.locationInfo.writeEndpoints.get(0), // match the fallback region used in getPreferredAvailableEndpoints
+            effectiveExcludedRegions,
+            unavailableRegionsForPartition);
+    }
 
-        if (unavailableRegionsForPartition != null) {
-            effectiveExcludedRegionsWithPartitionUnavailableRegions.addAll(unavailableRegionsForPartition);
+    private UnmodifiableList<URI> getApplicableReadEndpoints(
+        RxDocumentServiceRequest request,
+        List<String> excludedRegionsOnRequest,
+        List<String> unavailableRegionsForPartition) {
+        UnmodifiableList<URI> readEndpoints = this.getReadEndpoints();
+        Supplier<CosmosExcludedRegions> excludedRegionsSupplier = this.connectionPolicy.getExcludedRegionsSupplier();
+
+        List<String> effectiveExcludedRegions = isExcludedRegionsSupplierConfigured(excludedRegionsSupplier) ?
+            new ArrayList<>(excludedRegionsSupplier.get().getExcludedRegions()) : Collections.emptyList();
+
+        if (!isExcludeRegionsConfigured(excludedRegionsOnRequest, effectiveExcludedRegions) && (unavailableRegionsForPartition == null || unavailableRegionsForPartition.isEmpty())) {
+            return readEndpoints;
+        }
+
+        if (excludedRegionsOnRequest != null && !excludedRegionsOnRequest.isEmpty()) {
+            effectiveExcludedRegions = excludedRegionsOnRequest;
         }
 
         // filter regions based on the exclude region config
         return this.getApplicableEndpoints(
+            request,
+            this.locationInfo.effectivePreferredLocations,
             readEndpoints,
+            this.locationInfo.hubRegionalEndpoint,
             this.locationInfo.regionNameByReadEndpoint,
+            this.locationInfo.availableReadEndpointByLocation,
             this.locationInfo.writeEndpoints.get(0), // match the fallback region used in getPreferredAvailableEndpoints
-            effectiveExcludedRegionsWithPartitionUnavailableRegions);
+            effectiveExcludedRegions,
+            unavailableRegionsForPartition);
+    }
+
+    private UnmodifiableList<URI> getApplicableWriteEndpoints(
+        RxDocumentServiceRequest request,
+        List<String> excludedRegionsOnRequest,
+        List<String> unavailableRegionsForPartition) {
+
+        UnmodifiableList<URI> writeEndpoints = this.getWriteEndpoints();
+        Supplier<CosmosExcludedRegions> excludedRegionsSupplier = this.connectionPolicy.getExcludedRegionsSupplier();
+
+        List<String> effectiveExcludedRegions = isExcludedRegionsSupplierConfigured(excludedRegionsSupplier) ?
+            new ArrayList<>(excludedRegionsSupplier.get().getExcludedRegions()) : Collections.emptyList();
+
+        if (!isExcludeRegionsConfigured(excludedRegionsOnRequest, effectiveExcludedRegions) && (unavailableRegionsForPartition == null || unavailableRegionsForPartition.isEmpty())) {
+            return writeEndpoints;
+        }
+
+        if (excludedRegionsOnRequest != null && !excludedRegionsOnRequest.isEmpty()) {
+            effectiveExcludedRegions = excludedRegionsOnRequest;
+        }
+
+        // filter regions based on the exclude region config
+        return this.getApplicableEndpoints(
+            request,
+            this.locationInfo.effectivePreferredLocations,
+            writeEndpoints,
+            this.locationInfo.hubRegionalEndpoint,
+            this.locationInfo.regionNameByWriteEndpoint,
+            this.locationInfo.availableWriteEndpointByLocation,
+            this.defaultEndpoint,
+            effectiveExcludedRegions,
+            unavailableRegionsForPartition);
     }
 
     private UnmodifiableList<URI> getApplicableEndpoints(
+        RxDocumentServiceRequest request,
+        List<String> effectivePreferredLocations,
         UnmodifiableList<URI> endpoints,
+        URI hubRegionalEndpoint,
         UnmodifiableMap<URI, String> regionNameByEndpoint,
+        UnmodifiableMap<String, URI> endpointByRegionName,
         URI fallbackEndpoint,
-        List<String> excludeRegionList) {
+        List<String> userConfiguredExcludeRegions,
+        List<String> internalExcludeRegions) {
 
+        List<URI> endpointsRemovedByInternalExcludeRegions = new ArrayList<>();
         List<URI> applicableEndpoints = new ArrayList<>();
+
         for (URI endpoint : endpoints) {
             Utils.ValueHolder<String> regionName = new Utils.ValueHolder<>();
             if (Utils.tryGetValue(regionNameByEndpoint, endpoint, regionName)) {
-                if (!excludeRegionList.stream().anyMatch(regionName.v::equalsIgnoreCase)) {
+                if (!userConfiguredExcludeRegions.stream().anyMatch(regionName.v::equalsIgnoreCase)) {
                     applicableEndpoints.add(endpoint);
                 }
             }
         }
 
-        if (applicableEndpoints.isEmpty()) {
-            applicableEndpoints.add(fallbackEndpoint);
+        if (internalExcludeRegions != null && !internalExcludeRegions.isEmpty()) {
+            for (URI endpoint : endpoints) {
+                Utils.ValueHolder<String> regionName = new Utils.ValueHolder<>();
+                if (Utils.tryGetValue(regionNameByEndpoint, endpoint, regionName)) {
+
+                    if (internalExcludeRegions.stream().anyMatch(regionName.v::equalsIgnoreCase)) {
+
+                        int size = applicableEndpoints.size();
+
+                        applicableEndpoints.remove(endpoint);
+
+                        int newSize = applicableEndpoints.size();
+
+                        if (newSize < size) {
+                            endpointsRemovedByInternalExcludeRegions.add(endpoint);
+                        }
+                    }
+                }
+            }
         }
 
-        return new UnmodifiableList<>(applicableEndpoints);
+        boolean isFallbackEndpointUsed = false;
+
+        if (applicableEndpoints.isEmpty()) {
+            applicableEndpoints.add(fallbackEndpoint);
+            isFallbackEndpointUsed = true;
+        }
+
+        return this.reevaluate(
+            request,
+            effectivePreferredLocations,
+            new UnmodifiableList<>(applicableEndpoints),
+            regionNameByEndpoint,
+            endpointByRegionName,
+            userConfiguredExcludeRegions,
+            endpointsRemovedByInternalExcludeRegions,
+            internalExcludeRegions,
+            endpoints,
+            hubRegionalEndpoint,
+            isFallbackEndpointUsed);
+    }
+
+    private UnmodifiableList<URI> reevaluate(
+        RxDocumentServiceRequest request,
+        // populated when global endpoint == default endpoint && preferred regions not populated by user
+        List<String> effectivePreferredLocations,
+        UnmodifiableList<URI> applicableLocationEndpoints,
+        UnmodifiableMap<URI, String> regionNameByEndpoint,
+        UnmodifiableMap<String, URI> endpointByRegionName,
+        // exclude regions from request options or client
+        List<String> userConfiguredExcludeRegions,
+        // exclude URIs from per-partition circuit breaker
+        List<URI> endpointsRemovedByInternalExcludeRegions,
+        // exclude regions from per-partition circuit breaker
+        List<String> internalExcludeRegions,
+        // original list of preferred endpoints (w/o exclusion)
+        List<URI> preferredEndpoints,
+        URI hubRegionalEndpoint,
+        boolean isFallbackEndpointUsed) {
+        // region set intersecting with preferred endpoints is already of size 0 or 1, return
+        if (preferredEndpoints.size() <= 1) {
+            return applicableLocationEndpoints;
+        }
+
+        if (applicableLocationEndpoints.size() >= 2) {
+            return applicableLocationEndpoints;
+        }
+
+        if (request == null || request.requestContext == null) {
+            return applicableLocationEndpoints;
+        }
+
+        CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest
+            = request.requestContext.getCrossRegionAvailabilityContext();
+
+        if (crossRegionAvailabilityContextForRequest == null) {
+            return applicableLocationEndpoints;
+        }
+
+        AvailabilityStrategyContext availabilityStrategyContext
+            = crossRegionAvailabilityContextForRequest.getAvailabilityStrategyContext();
+
+        if (availabilityStrategyContext != null) {
+
+            // purely a hedged request doesn't need applicable region augmentation
+            if (availabilityStrategyContext.isAvailabilityStrategyEnabled() && availabilityStrategyContext.isHedgedRequest()) {
+                return applicableLocationEndpoints;
+            }
+        }
+
+        List<URI> modifiedApplicableEndpoints = new ArrayList<>();
+        URI firstApplicableLocationEndpoint = applicableLocationEndpoints.get(0);
+
+        if (isFallbackEndpointUsed) {
+            // user wishes to exclude all regions - use partition-set level primary region [or] account-level primary region
+            // no cross region retries applicable
+            if (!userConfiguredExcludeRegions.isEmpty() && endpointsRemovedByInternalExcludeRegions.isEmpty()) {
+                crossRegionAvailabilityContextForRequest.shouldUsePerPartitionAutomaticFailoverOverrideForReadsIfApplicable(true);
+                return applicableLocationEndpoints;
+            }
+
+            // this scenario is when PPCB + user-configured exclude regions has kicked in for client with no preferred regions
+            // idea is to start from partition-set level primary and go to account-level primary
+            if (effectivePreferredLocations != null && !effectivePreferredLocations.isEmpty()) {
+
+                if (crossRegionAvailabilityContextForRequest.hasPerPartitionAutomaticFailoverBeenAppliedForReads()) {
+                    crossRegionAvailabilityContextForRequest.shouldUsePerPartitionAutomaticFailoverOverrideForReadsIfApplicable(false);
+                    modifiedApplicableEndpoints.add(firstApplicableLocationEndpoint);
+                } else {
+                    crossRegionAvailabilityContextForRequest.shouldUsePerPartitionAutomaticFailoverOverrideForReadsIfApplicable(true);
+                }
+            }
+        }
+
+        modifiedApplicableEndpoints.add(firstApplicableLocationEndpoint);
+        // todo (abhmohanty): will change when GW returns multiple endpoints per region - thin-proxy dependency
+        // todo (abhmohanty): GitHub issue - https://github.com/Azure/azure-sdk-for-java/issues/44413
+        boolean isFirstApplicableEndpointAGlobalEndpoint = !regionNameByEndpoint.containsKey(firstApplicableLocationEndpoint);
+
+        checkNotNull(hubRegionalEndpoint, "Argument 'hubRegionalEndpoint' cannot be null!");
+
+        // if fallback / first applicable endpoint is global endpoint, it maps to the hub
+        if (internalExcludeRegions != null && !internalExcludeRegions.isEmpty()) {
+            if (isFirstApplicableEndpointAGlobalEndpoint) {
+                for (String internalExcludeRegion : internalExcludeRegions) {
+
+                    Utils.ValueHolder<URI> endpoint = new Utils.ValueHolder<>(null);
+
+                    if (Utils.tryGetValue(endpointByRegionName, internalExcludeRegion, endpoint)) {
+
+                        if (!endpoint.v.equals(hubRegionalEndpoint)) {
+                            modifiedApplicableEndpoints.add(endpoint.v);
+                            break;
+                        }
+                    }
+                }
+            } else {
+                for (String internalExcludeRegion : internalExcludeRegions) {
+
+                    Utils.ValueHolder<URI> endpoint = new Utils.ValueHolder<>(null);
+
+                    if (Utils.tryGetValue(endpointByRegionName, internalExcludeRegion, endpoint)) {
+                        if (!endpoint.v.equals(firstApplicableLocationEndpoint) && !userConfiguredExcludeRegions.contains(internalExcludeRegion)) {
+                            modifiedApplicableEndpoints.add(endpoint.v);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return new UnmodifiableList<>(modifiedApplicableEndpoints);
     }
 
     private boolean isExcludeRegionsConfigured(List<String> excludedRegionsOnRequest, List<String> excludedRegionsOnClient) {
@@ -583,6 +798,7 @@ public class LocationCache {
                 nextLocationInfo.availableReadLocations =  out.v;
                 nextLocationInfo.regionNameByReadEndpoint = outReadRegionMap.v;
                 nextLocationInfo.availableReadEndpoints = availableReadEndpointsOut.v;
+                nextLocationInfo.hubRegionalEndpoint = nextLocationInfo.availableReadEndpoints.get(0);
             }
 
             if (writeLocations != null) {
@@ -593,6 +809,7 @@ public class LocationCache {
                 nextLocationInfo.availableWriteLocations = out.v;
                 nextLocationInfo.regionNameByWriteEndpoint = outWriteRegionMap.v;
                 nextLocationInfo.availableWriteEndpoints = outAvailableWriteEndpoints.v;
+                nextLocationInfo.hubRegionalEndpoint = nextLocationInfo.availableWriteEndpoints.get(0);
             }
 
             nextLocationInfo.writeEndpoints = this.getPreferredAvailableEndpoints(nextLocationInfo.availableWriteEndpointByLocation, nextLocationInfo.availableWriteLocations, OperationType.Write, this.defaultEndpoint);
@@ -602,7 +819,7 @@ public class LocationCache {
 
                 Utils.ValueHolder<String> regionForDefaultEndpoint = new Utils.ValueHolder<>();
 
-                // only set effective preferred locations when default endpoint doesn't map to a regional endpoint
+                // only set effective preferred locations when default endpoint doesn't map to a regional endpoint and preferred locations is empty
                 if (!Utils.tryGetValue(nextLocationInfo.regionNameByReadEndpoint, this.defaultEndpoint, regionForDefaultEndpoint)) {
                     nextLocationInfo.effectivePreferredLocations = nextLocationInfo.availableReadLocations;
                 }
@@ -687,7 +904,6 @@ public class LocationCache {
 
         return new UnmodifiableList<URI>(endpoints);
     }
-
 
 
     private UnmodifiableMap<String, URI> getEndpointByLocation(Iterable<DatabaseAccountLocation> locations,
@@ -805,10 +1021,13 @@ public class LocationCache {
         private UnmodifiableMap<String, URI> availableReadEndpointByLocation;
         private UnmodifiableMap<URI, String> regionNameByWriteEndpoint;
         private UnmodifiableMap<URI, String> regionNameByReadEndpoint;
+        private UnmodifiableMap<URI, String> writeEndpointByRegionName;
+        private UnmodifiableMap<URI, String> readEndpointByRegionName;
         private UnmodifiableList<URI> writeEndpoints;
         private UnmodifiableList<URI> readEndpoints;
         private UnmodifiableList<URI> availableWriteEndpoints;
         private UnmodifiableList<URI> availableReadEndpoints;
+        private URI hubRegionalEndpoint;
 
         public DatabaseAccountLocationsInfo(List<String> preferredLocations,
                                             URI defaultEndpoint) {
@@ -821,6 +1040,10 @@ public class LocationCache {
             this.regionNameByWriteEndpoint
                 = (UnmodifiableMap<URI, String>) UnmodifiableMap.<URI, String>unmodifiableMap(new CaseInsensitiveMap<>());
             this.regionNameByReadEndpoint
+                = (UnmodifiableMap<URI, String>) UnmodifiableMap.<URI, String>unmodifiableMap(new CaseInsensitiveMap<>());
+            this.writeEndpointByRegionName
+                = (UnmodifiableMap<URI, String>) UnmodifiableMap.<URI, String>unmodifiableMap(new CaseInsensitiveMap<>());
+            this.readEndpointByRegionName
                 = (UnmodifiableMap<URI, String>) UnmodifiableMap.<URI, String>unmodifiableMap(new CaseInsensitiveMap<>());
             this.availableReadLocations = new UnmodifiableList<>(Collections.emptyList());
             this.availableWriteLocations = new UnmodifiableList<>(Collections.emptyList());
@@ -838,11 +1061,14 @@ public class LocationCache {
             this.availableWriteEndpointByLocation = other.availableWriteEndpointByLocation;
             this.regionNameByWriteEndpoint = other.regionNameByWriteEndpoint;
             this.regionNameByReadEndpoint = other.regionNameByReadEndpoint;
+            this.writeEndpointByRegionName = other.writeEndpointByRegionName;
+            this.readEndpointByRegionName = other.readEndpointByRegionName;
             this.availableReadEndpointByLocation = other.availableReadEndpointByLocation;
             this.writeEndpoints = other.writeEndpoints;
             this.readEndpoints = other.readEndpoints;
             this.availableReadEndpoints = other.availableReadEndpoints;
             this.availableWriteEndpoints = other.availableWriteEndpoints;
+            this.hubRegionalEndpoint = other.hubRegionalEndpoint;
         }
     }
 }

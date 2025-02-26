@@ -3,7 +3,9 @@
 
 package com.azure.cosmos.implementation.perPartitionCircuitBreaker;
 
+import com.azure.cosmos.implementation.AvailabilityStrategyContext;
 import com.azure.cosmos.implementation.Configs;
+import com.azure.cosmos.implementation.CrossRegionAvailabilityContextForRxDocumentServiceRequest;
 import com.azure.cosmos.implementation.FeedOperationContextForCircuitBreaker;
 import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
@@ -32,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -183,7 +186,14 @@ public class GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker impleme
         });
     }
 
-    public List<String> getUnavailableRegionsForPartitionKeyRange(String collectionResourceId, PartitionKeyRange partitionKeyRange, OperationType operationType) {
+    public List<String> getUnavailableRegionsForPartitionKeyRange(
+        RxDocumentServiceRequest request,
+        String collectionResourceId,
+        PartitionKeyRange partitionKeyRange) {
+
+        if (!this.isPerPartitionLevelCircuitBreakingApplicable(request)) {
+            return Collections.emptyList();
+        }
 
         checkNotNull(partitionKeyRange, "Argument 'partitionKeyRange' cannot be null!");
         checkNotNull(collectionResourceId, "Argument 'collectionResourceId' cannot be null!");
@@ -199,13 +209,32 @@ public class GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker impleme
             Map<URI, LocationSpecificHealthContext> locationEndpointToFailureMetricsForPartition =
                 partitionLevelLocationUnavailabilityInfoSnapshot.locationEndpointToLocationSpecificContextForPartition;
 
+            PriorityQueue<URI> unavailableEndpoints = new PriorityQueue<>((endpoint1, endpoint2) -> {
+
+                LocationSpecificHealthContext locationSpecificHealthContextForEndpoint1
+                    = locationEndpointToFailureMetricsForPartition.get(endpoint1);
+                LocationSpecificHealthContext locationSpecificHealthContextForEndpoint2
+                    = locationEndpointToFailureMetricsForPartition.get(endpoint2);
+
+                if (locationSpecificHealthContextForEndpoint1 == null || locationSpecificHealthContextForEndpoint2 == null) {
+                    return 0;
+                }
+
+                return locationSpecificHealthContextForEndpoint1.getUnavailableSince().compareTo(locationSpecificHealthContextForEndpoint2.getUnavailableSince());
+            });
+
             for (Map.Entry<URI, LocationSpecificHealthContext> pair : locationEndpointToFailureMetricsForPartition.entrySet()) {
                 URI location = pair.getKey();
                 LocationSpecificHealthContext locationSpecificHealthContext = pair.getValue();
 
                 if (locationSpecificHealthContext.getLocationHealthStatus() == LocationHealthStatus.Unavailable) {
-                    unavailableRegions.add(this.globalEndpointManager.getRegionName(location, operationType));
+                    unavailableEndpoints.add(location);
                 }
+            }
+
+            while (!unavailableEndpoints.isEmpty()) {
+                URI unavailableEndpoint = unavailableEndpoints.poll();
+                unavailableRegions.add(this.globalEndpointManager.getRegionName(unavailableEndpoint, request.isReadOnlyRequest() ? OperationType.Read : OperationType.Create));
             }
         }
 
@@ -347,6 +376,26 @@ public class GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker impleme
 
         if (request.getOperationType() == OperationType.QueryPlan) {
             return false;
+        }
+
+        if (request.requestContext == null) {
+            return false;
+        }
+
+        CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest
+            = request.requestContext.getCrossRegionAvailabilityContext();
+
+        if (crossRegionAvailabilityContextForRequest == null) {
+            return false;
+        }
+
+        AvailabilityStrategyContext availabilityStrategyContext
+            = crossRegionAvailabilityContextForRequest.getAvailabilityStrategyContext();
+
+        if (availabilityStrategyContext != null) {
+            if (availabilityStrategyContext.isAvailabilityStrategyEnabled() && availabilityStrategyContext.isHedgedRequest()) {
+                return false;
+            }
         }
 
         GlobalEndpointManager globalEndpointManager = this.globalEndpointManager;
@@ -516,10 +565,15 @@ public class GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker impleme
         checkNotNull(request, "Argument 'request' cannot be null!");
         checkNotNull(request.requestContext, "Argument 'request.requestContext' cannot be null!");
 
+        CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest
+            = request.requestContext.getCrossRegionAvailabilityContext();
+
+        checkNotNull(crossRegionAvailabilityContextForRequest, "Argument 'crossRegionAvailabilityContextForRequest' cannot be null!");
+
         PointOperationContextForCircuitBreaker pointOperationContextForCircuitBreaker
-            = request.requestContext.getPointOperationContextForCircuitBreaker();
+            = crossRegionAvailabilityContextForRequest.getPointOperationContextForCircuitBreaker();
         FeedOperationContextForCircuitBreaker feedOperationContextForCircuitBreaker
-            = request.requestContext.getFeedOperationContextForCircuitBreaker();
+            = crossRegionAvailabilityContextForRequest.getFeedOperationContextForCircuitBreaker();
 
         if (pointOperationContextForCircuitBreaker != null) {
             checkNotNull(
