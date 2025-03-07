@@ -3,8 +3,10 @@
 
 package com.azure.cosmos;
 
+import com.azure.cosmos.implementation.AvailabilityStrategyContext;
 import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.ConnectionPolicy;
+import com.azure.cosmos.implementation.CrossRegionAvailabilityContextForRxDocumentServiceRequest;
 import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.PartitionKeyRange;
@@ -86,13 +88,13 @@ public class GlobalPartitionEndpointManagerForPPAFUnitTests extends TestSuiteBas
 
         Mockito.when(this.singleWriteAccountGlobalEndpointManagerMock.getAvailableReadEndpoints()).thenReturn(availableReadEndpoints);
         Mockito.when(this.singleWriteAccountGlobalEndpointManagerMock.getAvailableReadRoutingContexts()).thenReturn(availableReadRegionalRoutingContexts);
-        Mockito.when(this.singleWriteAccountGlobalEndpointManagerMock.getApplicableReadEndpoints(Mockito.anyList())).thenReturn(new UnmodifiableList<>(availableReadRegionalRoutingContexts));
+        Mockito.when(this.singleWriteAccountGlobalEndpointManagerMock.getApplicableReadRegionalRoutingContexts(Mockito.anyList())).thenReturn(new UnmodifiableList<>(availableReadRegionalRoutingContexts));
         Mockito.when(this.singleWriteAccountGlobalEndpointManagerMock.canUseMultipleWriteLocations()).thenReturn(false);
         Mockito.when(this.singleWriteAccountGlobalEndpointManagerMock.canUseMultipleWriteLocations(Mockito.any())).thenReturn(false);
 
         Mockito.when(this.multiWriteAccountGlobalEndpointManagerMock.getAvailableReadEndpoints()).thenReturn(availableReadEndpoints);
         Mockito.when(this.multiWriteAccountGlobalEndpointManagerMock.getAvailableReadRoutingContexts()).thenReturn(availableReadRegionalRoutingContexts);
-        Mockito.when(this.multiWriteAccountGlobalEndpointManagerMock.getApplicableReadEndpoints(Mockito.anyList())).thenReturn(new UnmodifiableList<>(availableReadRegionalRoutingContexts));
+        Mockito.when(this.multiWriteAccountGlobalEndpointManagerMock.getApplicableReadRegionalRoutingContexts(Mockito.anyList())).thenReturn(new UnmodifiableList<>(availableReadRegionalRoutingContexts));
         Mockito.when(this.multiWriteAccountGlobalEndpointManagerMock.canUseMultipleWriteLocations()).thenReturn(true);
         Mockito.when(this.multiWriteAccountGlobalEndpointManagerMock.canUseMultipleWriteLocations(Mockito.any())).thenReturn(true);
     }
@@ -418,12 +420,17 @@ public class GlobalPartitionEndpointManagerForPPAFUnitTests extends TestSuiteBas
         request.requestContext.regionalRoutingContextToRoute = new RegionalRoutingContext(locationEndpointToRoute);
         request.requestContext.resolvedCollectionRid = collectionResourceId;
         request.requestContext.setExcludeRegions(Collections.emptyList());
-        request.requestContext.setPointOperationContext(
-            new PointOperationContextForCircuitBreaker(
-                new AtomicBoolean(false),
-                false,
-                collectionLink,
-                new SerializationDiagnosticsContext()));
+        request.requestContext.setCrossRegionAvailabilityContext(
+            new CrossRegionAvailabilityContextForRxDocumentServiceRequest(
+                null,
+                new PointOperationContextForCircuitBreaker(
+                    new AtomicBoolean(false),
+                    false,
+                    collectionLink,
+                    new SerializationDiagnosticsContext()),
+                new AvailabilityStrategyContext(true, true)
+            )
+);
 
         return request;
     }
