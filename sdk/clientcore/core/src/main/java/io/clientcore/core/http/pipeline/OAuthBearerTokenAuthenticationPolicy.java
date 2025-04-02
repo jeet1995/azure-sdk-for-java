@@ -12,6 +12,7 @@ import io.clientcore.core.http.models.HttpRequest;
 import io.clientcore.core.http.models.HttpHeaderName;
 import io.clientcore.core.http.models.Response;
 import io.clientcore.core.instrumentation.logging.ClientLogger;
+import io.clientcore.core.models.binarydata.BinaryData;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -35,43 +36,37 @@ public class OAuthBearerTokenAuthenticationPolicy extends HttpCredentialPolicy {
     private static final ClientLogger LOGGER = new ClientLogger(OAuthBearerTokenAuthenticationPolicy.class);
     private static final String BEARER = "Bearer";
 
-    private final String[] scopes;
+    // The default context contains all OAuth metadata specified in the tsp.
+    private final OAuthTokenRequestContext context;
     private final OAuthTokenCredential credential;
 
     /**
      * Creates BearerTokenAuthenticationPolicy.
      *
-     * @param credential the token credential to authenticate the request
-     * @param scopes the scopes of authentication the credential should get token for
+     * @param credential the token credential to authenticate the request.
+     * @param context the default OAuth metadata to use for the token request.
      */
-    public OAuthBearerTokenAuthenticationPolicy(OAuthTokenCredential credential, String... scopes) {
+    public OAuthBearerTokenAuthenticationPolicy(OAuthTokenCredential credential, OAuthTokenRequestContext context) {
         Objects.requireNonNull(credential);
+        Objects.requireNonNull(context);
         this.credential = credential;
-        this.scopes = scopes;
+        this.context = context;
     }
 
     /**
      * Executed before sending the initial request and authenticates the request.
      *
      * @param httpRequest The request context.
+     * @param context the OAuth metadata to use for the token request.
      */
-    public void authorizeRequest(HttpRequest httpRequest) {
-        setAuthorizationHeader(httpRequest, new OAuthTokenRequestContext().addScopes(scopes));
-    }
-
-    /**
-     * Authorizes the request with the bearer token acquired using the specified {@code tokenRequestContext}
-     *
-     * @param request the HTTP request.
-     * @param tokenRequestContext the token request context to be used for token acquisition.
-     */
-    protected void setAuthorizationHeader(HttpRequest request, OAuthTokenRequestContext tokenRequestContext) {
-        AccessToken token = credential.getToken(tokenRequestContext);
-        request.getHeaders().set(HttpHeaderName.AUTHORIZATION, BEARER + " " + token);
+    public void authorizeRequest(HttpRequest httpRequest, OAuthTokenRequestContext context) {
+        // Credential implementations are responsible for knowing what to do with the OAuth metadata.
+        AccessToken token = credential.getToken(context);
+        httpRequest.getHeaders().set(HttpHeaderName.AUTHORIZATION, BEARER + " " + token.getToken());
     }
 
     @Override
-    public Response<?> process(HttpRequest httpRequest, HttpPipelineNextPolicy next) {
+    public Response<BinaryData> process(HttpRequest httpRequest, HttpPipelineNextPolicy next) {
         if (!"https".equals(httpRequest.getUri().getScheme())) {
             throw LOGGER.logThrowableAsError(
                 new RuntimeException("Token credentials require a URL using the HTTPS protocol scheme"));
@@ -79,8 +74,10 @@ public class OAuthBearerTokenAuthenticationPolicy extends HttpCredentialPolicy {
 
         HttpPipelineNextPolicy nextPolicy = next.copy();
 
-        authorizeRequest(httpRequest);
-        Response<?> httpResponse = next.process();
+        // For now we don't support per-operation scopes. In the future when we do, we will need to retrieve the
+        // scope from the incoming httpRequest and merge it with the default context.
+        authorizeRequest(httpRequest, context);
+        Response<BinaryData> httpResponse = next.process();
         String authHeader = httpResponse.getHeaders().getValue(HttpHeaderName.WWW_AUTHENTICATE);
         if (httpResponse.getStatusCode() == 401 && authHeader != null) {
             if (authorizeRequestOnChallenge(httpRequest, httpResponse)) {
@@ -111,7 +108,7 @@ public class OAuthBearerTokenAuthenticationPolicy extends HttpCredentialPolicy {
      * @param response The Http Response containing the authentication challenge header.
      * @return A boolean indicating if the request was authorized again via re-authentication
      */
-    public boolean authorizeRequestOnChallenge(HttpRequest httpRequest, Response<?> response) {
+    public boolean authorizeRequestOnChallenge(HttpRequest httpRequest, Response<BinaryData> response) {
         return false;
     }
 }

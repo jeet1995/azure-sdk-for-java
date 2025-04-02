@@ -3,6 +3,8 @@
 
 package com.azure.cosmos.implementation.perPartitionAutomaticFailover;
 
+import com.azure.cosmos.implementation.Configs;
+import com.azure.cosmos.implementation.CrossRegionAvailabilityContextForRxDocumentServiceRequest;
 import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.PartitionKeyRange;
@@ -14,6 +16,8 @@ import com.azure.cosmos.implementation.routing.RegionalRoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +26,8 @@ import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNo
 
 public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
     private static final Logger logger = LoggerFactory.getLogger(GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover.class);
-    private final ConcurrentHashMap<PartitionKeyRangeWrapper, PartitionLevelFailoverInfo> partitionKeyRangeToLocation;
+    private final ConcurrentHashMap<PartitionKeyRangeWrapper, PartitionLevelFailoverInfo> partitionKeyRangeToFailoverInfo;
+    private final ConcurrentHashMap<PartitionKeyRangeWrapper, EndToEndTimeoutErrorTracker> partitionKeyRangeToEndToEndTimeoutErrorTracker;
     private final GlobalEndpointManager globalEndpointManager;
     private final boolean isPerPartitionAutomaticFailoverEnabled;
 
@@ -31,8 +36,44 @@ public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
         boolean isPerPartitionAutomaticFailoverEnabled) {
 
         this.globalEndpointManager = globalEndpointManager;
-        this.partitionKeyRangeToLocation = new ConcurrentHashMap<>();
+        this.partitionKeyRangeToFailoverInfo = new ConcurrentHashMap<>();
+        this.partitionKeyRangeToEndToEndTimeoutErrorTracker = new ConcurrentHashMap<>();
         this.isPerPartitionAutomaticFailoverEnabled = isPerPartitionAutomaticFailoverEnabled;
+    }
+
+    public boolean resetEndToEndTimeoutErrorCountIfPossible(RxDocumentServiceRequest request) {
+
+        if (!this.isPerPartitionAutomaticFailoverEnabled) {
+            return false;
+        }
+
+        checkNotNull(request, "Argument 'request' cannot be null!");
+        checkNotNull(request.requestContext, "Argument 'request.requestContext' cannot be null!");
+
+        if (!isPerPartitionAutomaticFailoverApplicable(request)) {
+            return false;
+        }
+
+        PartitionKeyRange partitionKeyRange = request.requestContext.resolvedPartitionKeyRangeForPerPartitionAutomaticFailover;
+        String resolvedCollectionRid = request.requestContext.resolvedCollectionRid;
+
+        if (partitionKeyRange == null) {
+            return false;
+        }
+
+        if (StringUtils.isEmpty(resolvedCollectionRid)) {
+            return false;
+        }
+
+        PartitionKeyRangeWrapper partitionKeyRangeWrapper = new PartitionKeyRangeWrapper(partitionKeyRange, resolvedCollectionRid);
+
+        if (!this.partitionKeyRangeToEndToEndTimeoutErrorTracker.containsKey(partitionKeyRangeWrapper)) {
+            return true;
+        }
+
+        this.partitionKeyRangeToEndToEndTimeoutErrorTracker.remove(partitionKeyRangeWrapper);
+
+        return true;
     }
 
     public boolean tryAddPartitionLevelLocationOverride(RxDocumentServiceRequest request) {
@@ -64,10 +105,37 @@ public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
             return false;
         }
 
+        if (request.isReadOnlyRequest()) {
+            CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest
+                = request.requestContext.getCrossRegionAvailabilityContext();
+
+            checkNotNull(crossRegionAvailabilityContextForRequest, "Argument 'crossRegionAvailabilityContextForRequest' cannot be null!");
+
+            if (!crossRegionAvailabilityContextForRequest.shouldUsePerPartitionAutomaticFailoverOverrideForReadsIfApplicable()) {
+                return false;
+            }
+
+            // apply PPAF override for reads once - in retry flows stick to applicable regions
+            if (crossRegionAvailabilityContextForRequest.hasPerPartitionAutomaticFailoverBeenAppliedForReads()) {
+                return false;
+            }
+        }
+
         PartitionKeyRangeWrapper partitionKeyRangeWrapper = new PartitionKeyRangeWrapper(partitionKeyRange, resolvedCollectionRid);
-        PartitionLevelFailoverInfo partitionLevelFailoverInfo = this.partitionKeyRangeToLocation.get(partitionKeyRangeWrapper);
+        PartitionLevelFailoverInfo partitionLevelFailoverInfo = this.partitionKeyRangeToFailoverInfo.get(partitionKeyRangeWrapper);
 
         if (partitionLevelFailoverInfo != null) {
+
+            if (request.isReadOnlyRequest()) {
+
+                CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest
+                    = request.requestContext.getCrossRegionAvailabilityContext();
+
+                checkNotNull(crossRegionAvailabilityContextForRequest, "Argument 'crossRegionAvailabilityContextForRequest' cannot be null!");
+
+                crossRegionAvailabilityContextForRequest.setPerPartitionAutomaticFailoverAppliedStatusForReads(true);
+            }
+
             request.requestContext.routeToLocation(partitionLevelFailoverInfo.getCurrent());
             request.requestContext.setPerPartitionAutomaticFailoverInfoHolder(partitionLevelFailoverInfo);
             return true;
@@ -76,7 +144,7 @@ public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
         return false;
     }
 
-    public boolean tryMarkEndpointAsUnavailableForPartitionKeyRange(RxDocumentServiceRequest request) {
+    public boolean tryMarkEndpointAsUnavailableForPartitionKeyRange(RxDocumentServiceRequest request, boolean isEndToEndTimeoutHit) {
 
         if (!this.isPerPartitionAutomaticFailoverEnabled) {
             return false;
@@ -84,10 +152,6 @@ public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
 
         checkNotNull(request, "Argument 'request' cannot be null!");
         checkNotNull(request.requestContext, "Argument 'request.requestContext' cannot be null!");
-
-        if (request.isReadOnlyRequest()) {
-            return false;
-        }
 
         if (!isPerPartitionAutomaticFailoverApplicable(request)) {
             return false;
@@ -105,6 +169,28 @@ public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
         }
 
         PartitionKeyRangeWrapper partitionKeyRangeWrapper = new PartitionKeyRangeWrapper(partitionKeyRange, resolvedCollectionRid);
+
+        if (isEndToEndTimeoutHit) {
+            EndToEndTimeoutErrorTracker endToEndTimeoutErrorTrackerSnapshot = this.partitionKeyRangeToEndToEndTimeoutErrorTracker.get(partitionKeyRangeWrapper);
+
+            if (endToEndTimeoutErrorTrackerSnapshot != null) {
+
+                Instant failureWindowStart = endToEndTimeoutErrorTrackerSnapshot.getFailureWindowStart();
+                int errorCount = endToEndTimeoutErrorTrackerSnapshot.getErrorCount();
+
+                if (Duration.between(failureWindowStart, Instant.now()).getSeconds() >= Configs.getAllowedTimeWindowForE2ETimeoutHitCountTrackingInSecsForPPAF()) {
+                    this.partitionKeyRangeToEndToEndTimeoutErrorTracker.put(partitionKeyRangeWrapper, new EndToEndTimeoutErrorTracker(Instant.now(), 1));
+                    return false;
+                } else if (errorCount < Configs.getAllowedE2ETimeoutHitCountForPPAF()) {
+                    this.partitionKeyRangeToEndToEndTimeoutErrorTracker.put(partitionKeyRangeWrapper, new EndToEndTimeoutErrorTracker(failureWindowStart, errorCount + 1));
+                    return false;
+                }
+            } else {
+                this.partitionKeyRangeToEndToEndTimeoutErrorTracker.put(partitionKeyRangeWrapper, new EndToEndTimeoutErrorTracker(Instant.now(), 1));
+                return false;
+            }
+        }
+
         RegionalRoutingContext failedRegionalRoutingContext = request.requestContext.regionalRoutingContextToRoute;
 
         if (failedRegionalRoutingContext == null) {
@@ -112,7 +198,7 @@ public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
         }
 
         PartitionLevelFailoverInfo partitionLevelFailoverInfo
-            = this.partitionKeyRangeToLocation.computeIfAbsent(partitionKeyRangeWrapper, partitionKeyRangeWrapper1 -> new PartitionLevelFailoverInfo(failedRegionalRoutingContext, this.globalEndpointManager));
+            = this.partitionKeyRangeToFailoverInfo.computeIfAbsent(partitionKeyRangeWrapper, partitionKeyRangeWrapper1 -> new PartitionLevelFailoverInfo(failedRegionalRoutingContext, this.globalEndpointManager));
 
         // Rely on account-level read endpoints for new write region discovery
         List<RegionalRoutingContext> accountLevelReadRoutingContexts = this.globalEndpointManager.getAvailableReadRoutingContexts();
@@ -127,10 +213,14 @@ public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
             }
 
             request.requestContext.setPerPartitionAutomaticFailoverInfoHolder(partitionLevelFailoverInfo);
+
+            this.partitionKeyRangeToEndToEndTimeoutErrorTracker.remove(partitionKeyRangeWrapper);
             return true;
         }
 
-        this.partitionKeyRangeToLocation.remove(partitionKeyRangeWrapper);
+        this.partitionKeyRangeToFailoverInfo.remove(partitionKeyRangeWrapper);
+        this.partitionKeyRangeToEndToEndTimeoutErrorTracker.remove(partitionKeyRangeWrapper);
+
         return false;
     }
 
@@ -144,7 +234,11 @@ public class GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover {
             return false;
         }
 
-        if (this.globalEndpointManager.getApplicableReadEndpoints(Collections.emptyList()).size() <= 1) {
+        if (request.isReadOnlyRequest()) {
+            return false;
+        }
+
+        if (this.globalEndpointManager.getApplicableReadRegionalRoutingContexts(Collections.emptyList()).size() <= 1) {
             return false;
         }
 

@@ -13,6 +13,7 @@ import io.clientcore.core.implementation.http.HttpRequestAccessHelper;
 import io.clientcore.core.instrumentation.InstrumentationContext;
 import io.clientcore.core.instrumentation.logging.ClientLogger;
 import io.clientcore.core.instrumentation.logging.LoggingEvent;
+import io.clientcore.core.models.binarydata.BinaryData;
 import io.clientcore.core.utils.CoreUtils;
 import io.clientcore.core.utils.DateTimeRfc1123;
 import io.clientcore.core.utils.configuration.Configuration;
@@ -132,7 +133,7 @@ public final class HttpRetryPolicy implements HttpPipelinePolicy {
     }
 
     @Override
-    public Response<?> process(HttpRequest httpRequest, HttpPipelineNextPolicy next) {
+    public Response<BinaryData> process(HttpRequest httpRequest, HttpPipelineNextPolicy next) {
         return attempt(httpRequest, next, 0, null);
     }
 
@@ -155,18 +156,16 @@ public final class HttpRetryPolicy implements HttpPipelinePolicy {
         return calculateRetryDelay(tryCount);
     }
 
-    private Response<?> attempt(final HttpRequest httpRequest, final HttpPipelineNextPolicy next, final int tryCount,
-        final List<Exception> suppressed) {
+    private Response<BinaryData> attempt(final HttpRequest httpRequest, final HttpPipelineNextPolicy next,
+        final int tryCount, final List<Exception> suppressed) {
 
         // the tryCount is updated by the caller and represents the number of attempts made so far.
         // It can be used by the policies during the process call.
         HttpRequestAccessHelper.setTryCount(httpRequest, tryCount);
 
-        final InstrumentationContext instrumentationContext = httpRequest.getRequestOptions() == null
-            ? null
-            : httpRequest.getRequestOptions().getInstrumentationContext();
+        final InstrumentationContext instrumentationContext = httpRequest.getContext().getInstrumentationContext();
 
-        Response<?> response;
+        Response<BinaryData> response;
         ClientLogger logger = getLogger(httpRequest);
 
         try {
@@ -243,7 +242,7 @@ public final class HttpRetryPolicy implements HttpPipelinePolicy {
     /*
      * Determines the delay duration that should be waited before retrying.
      */
-    private Duration determineDelayDuration(Response<?> response, int tryCount,
+    private Duration determineDelayDuration(Response<BinaryData> response, int tryCount,
         Function<HttpHeaders, Duration> delayFromHeaders) {
         // If the retry after header hasn't been configured, attempt to look up the well-known headers.
         if (delayFromHeaders == null) {
@@ -259,7 +258,8 @@ public final class HttpRetryPolicy implements HttpPipelinePolicy {
         return calculateRetryDelay(tryCount);
     }
 
-    private boolean shouldRetryResponse(Response<?> response, int tryCount, List<Exception> retriedExceptions) {
+    private boolean shouldRetryResponse(Response<BinaryData> response, int tryCount,
+        List<Exception> retriedExceptions) {
         if (shouldRetryCondition != null) {
             return tryCount < maxRetries
                 && shouldRetryCondition.test(new HttpRetryCondition(response, null, tryCount, retriedExceptions));
@@ -348,8 +348,8 @@ public final class HttpRetryPolicy implements HttpPipelinePolicy {
     private ClientLogger getLogger(HttpRequest httpRequest) {
         ClientLogger logger = null;
 
-        if (httpRequest.getRequestOptions() != null && httpRequest.getRequestOptions().getLogger() != null) {
-            logger = httpRequest.getRequestOptions().getLogger();
+        if (httpRequest.getContext() != null && httpRequest.getContext().getLogger() != null) {
+            logger = httpRequest.getContext().getLogger();
         }
 
         return logger == null ? LOGGER : logger;
