@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
@@ -66,11 +67,10 @@ public class DocumentServiceRequestContext implements Cloneable {
     public final Map<String, CosmosException> rntbdCancelledRequestMap = new ConcurrentHashMap<>();
 
     // Track request timelines of HTTP requests which were in transit when RxGatewayStoreModel#invokeAsync pipeline is cancelled
-    public final List<GatewayRequestTimelineContext> cancelledGatewayRequestTimelineContexts = new ArrayList<>();
+    public final List<GatewayRequestTimelineContext> cancelledGatewayRequestTimelineContexts = new CopyOnWriteArrayList<>(new ArrayList<>());
 
-    private PointOperationContextForCircuitBreaker pointOperationContextForCircuitBreaker;
+    private volatile CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest;
 
-    private FeedOperationContextForCircuitBreaker feedOperationContextForCircuitBreaker;
     private volatile Supplier<DocumentClientRetryPolicy> clientRetryPolicySupplier;
 
     private volatile PerPartitionCircuitBreakerInfoHolder perPartitionCircuitBreakerInfoHolder;
@@ -145,6 +145,7 @@ public class DocumentServiceRequestContext implements Cloneable {
         context.originalRequestConsistencyLevel = this.originalRequestConsistencyLevel;
         context.resolvedPartitionKeyRange = this.resolvedPartitionKeyRange;
         context.resolvedPartitionKeyRangeForCircuitBreaker = this.resolvedPartitionKeyRangeForCircuitBreaker;
+        context.resolvedPartitionKeyRangeForPerPartitionAutomaticFailover = this.resolvedPartitionKeyRangeForPerPartitionAutomaticFailover;
         context.regionIndex = this.regionIndex;
         context.usePreferredLocations = this.usePreferredLocations;
         context.locationIndexToRoute = this.locationIndexToRoute;
@@ -158,8 +159,7 @@ public class DocumentServiceRequestContext implements Cloneable {
         context.replicaAddressValidationEnabled = this.replicaAddressValidationEnabled;
         context.endToEndOperationLatencyPolicyConfig = this.endToEndOperationLatencyPolicyConfig;
         context.unavailableRegionsForPartition = this.unavailableRegionsForPartition;
-        context.feedOperationContextForCircuitBreaker = this.feedOperationContextForCircuitBreaker;
-        context.pointOperationContextForCircuitBreaker = this.pointOperationContextForCircuitBreaker;
+        context.crossRegionAvailabilityContextForRequest = this.crossRegionAvailabilityContextForRequest;
         return context;
     }
 
@@ -195,20 +195,12 @@ public class DocumentServiceRequestContext implements Cloneable {
         this.unavailableRegionsForPartition = unavailableRegionsForPartition;
     }
 
-    public PointOperationContextForCircuitBreaker getPointOperationContextForCircuitBreaker() {
-        return pointOperationContextForCircuitBreaker;
+    public void setCrossRegionAvailabilityContext(CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest) {
+        this.crossRegionAvailabilityContextForRequest = crossRegionAvailabilityContextForRequest;
     }
 
-    public void setPointOperationContext(PointOperationContextForCircuitBreaker pointOperationContextForCircuitBreaker) {
-        this.pointOperationContextForCircuitBreaker = pointOperationContextForCircuitBreaker;
-    }
-
-    public FeedOperationContextForCircuitBreaker getFeedOperationContextForCircuitBreaker() {
-        return feedOperationContextForCircuitBreaker;
-    }
-
-    public void setFeedOperationContext(FeedOperationContextForCircuitBreaker feedOperationContextForCircuitBreaker) {
-        this.feedOperationContextForCircuitBreaker = feedOperationContextForCircuitBreaker;
+    public CrossRegionAvailabilityContextForRxDocumentServiceRequest getCrossRegionAvailabilityContext() {
+        return this.crossRegionAvailabilityContextForRequest;
     }
 
     public void setKeywordIdentifiers(Set<String> keywordIdentifiers) {
