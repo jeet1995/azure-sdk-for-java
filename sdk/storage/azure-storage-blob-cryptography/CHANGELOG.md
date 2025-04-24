@@ -1,6 +1,6 @@
 # Release History
 
-## 12.29.0-beta.2 (Unreleased)
+## 12.30.0-beta.1 (Unreleased)
 
 ### Features Added
 
@@ -10,12 +10,21 @@
 
 ### Other Changes
 
+## 12.29.0 (2025-03-11)
+
+### Features Added
+- Added support for service version 2025-05-05.
+
+### Other Changes
+
+#### Dependency Updates
+- Upgraded `azure-storage-blob` from `12.29.1` to version `12.30.0`.
+
 ## 12.28.1 (2025-03-03)
 
 ### Other Changes
 
 #### Dependency Updates
-
 - Upgraded `azure-xml` from `1.1.0` to version `1.2.0`.
 - Upgraded `azure-storage-blob` from `12.29.0` to version `12.29.1`.
 - Upgraded `azure-json` from `1.3.0` to version `1.4.0`.

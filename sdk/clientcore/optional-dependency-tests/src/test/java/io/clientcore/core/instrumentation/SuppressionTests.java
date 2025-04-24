@@ -3,10 +3,10 @@
 
 package io.clientcore.core.instrumentation;
 
-import io.clientcore.core.http.MockHttpResponse;
+import io.clientcore.core.http.models.HttpHeaders;
 import io.clientcore.core.http.models.HttpMethod;
 import io.clientcore.core.http.models.HttpRequest;
-import io.clientcore.core.http.models.RequestOptions;
+import io.clientcore.core.http.models.RequestContext;
 import io.clientcore.core.http.models.Response;
 import io.clientcore.core.http.pipeline.HttpPipeline;
 import io.clientcore.core.http.pipeline.HttpPipelineBuilder;
@@ -14,6 +14,7 @@ import io.clientcore.core.instrumentation.tracing.Span;
 import io.clientcore.core.instrumentation.tracing.SpanKind;
 import io.clientcore.core.instrumentation.tracing.Tracer;
 import io.clientcore.core.instrumentation.tracing.TracingScope;
+import io.clientcore.core.models.binarydata.BinaryData;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
@@ -46,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class SuppressionTests {
     private static final long SECOND_NANOS = 1_000_000_000;
@@ -59,7 +59,7 @@ public class SuppressionTests {
 
     private InstrumentationOptions otelOptions;
     private Tracer tracer;
-    private final LibraryInstrumentationOptions libOptions = new LibraryInstrumentationOptions("test-library");
+    private final SdkInstrumentationOptions sdkOptions = new SdkInstrumentationOptions("test-library");
 
     @BeforeEach
     public void setUp() {
@@ -73,7 +73,7 @@ public class SuppressionTests {
         OpenTelemetry openTelemetry
             = OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).setMeterProvider(meterProvider).build();
         otelOptions = new InstrumentationOptions().setTelemetryProvider(openTelemetry);
-        tracer = Instrumentation.create(otelOptions, libOptions).getTracer();
+        tracer = Instrumentation.create(otelOptions, sdkOptions).getTracer();
     }
 
     @AfterEach
@@ -84,11 +84,12 @@ public class SuppressionTests {
 
     @Test
     public void testNoSuppressionForSimpleMethod() {
-        HttpPipeline pipeline
-            = new HttpPipelineBuilder().httpClient(request -> new MockHttpResponse(request, 200)).build();
+        HttpPipeline pipeline = new HttpPipelineBuilder()
+            .httpClient(request -> new Response<>(request, 200, new HttpHeaders(), BinaryData.empty()))
+            .build();
         SampleClientTracing client = new SampleClientTracing(pipeline, otelOptions);
 
-        client.protocolMethod(new RequestOptions());
+        client.protocolMethod(RequestContext.none());
 
         // test that one span is created for simple method
         assertEquals(1, exporter.getFinishedSpanItems().size());
@@ -98,11 +99,12 @@ public class SuppressionTests {
 
     @Test
     public void testNestedInternalSpanSuppression() {
-        HttpPipeline pipeline
-            = new HttpPipelineBuilder().httpClient(request -> new MockHttpResponse(request, 200)).build();
+        HttpPipeline pipeline = new HttpPipelineBuilder()
+            .httpClient(request -> new Response<>(request, 200, new HttpHeaders(), BinaryData.empty()))
+            .build();
         SampleClientTracing client = new SampleClientTracing(pipeline, otelOptions);
 
-        client.convenienceMethod(new RequestOptions());
+        client.convenienceMethod(RequestContext.none());
         assertEquals(1, exporter.getFinishedSpanItems().size());
         SpanData span = exporter.getFinishedSpanItems().get(0);
         assertEquals("convenienceMethod", span.getName());
@@ -110,16 +112,17 @@ public class SuppressionTests {
 
     @Test
     public void testNestedInternalScopeSuppression() throws IOException {
-        HttpPipeline pipeline
-            = new HttpPipelineBuilder().httpClient(request -> new MockHttpResponse(request, 200)).build();
+        HttpPipeline pipeline = new HttpPipelineBuilder()
+            .httpClient(request -> new Response<>(request, 200, new HttpHeaders(), BinaryData.empty()))
+            .build();
 
-        LibraryInstrumentationOptions libraryInstrumentationOptions
-            = new LibraryInstrumentationOptions("test-library").setEndpoint("https://localhost");
+        SdkInstrumentationOptions sdkInstrumentationOptions
+            = new SdkInstrumentationOptions("test-library").setEndpoint("https://localhost");
 
         SampleClientCallInstrumentation client
-            = new SampleClientCallInstrumentation(pipeline, otelOptions, libraryInstrumentationOptions);
+            = new SampleClientCallInstrumentation(pipeline, otelOptions, sdkInstrumentationOptions);
 
-        client.convenienceMethod(new RequestOptions());
+        client.convenienceMethod(RequestContext.none());
         assertEquals(1, exporter.getFinishedSpanItems().size());
         SpanData span = exporter.getFinishedSpanItems().get(0);
         assertEquals("convenience", span.getName());
@@ -133,13 +136,14 @@ public class SuppressionTests {
 
     @Test
     public void testNestedInternalScopeDisabledSuppression() throws IOException {
-        HttpPipeline pipeline
-            = new HttpPipelineBuilder().httpClient(request -> new MockHttpResponse(request, 200)).build();
-        LibraryInstrumentationOptions libOptions
-            = new LibraryInstrumentationOptions("test-library").disableSpanSuppression(true);
-        SampleClientCallInstrumentation client = new SampleClientCallInstrumentation(pipeline, otelOptions, libOptions);
+        HttpPipeline pipeline = new HttpPipelineBuilder()
+            .httpClient(request -> new Response<>(request, 200, new HttpHeaders(), BinaryData.empty()))
+            .build();
+        SdkInstrumentationOptions sdkOptions
+            = new SdkInstrumentationOptions("test-library").disableSpanSuppression(true);
+        SampleClientCallInstrumentation client = new SampleClientCallInstrumentation(pipeline, otelOptions, sdkOptions);
 
-        client.convenienceMethod(new RequestOptions());
+        client.convenienceMethod(RequestContext.none());
         assertEquals(2, exporter.getFinishedSpanItems().size());
         assertEquals("protocol", exporter.getFinishedSpanItems().get(0).getName());
         assertEquals("convenience", exporter.getFinishedSpanItems().get(1).getName());
@@ -155,14 +159,12 @@ public class SuppressionTests {
     @Test
     public void testDisabledSuppression() {
         Tracer outerTracer = tracer;
-        Tracer innerTracer = Instrumentation.create(otelOptions, libOptions.disableSpanSuppression(true)).getTracer();
+        Tracer innerTracer = Instrumentation.create(otelOptions, sdkOptions.disableSpanSuppression(true)).getTracer();
 
-        RequestOptions options = new RequestOptions();
-        Span outerSpan = outerTracer.spanBuilder("outerSpan", CLIENT, options.getInstrumentationContext()).startSpan();
+        Span outerSpan = outerTracer.spanBuilder("outerSpan", CLIENT, null).startSpan();
 
-        options.setInstrumentationContext(outerSpan.getInstrumentationContext());
-
-        Span innerSpan = innerTracer.spanBuilder("innerSpan", CLIENT, options.getInstrumentationContext()).startSpan();
+        Span innerSpan
+            = innerTracer.spanBuilder("innerSpan", CLIENT, outerSpan.getInstrumentationContext()).startSpan();
         innerSpan.end();
         outerSpan.end();
 
@@ -178,15 +180,14 @@ public class SuppressionTests {
     @Test
     public void disabledSuppressionDoesNotAffectChildren() {
         Tracer outerTracer = Instrumentation
-            .create(otelOptions, new LibraryInstrumentationOptions("test-library").disableSpanSuppression(true))
+            .create(otelOptions, new SdkInstrumentationOptions("test-library").disableSpanSuppression(true))
             .getTracer();
         Tracer innerTracer = tracer;
 
-        RequestOptions options = new RequestOptions();
-        Span outerSpan = outerTracer.spanBuilder("outerSpan", CLIENT, options.getInstrumentationContext()).startSpan();
+        Span outerSpan = outerTracer.spanBuilder("outerSpan", CLIENT, null).startSpan();
 
-        options.setInstrumentationContext(outerSpan.getInstrumentationContext());
-        Span innerSpan = innerTracer.spanBuilder("innerSpan", CLIENT, options.getInstrumentationContext()).startSpan();
+        Span innerSpan
+            = innerTracer.spanBuilder("innerSpan", CLIENT, outerSpan.getInstrumentationContext()).startSpan();
         innerSpan.end();
         outerSpan.end();
 
@@ -212,17 +213,11 @@ public class SuppressionTests {
 
     @Test
     public void multipleLayers() {
-        Tracer tracer = Instrumentation.create(otelOptions, libOptions).getTracer();
+        Tracer tracer = Instrumentation.create(otelOptions, sdkOptions).getTracer();
 
-        RequestOptions options = new RequestOptions();
-
-        Span outer = tracer.spanBuilder("outer", PRODUCER, options.getInstrumentationContext()).startSpan();
-        options.setInstrumentationContext(outer.getInstrumentationContext());
-
-        Span inner = tracer.spanBuilder("inner", CLIENT, options.getInstrumentationContext()).startSpan();
-        options.setInstrumentationContext(inner.getInstrumentationContext());
-
-        Span suppressed = tracer.spanBuilder("suppressed", CLIENT, options.getInstrumentationContext()).startSpan();
+        Span outer = tracer.spanBuilder("outer", PRODUCER, null).startSpan();
+        Span inner = tracer.spanBuilder("inner", CLIENT, outer.getInstrumentationContext()).startSpan();
+        Span suppressed = tracer.spanBuilder("suppressed", CLIENT, inner.getInstrumentationContext()).startSpan();
         suppressed.end();
         inner.end();
         outer.end();
@@ -241,14 +236,9 @@ public class SuppressionTests {
     @MethodSource("suppressionTestCases")
     @SuppressWarnings("try")
     public void testSuppressionExplicitContext(SpanKind outerKind, SpanKind innerKind, int expectedSpanCount) {
-        RequestOptions options = new RequestOptions();
-        Span outerSpan = tracer.spanBuilder("outerSpan", outerKind, options.getInstrumentationContext())
-            .setAttribute("key", "valueOuter")
-            .startSpan();
+        Span outerSpan = tracer.spanBuilder("outerSpan", outerKind, null).setAttribute("key", "valueOuter").startSpan();
 
-        options.setInstrumentationContext(outerSpan.getInstrumentationContext());
-
-        Span innerSpan = tracer.spanBuilder("innerSpan", innerKind, options.getInstrumentationContext())
+        Span innerSpan = tracer.spanBuilder("innerSpan", innerKind, outerSpan.getInstrumentationContext())
             .setAttribute("key", "valueInner")
             .startSpan();
         // sanity check - this should not throw
@@ -361,46 +351,45 @@ public class SuppressionTests {
     }
 
     static class SampleClientTracing {
-        private static final String LIBRARY_NAME = "test-library";
+        private static final String SDK_NAME = "test-library";
         private final HttpPipeline pipeline;
         private final Tracer tracer;
 
         SampleClientTracing(HttpPipeline pipeline, InstrumentationOptions options) {
             this.pipeline = pipeline;
 
-            LibraryInstrumentationOptions libraryInstrumentationOptions
-                = new LibraryInstrumentationOptions(LIBRARY_NAME).setEndpoint("https://localhost");
-            this.tracer = Instrumentation.create(options, libraryInstrumentationOptions).getTracer();
+            SdkInstrumentationOptions sdkInstrumentationOptions
+                = new SdkInstrumentationOptions(SDK_NAME).setEndpoint("https://localhost");
+            this.tracer = Instrumentation.create(options, sdkInstrumentationOptions).getTracer();
         }
 
         @SuppressWarnings("try")
-        public void protocolMethod(RequestOptions options) {
-            Span span = tracer.spanBuilder("protocolMethod", INTERNAL, options.getInstrumentationContext()).startSpan();
-
-            options.setInstrumentationContext(span.getInstrumentationContext());
+        public void protocolMethod(RequestContext context) {
+            context = context == null ? RequestContext.none() : context;
+            Span span = tracer.spanBuilder("protocolMethod", INTERNAL, context.getInstrumentationContext()).startSpan();
 
             try (TracingScope scope = span.makeCurrent()) {
-                Response<?> response
-                    = pipeline.send(new HttpRequest().setMethod(HttpMethod.GET).setUri("https://localhost"));
-                try {
-                    response.close();
-                } catch (IOException e) {
-                    fail(e);
-                }
+                Response<?> response = pipeline.send(new HttpRequest().setMethod(HttpMethod.GET)
+                    .setUri("https://localhost")
+                    .setContext(
+                        context.toBuilder().setInstrumentationContext(span.getInstrumentationContext()).build()));
+                response.close();
             } finally {
                 span.end();
             }
         }
 
         @SuppressWarnings("try")
-        public void convenienceMethod(RequestOptions options) {
+        public void convenienceMethod(RequestContext context) {
+            context = context == null ? RequestContext.none() : context;
             Span span
-                = tracer.spanBuilder("convenienceMethod", INTERNAL, options.getInstrumentationContext()).startSpan();
-
-            options.setInstrumentationContext(span.getInstrumentationContext());
+                = tracer
+                    .spanBuilder("convenienceMethod", INTERNAL,
+                        context == null ? null : context.getInstrumentationContext())
+                    .startSpan();
 
             try (TracingScope scope = span.makeCurrent()) {
-                protocolMethod(options);
+                protocolMethod(context.toBuilder().setInstrumentationContext(span.getInstrumentationContext()).build());
             } finally {
                 span.end();
             }
@@ -412,22 +401,18 @@ public class SuppressionTests {
         private final Instrumentation instrumentation;
 
         SampleClientCallInstrumentation(HttpPipeline pipeline, InstrumentationOptions options,
-            LibraryInstrumentationOptions libraryInstrumentationOptions) {
+            SdkInstrumentationOptions sdkInstrumentationOptions) {
             this.pipeline = pipeline;
-            this.instrumentation = Instrumentation.create(options, libraryInstrumentationOptions);
+            this.instrumentation = Instrumentation.create(options, sdkInstrumentationOptions);
         }
 
-        @SuppressWarnings("try")
-        public Response<?> protocolMethod(RequestOptions options) {
-            return instrumentation.instrumentWithResponse("protocol", options,
-                updatedOptions -> pipeline.send(new HttpRequest().setMethod(HttpMethod.GET)
-                    .setUri("https://localhost")
-                    .setRequestOptions(updatedOptions)));
+        public Response<?> protocolMethod(RequestContext context) {
+            return instrumentation.instrumentWithResponse("protocol", context, updatedContext -> pipeline.send(
+                new HttpRequest().setMethod(HttpMethod.GET).setUri("https://localhost").setContext(updatedContext)));
         }
 
-        @SuppressWarnings("try")
-        public Response<?> convenienceMethod(RequestOptions options) throws IOException {
-            return instrumentation.instrumentWithResponse("convenience", options, this::protocolMethod);
+        public Response<?> convenienceMethod(RequestContext context) {
+            return instrumentation.instrumentWithResponse("convenience", context, this::protocolMethod);
         }
     }
 }

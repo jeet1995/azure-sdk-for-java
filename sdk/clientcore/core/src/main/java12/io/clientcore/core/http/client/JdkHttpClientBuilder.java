@@ -294,8 +294,10 @@ public class JdkHttpClientBuilder {
 
         // Read all allowed restricted headers from configuration
         Configuration config = (this.configuration == null) ? Configuration.getGlobalConfiguration() : configuration;
-        String[] allowRestrictedHeadersSystemProperties
-            = config.get(JDK_HTTPCLIENT_ALLOW_RESTRICTED_HEADERS, "").split(",");
+        String allowRestrictedHeadersSystemPropertiesConfig = config.get(JDK_HTTPCLIENT_ALLOW_RESTRICTED_HEADERS);
+        String[] allowRestrictedHeadersSystemProperties = (allowRestrictedHeadersSystemPropertiesConfig == null)
+            ? new String[0]
+            : allowRestrictedHeadersSystemPropertiesConfig.split(",");
 
         // Combine the set of all allowed restricted headers from both sources
         for (String header : allowRestrictedHeadersSystemProperties) {
@@ -314,7 +316,9 @@ public class JdkHttpClientBuilder {
         try (Reader reader = Files.newBufferedReader(path)) {
             properties.load(reader);
         } catch (IOException e) {
-            LOGGER.atWarning().addKeyValue("path", path).log("Cannot read net properties.", e);
+            LOGGER.atWarning().addKeyValue("path", path)
+                .setThrowable(e)
+                .log("Cannot read net properties.");
         }
         return properties;
     }

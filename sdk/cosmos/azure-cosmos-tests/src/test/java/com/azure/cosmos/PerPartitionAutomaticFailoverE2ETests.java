@@ -3,6 +3,7 @@
 
 package com.azure.cosmos;
 
+import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.ConnectionPolicy;
 import com.azure.cosmos.implementation.DatabaseAccount;
 import com.azure.cosmos.implementation.DatabaseAccountLocation;
@@ -96,6 +97,8 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
     private static final Set<ConnectionMode> ONLY_DIRECT_MODE = new HashSet<>();
     private static final Set<ConnectionMode> ONLY_GATEWAY_MODE = new HashSet<>();
 
+    private static final CosmosEndToEndOperationLatencyPolicyConfig THREE_SEC_E2E_TIMEOUT_POLICY = new CosmosEndToEndOperationLatencyPolicyConfigBuilder(Duration.ofSeconds(3)).build();
+
     BiConsumer<ResponseWrapper<?>, ExpectedResponseCharacteristics> validateExpectedResponseCharacteristics = (responseWrapper, expectedResponseCharacteristics) -> {
         assertThat(responseWrapper).isNotNull();
 
@@ -181,6 +184,11 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
             .setShouldFinalResponseHaveSuccess(true)
             .setExpectedRegionsContactedCount(2);
 
+        ExpectedResponseCharacteristics expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet = new ExpectedResponseCharacteristics()
+            .setExpectedMinRetryCount(0)
+            .setShouldFinalResponseHaveSuccess(false)
+            .setExpectedRegionsContactedCount(1);
+
         ExpectedResponseCharacteristics expectedResponseCharacteristicsBeforeFailoverForRequestTimeout = new ExpectedResponseCharacteristics()
             .setExpectedMinRetryCount(1)
             .setShouldFinalResponseHaveSuccess(true)
@@ -213,6 +221,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ONLY_DIRECT_MODE
             },
             {
@@ -223,6 +232,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.OK,
                 expectedResponseCharacteristicsBeforeFailover,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ONLY_DIRECT_MODE
@@ -237,6 +247,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ONLY_DIRECT_MODE
             },
             {
@@ -247,6 +258,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.NOT_MODIFIED,
                 expectedResponseCharacteristicsBeforeFailover,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ONLY_DIRECT_MODE
@@ -261,6 +273,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ONLY_DIRECT_MODE
             },
             {
@@ -271,6 +284,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.OK,
                 expectedResponseCharacteristicsBeforeFailover,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ONLY_DIRECT_MODE
@@ -285,6 +299,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -295,6 +310,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.OK,
                 expectedResponseCharacteristicsBeforeFailover,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ALL_CONNECTION_MODES
@@ -309,6 +325,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -319,6 +336,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.NOT_MODIFIED,
                 expectedResponseCharacteristicsBeforeFailover,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ALL_CONNECTION_MODES
@@ -333,6 +351,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -343,6 +362,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.OK,
                 expectedResponseCharacteristicsBeforeFailover,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ALL_CONNECTION_MODES
@@ -357,6 +377,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -367,6 +388,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.OK,
                 expectedResponseCharacteristicsBeforeFailover,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ALL_CONNECTION_MODES
@@ -381,6 +403,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -391,6 +414,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.NOT_MODIFIED,
                 expectedResponseCharacteristicsBeforeFailover,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ALL_CONNECTION_MODES
@@ -405,6 +429,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -417,6 +442,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -427,6 +453,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.CREATED,
                 expectedResponseCharacteristicsBeforeFailoverForRequestTimeout,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ALL_CONNECTION_MODES
@@ -441,6 +468,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -451,6 +479,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.OK,
                 expectedResponseCharacteristicsBeforeFailoverForRequestTimeout,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ALL_CONNECTION_MODES
@@ -465,6 +494,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -475,6 +505,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 HttpConstants.StatusCodes.OK,
                 expectedResponseCharacteristicsBeforeFailoverForRequestTimeout,
                 expectedResponseCharacteristicsAfterFailover,
+                false,
                 false,
                 false,
                 ALL_CONNECTION_MODES
@@ -489,6 +520,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 false,
                 false,
+                false,
                 ALL_CONNECTION_MODES
             },
             {
@@ -501,6 +533,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -513,6 +546,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -525,6 +559,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -537,6 +572,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -549,6 +585,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -561,6 +598,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -573,6 +611,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -585,6 +624,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -597,6 +637,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -609,6 +650,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -621,6 +663,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -633,6 +676,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 true,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -644,6 +688,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsBeforeFailoverForGatewayEndpointUnavailable,
                 expectedResponseCharacteristicsAfterFailover,
                 true,
+                false,
                 false,
                 ONLY_GATEWAY_MODE
             },
@@ -657,6 +702,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 false,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -668,6 +714,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsBeforeFailoverForGatewayEndpointUnavailable,
                 expectedResponseCharacteristicsAfterFailover,
                 true,
+                false,
                 false,
                 ONLY_GATEWAY_MODE
             },
@@ -681,6 +728,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 false,
+                false,
                 ONLY_GATEWAY_MODE
             },
             {
@@ -692,6 +740,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsBeforeFailoverForGatewayEndpointUnavailable,
                 expectedResponseCharacteristicsAfterFailover,
                 true,
+                false,
                 false,
                 ONLY_GATEWAY_MODE
             },
@@ -705,6 +754,163 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 expectedResponseCharacteristicsAfterFailover,
                 true,
                 false,
+                false,
+                ONLY_GATEWAY_MODE
+            },
+            {
+                "Test failover handling for CREATE with e2e timeout and when GONE / SERVER_GENERATED_410 is injected into first preferred region for a specific server partition.",
+                OperationType.Create,
+                HttpConstants.StatusCodes.GONE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_410,
+                HttpConstants.StatusCodes.CREATED,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_DIRECT_MODE
+            },
+            {
+                "Test failover handling for REPLACE with e2e timeout and when GONE / SERVER_GENERATED_410 is injected into first preferred region for a specific server partition.",
+                OperationType.Replace,
+                HttpConstants.StatusCodes.GONE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_410,
+                HttpConstants.StatusCodes.OK,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_DIRECT_MODE
+            },
+            {
+                "Test failover handling for UPSERT with e2e timeout and when GONE / SERVER_GENERATED_410 is injected into first preferred region for a specific server partition.",
+                OperationType.Upsert,
+                HttpConstants.StatusCodes.GONE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_410,
+                HttpConstants.StatusCodes.OK,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_DIRECT_MODE
+            },
+            {
+                "Test failover handling for DELETE with e2e timeout and when GONE / SERVER_GENERATED_410 is injected into first preferred region for a specific server partition.",
+                OperationType.Delete,
+                HttpConstants.StatusCodes.GONE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_410,
+                HttpConstants.StatusCodes.NOT_MODIFIED,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_DIRECT_MODE
+            },
+            {
+                "Test failover handling for PATCH with e2e timeout and when GONE / SERVER_GENERATED_410 is injected into first preferred region for a specific server partition.",
+                OperationType.Patch,
+                HttpConstants.StatusCodes.GONE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_410,
+                HttpConstants.StatusCodes.OK,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_DIRECT_MODE
+            },
+            {
+                "Test failover handling for BATCH with e2e timeout and when GONE / SERVER_GENERATED_410 is injected into first preferred region for a specific server partition.",
+                OperationType.Batch,
+                HttpConstants.StatusCodes.GONE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_410,
+                HttpConstants.StatusCodes.OK,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_DIRECT_MODE
+            },
+            {
+                "Test failover handling for CREATE with e2e timeout and when SERVICE_UNAVAILABLE / SERVER_GENERATED_503 is injected into first preferred region for a specific server partition.",
+                OperationType.Create,
+                HttpConstants.StatusCodes.SERVICE_UNAVAILABLE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_503,
+                HttpConstants.StatusCodes.CREATED,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_GATEWAY_MODE
+            },
+            {
+                "Test failover handling for REPLACE with e2e timeout and when SERVICE_UNAVAILABLE / SERVER_GENERATED_503 and delay too is injected into first preferred region for a specific server partition.",
+                OperationType.Replace,
+                HttpConstants.StatusCodes.SERVICE_UNAVAILABLE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_503,
+                HttpConstants.StatusCodes.OK,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_GATEWAY_MODE
+            },
+            {
+                "Test failover handling for UPSERT with e2e timeout and when SERVICE_UNAVAILABLE / SERVER_GENERATED_503 and delay too is injected into first preferred region for a specific server partition.",
+                OperationType.Upsert,
+                HttpConstants.StatusCodes.SERVICE_UNAVAILABLE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_503,
+                HttpConstants.StatusCodes.OK,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_GATEWAY_MODE
+            },
+            {
+                "Test failover handling for DELETE with e2e timeout and when SERVICE_UNAVAILABLE / SERVER_GENERATED_503 and delay too is injected into first preferred region for a specific server partition.",
+                OperationType.Delete,
+                HttpConstants.StatusCodes.SERVICE_UNAVAILABLE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_503,
+                HttpConstants.StatusCodes.NOT_MODIFIED,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_GATEWAY_MODE
+            },
+            {
+                "Test failover handling for PATCH with e2e timeout and when SERVICE_UNAVAILABLE / SERVER_GENERATED_503 is and delay too injected into first preferred region for a specific server partition.",
+                OperationType.Patch,
+                HttpConstants.StatusCodes.SERVICE_UNAVAILABLE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_503,
+                HttpConstants.StatusCodes.OK,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
+                ONLY_GATEWAY_MODE
+            },
+            {
+                "Test failover handling for BATCH with e2e timeout and when SERVICE_UNAVAILABLE / SERVER_GENERATED_503 is and delay too injected into first preferred region for a specific server partition.",
+                OperationType.Batch,
+                HttpConstants.StatusCodes.SERVICE_UNAVAILABLE,
+                HttpConstants.SubStatusCodes.SERVER_GENERATED_503,
+                HttpConstants.StatusCodes.OK,
+                expectedResponseCharacteristicsBeforeFailoverWhenE2ETimeoutSet,
+                expectedResponseCharacteristicsAfterFailover,
+                false,
+                false,
+                true,
                 ONLY_GATEWAY_MODE
             }
         };
@@ -714,13 +920,13 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
     // for DIRECT connection mode,
     //  an availability failure (410, 503, 408) or write forbidden failure (403/3) is injected
     //  for a given partitionKeyRange and region through mocking
-    //  the first operation execution for a given operation type is expected to see failures and then failover (403/3s & 503s are retried and 408s just see the operation fail)
-    //  the second operation execution should see the request go straight away to the failed over region
+    //  the first operation execution for a given operation type is expected to see failures and then failover (403/3s & 503s & 408s (not e2e timeout hit) are retried and e2e time out hit (408:20008) just see the operation fail)
+    //  the second operation execution should see the request go straight away to the failed over region - caveat is when e2e timeout is hit, only after x failures does a failover happen
     // for GATEWAY connection mode,
     //  an availability failure (503, 408), write forbidden failure (403/3) and I/O failures are injected
     //  for a given region through mocking
-    //  the first operation execution for a given operation type is expected to see failures and then failover (403/3s & 503s are retried and 408s just see the operation fail)
-    //  the second operation execution should see the request go straight away to the failed over region
+    //  the first operation execution for a given operation type is expected to see failures and then failover (403/3s & 503s & 408s (not e2e timeout hit) are retried and e2e time out hit (408:20008) just see the operation fail)
+    //  the second operation execution should see the request go straight away to the failed over region - caveat is when e2e timeout is hit, only after x failures does a failover happen
     @Test(groups = {"multi-region"}, dataProvider = "ppafTestConfigsWithWriteOps")
     public void testPpafWithWriteFailoverWithEligibleErrorStatusCodes(
         String testType,
@@ -732,6 +938,7 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
         ExpectedResponseCharacteristics expectedResponseCharacteristicsAfterFailover,
         boolean shouldThrowNetworkError,
         boolean shouldThrowReadTimeoutExceptionWhenNetworkError,
+        boolean shouldUseE2ETimeout,
         Set<ConnectionMode> allowedConnectionModes) {
 
         ConnectionPolicy connectionPolicy = COSMOS_CLIENT_BUILDER_ACCESSOR.getConnectionPolicy(getClientBuilder());
@@ -750,9 +957,18 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
 
             try {
 
+                if (shouldUseE2ETimeout) {
+                    System.setProperty("COSMOS.E2E_TIMEOUT_ERROR_HIT_THRESHOLD_FOR_PPAF", "2");
+                }
+
                 CosmosClientBuilder cosmosClientBuilder = getClientBuilder()
                     .perPartitionAutomaticFailoverEnabled(true)
                     .preferredRegions(preferredRegions);
+
+                // todo: evaluate whether Batch operation needs op-level e2e timeout and availability strategy
+                if (operationType.equals(OperationType.Batch) && shouldUseE2ETimeout) {
+                    cosmosClientBuilder.endToEndOperationLatencyPolicyConfig(THREE_SEC_E2E_TIMEOUT_POLICY);
+                }
 
                 CosmosAsyncClient asyncClient = cosmosClientBuilder.buildAsyncClient();
                 cosmosAsyncClientValueHolder.v = asyncClient;
@@ -806,19 +1022,28 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 OperationInvocationParamsWrapper operationInvocationParamsWrapper = new OperationInvocationParamsWrapper();
                 operationInvocationParamsWrapper.asyncContainer = asyncContainer;
                 operationInvocationParamsWrapper.createdTestItem = testItem;
-                operationInvocationParamsWrapper.itemRequestOptions = new CosmosItemRequestOptions();
-                operationInvocationParamsWrapper.patchItemRequestOptions = new CosmosPatchItemRequestOptions();
+                operationInvocationParamsWrapper.itemRequestOptions = shouldUseE2ETimeout ? new CosmosItemRequestOptions().setCosmosEndToEndOperationLatencyPolicyConfig(THREE_SEC_E2E_TIMEOUT_POLICY) : new CosmosItemRequestOptions();
+                operationInvocationParamsWrapper.patchItemRequestOptions = shouldUseE2ETimeout ? new CosmosPatchItemRequestOptions().setCosmosEndToEndOperationLatencyPolicyConfig(THREE_SEC_E2E_TIMEOUT_POLICY) : new CosmosPatchItemRequestOptions();
 
-                ResponseWrapper<?> responseBeforeFailover = dataPlaneOperation.apply(operationInvocationParamsWrapper);
+                if (shouldUseE2ETimeout) {
 
-                assertThat(responseBeforeFailover).isNotNull();
-                this.validateExpectedResponseCharacteristics.accept(responseBeforeFailover, expectedResponseCharacteristicsBeforeFailover);
+                    int iterationsToRun = Configs.getAllowedE2ETimeoutHitCountForPPAF();
+
+                    for (int i = 1; i <= iterationsToRun + 1; i++) {
+                        ResponseWrapper<?> responseBeforeFailover = dataPlaneOperation.apply(operationInvocationParamsWrapper);
+                        this.validateExpectedResponseCharacteristics.accept(responseBeforeFailover, expectedResponseCharacteristicsBeforeFailover);
+                    }
+                } else {
+                    ResponseWrapper<?> responseBeforeFailover = dataPlaneOperation.apply(operationInvocationParamsWrapper);
+                    this.validateExpectedResponseCharacteristics.accept(responseBeforeFailover, expectedResponseCharacteristicsBeforeFailover);
+                }
 
                 ResponseWrapper<?> responseAfterFailover = dataPlaneOperation.apply(operationInvocationParamsWrapper);
                 this.validateExpectedResponseCharacteristics.accept(responseAfterFailover, expectedResponseCharacteristicsAfterFailover);
             } catch (Exception e) {
                 Assertions.fail("The test ran into an exception {}", e);
             } finally {
+                System.clearProperty("COSMOS.E2E_TIMEOUT_ERROR_HIT_THRESHOLD_FOR_PPAF");
                 safeClose(cosmosAsyncClientValueHolder.v);
             }
         }
@@ -831,9 +1056,18 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
 
             try {
 
+                if (shouldUseE2ETimeout) {
+                    System.setProperty("COSMOS.E2E_TIMEOUT_ERROR_HIT_THRESHOLD_FOR_PPAF", "2");
+                }
+
                 CosmosClientBuilder cosmosClientBuilder = getClientBuilder()
                     .perPartitionAutomaticFailoverEnabled(true)
                     .preferredRegions(preferredRegions);
+
+                // todo: evaluate whether Batch operation needs op-level e2e timeout and availability strategy
+                if (operationType.equals(OperationType.Batch) && shouldUseE2ETimeout) {
+                    cosmosClientBuilder.endToEndOperationLatencyPolicyConfig(THREE_SEC_E2E_TIMEOUT_POLICY);
+                }
 
                 CosmosAsyncClient asyncClient = cosmosClientBuilder.buildAsyncClient();
                 cosmosAsyncClientValueHolder.v = asyncClient;
@@ -871,7 +1105,8 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                     locationEndpointWithIssues,
                     cosmosException,
                     shouldThrowNetworkError,
-                    shouldThrowReadTimeoutExceptionWhenNetworkError);
+                    shouldThrowReadTimeoutExceptionWhenNetworkError,
+                    shouldUseE2ETimeout);
 
                 TestItem testItem = TestItem.createNewItem();
 
@@ -880,19 +1115,30 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
                 OperationInvocationParamsWrapper operationInvocationParamsWrapper = new OperationInvocationParamsWrapper();
                 operationInvocationParamsWrapper.asyncContainer = asyncContainer;
                 operationInvocationParamsWrapper.createdTestItem = testItem;
-                operationInvocationParamsWrapper.itemRequestOptions = new CosmosItemRequestOptions();
-                operationInvocationParamsWrapper.patchItemRequestOptions = new CosmosPatchItemRequestOptions();
+                operationInvocationParamsWrapper.itemRequestOptions = shouldUseE2ETimeout ? new CosmosItemRequestOptions().setCosmosEndToEndOperationLatencyPolicyConfig(THREE_SEC_E2E_TIMEOUT_POLICY) : new CosmosItemRequestOptions();
+                operationInvocationParamsWrapper.patchItemRequestOptions = shouldUseE2ETimeout ? new CosmosPatchItemRequestOptions().setCosmosEndToEndOperationLatencyPolicyConfig(THREE_SEC_E2E_TIMEOUT_POLICY) : new CosmosPatchItemRequestOptions();
 
-                ResponseWrapper<?> responseBeforeFailover = dataPlaneOperation.apply(operationInvocationParamsWrapper);
+                if (shouldUseE2ETimeout) {
 
-                assertThat(responseBeforeFailover).isNotNull();
-                this.validateExpectedResponseCharacteristics.accept(responseBeforeFailover, expectedResponseCharacteristicsBeforeFailover);
+                    int iterationsToRun = Configs.getAllowedE2ETimeoutHitCountForPPAF();
+
+                    for (int i = 1; i <= iterationsToRun + 1; i++) {
+                        ResponseWrapper<?> responseBeforeFailover = dataPlaneOperation.apply(operationInvocationParamsWrapper);
+                        this.validateExpectedResponseCharacteristics.accept(responseBeforeFailover, expectedResponseCharacteristicsBeforeFailover);
+                    }
+                } else {
+                    ResponseWrapper<?> responseBeforeFailover = dataPlaneOperation.apply(operationInvocationParamsWrapper);
+
+                    assertThat(responseBeforeFailover).isNotNull();
+                    this.validateExpectedResponseCharacteristics.accept(responseBeforeFailover, expectedResponseCharacteristicsBeforeFailover);
+                }
 
                 ResponseWrapper<?> responseAfterFailover = dataPlaneOperation.apply(operationInvocationParamsWrapper);
                 this.validateExpectedResponseCharacteristics.accept(responseAfterFailover, expectedResponseCharacteristicsAfterFailover);
             } catch (Exception e) {
                 Assertions.fail("The test ran into an exception {}", e);
             } finally {
+                System.clearProperty("COSMOS.E2E_TIMEOUT_ERROR_HIT_THRESHOLD_FOR_PPAF");
                 safeClose(cosmosAsyncClientValueHolder.v);
             }
         }
@@ -920,7 +1166,20 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
         URI locationEndpointToRoute,
         CosmosException cosmosException,
         boolean shouldThrowNetworkError,
-        boolean shouldThrowReadTimeoutExceptionWhenNetworkError) {
+        boolean shouldThrowReadTimeoutExceptionWhenNetworkError,
+        boolean shouldForceE2ETimeout) {
+
+        if (shouldForceE2ETimeout) {
+            Mockito.when(
+                    httpClientMock.send(
+                        Mockito.argThat(argument -> {
+                            URI uri = argument.uri();
+                            return uri.toString().contains(locationEndpointToRoute.toString());
+                        }), Mockito.any(Duration.class)))
+                .thenReturn(Mono.delay(Duration.ofSeconds(10)).flatMap(aLong -> Mono.error(cosmosException)));
+
+            return;
+        }
 
         if (shouldThrowNetworkError) {
             if (shouldThrowReadTimeoutExceptionWhenNetworkError) {

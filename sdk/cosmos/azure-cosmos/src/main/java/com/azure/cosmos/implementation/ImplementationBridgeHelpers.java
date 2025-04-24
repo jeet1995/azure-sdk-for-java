@@ -1099,6 +1099,10 @@ public class ImplementationBridgeHelpers {
                                                    CosmosItemSerializer itemSerializer,
                                                    Class<T> cls);
 
+            <T> FeedResponse<T> createNonServiceFeedResponse(List<T> items,
+                                                   boolean isChangeFeed,
+                                                   boolean isNoChanges);
+
             <T> FeedResponse<T> createChangeFeedResponse(RxDocumentServiceResponse response,
                                                    CosmosItemSerializer itemSerializer,
                                                    Class<T> cls);
@@ -1426,7 +1430,6 @@ public class ImplementationBridgeHelpers {
             EnumSet<TagName> getMetricTagNames(CosmosAsyncClient client);
             EnumSet<MetricCategory> getMetricCategories(CosmosAsyncClient client);
             boolean shouldEnableEmptyPageDiagnostics(CosmosAsyncClient client);
-            boolean isSendClientTelemetryToServiceEnabled(CosmosAsyncClient client);
             List<String> getPreferredRegions(CosmosAsyncClient client);
             boolean isEndpointDiscoveryEnabled(CosmosAsyncClient client);
             String getConnectionMode(CosmosAsyncClient client);
@@ -1582,14 +1585,9 @@ public class ImplementationBridgeHelpers {
             EnumSet<TagName> getMetricTagNames(CosmosClientTelemetryConfig config);
             String getClientCorrelationId(CosmosClientTelemetryConfig config);
             MeterRegistry getClientMetricRegistry(CosmosClientTelemetryConfig config);
-            Boolean isSendClientTelemetryToServiceEnabled(CosmosClientTelemetryConfig config);
             boolean isClientMetricsEnabled(CosmosClientTelemetryConfig config);
-            void resetIsSendClientTelemetryToServiceEnabled(CosmosClientTelemetryConfig config);
             CosmosMeterOptions getMeterOptions(CosmosClientTelemetryConfig config, CosmosMetricName name);
             CosmosMeterOptions createDisabledMeterOptions(CosmosMetricName name);
-            CosmosClientTelemetryConfig createSnapshot(
-                CosmosClientTelemetryConfig config,
-                boolean effectiveIsClientTelemetryEnabled);
             Collection<CosmosDiagnosticsHandler> getDiagnosticHandlers(CosmosClientTelemetryConfig config);
             void setAccountName(CosmosClientTelemetryConfig config, String accountName);
             String getAccountName(CosmosClientTelemetryConfig config);
