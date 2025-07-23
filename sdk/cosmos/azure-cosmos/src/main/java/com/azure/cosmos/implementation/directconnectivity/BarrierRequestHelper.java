@@ -31,7 +31,8 @@ public class BarrierRequestHelper {
             RxDocumentServiceRequest request,
             IAuthorizationTokenProvider authorizationTokenProvider,
             Long targetLsn,
-            Long targetGlobalCommittedLsn) {
+            Long targetGlobalCommittedLsn,
+            boolean isWriteBarrier) {
 
         boolean isCollectionHeadRequest = BarrierRequestHelper.isCollectionHeadBarrierRequest(
                 request.getResourceType(),
@@ -81,6 +82,7 @@ public class BarrierRequestHelper {
         }
 
         barrierLsnRequest.getHeaders().put(HttpConstants.HttpHeaders.X_DATE, Utils.nowAsRFC1123());
+        barrierLsnRequest.isWriteBarrier = isWriteBarrier;
 
         if (targetLsn != null && targetLsn > 0) {
             barrierLsnRequest.getHeaders().put(HttpConstants.HttpHeaders.TARGET_LSN, targetLsn.toString());
