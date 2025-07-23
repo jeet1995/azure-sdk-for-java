@@ -27,6 +27,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.azure.cosmos.implementation.Utils.ValueHolder;
 

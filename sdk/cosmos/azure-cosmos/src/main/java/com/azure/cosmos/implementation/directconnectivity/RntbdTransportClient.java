@@ -12,8 +12,10 @@ import com.azure.cosmos.implementation.GoneException;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.InternalServerErrorException;
+import com.azure.cosmos.implementation.LeaseNotFoundException;
 import com.azure.cosmos.implementation.LifeCycleUtils;
 import com.azure.cosmos.implementation.OperationCancelledException;
+import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.RequestTimeline;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.UserAgentContainer;
@@ -55,6 +57,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -62,6 +65,7 @@ import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -80,6 +84,8 @@ public class RntbdTransportClient extends TransportClient {
 
     private static final AtomicLong instanceCount = new AtomicLong();
     private static final Logger logger = LoggerFactory.getLogger(RntbdTransportClient.class);
+
+    private static final AtomicInteger failedBarrierCount = new AtomicInteger(0);
 
     /**
      * NOTE: This context key name has been copied from {link Hooks#KEY_ON_ERROR_DROPPED} which is
@@ -265,6 +271,16 @@ public class RntbdTransportClient extends TransportClient {
      */
     @Override
     public Mono<StoreResponse> invokeStoreAsync(final Uri addressUri, final RxDocumentServiceRequest request) {
+
+        if (request.getOperationType() == OperationType.Head || request.getOperationType() == OperationType.HeadFeed) {
+            if (request.isWriteBarrier) {
+                if (failedBarrierCount.incrementAndGet() <= 62) {
+                    String message = "Failed to send barrier request, max failed barrier count reached";
+                    logger.error(message);
+                    throw new LeaseNotFoundException(null, -1, "1", new HashMap<>());
+                }
+            }
+        }
 
         checkNotNull(addressUri, "expected non-null addressUri");
         checkNotNull(request, "expected non-null request");

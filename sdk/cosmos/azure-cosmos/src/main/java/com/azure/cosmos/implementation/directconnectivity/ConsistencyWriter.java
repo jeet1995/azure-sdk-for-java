@@ -295,7 +295,7 @@ public class ConsistencyWriter {
             });
         } else {
 
-            Mono<RxDocumentServiceRequest> barrierRequestObs = BarrierRequestHelper.createAsync(this.diagnosticsClientContext, request, this.authorizationTokenProvider, null, request.requestContext.globalCommittedSelectedLSN);
+            Mono<RxDocumentServiceRequest> barrierRequestObs = BarrierRequestHelper.createAsync(this.diagnosticsClientContext, request, this.authorizationTokenProvider, null, request.requestContext.globalCommittedSelectedLSN, true);
             return barrierRequestObs.flatMap(barrierRequest -> waitForWriteBarrierAsync(barrierRequest, request.requestContext.globalCommittedSelectedLSN)
                 .flatMap(v -> {
 
@@ -352,7 +352,8 @@ public class ConsistencyWriter {
                         request,
                         this.authorizationTokenProvider,
                         null,
-                        request.requestContext.globalCommittedSelectedLSN);
+                        request.requestContext.globalCommittedSelectedLSN,
+                        true);
 
                     return barrierRequestObs.flatMap(barrierRequest -> {
                         Mono<Boolean> barrierWait = this.waitForWriteBarrierAsync(barrierRequest, request.requestContext.globalCommittedSelectedLSN);

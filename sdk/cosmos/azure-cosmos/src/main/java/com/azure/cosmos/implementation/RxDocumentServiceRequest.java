@@ -91,6 +91,7 @@ public class RxDocumentServiceRequest implements Cloneable {
 
     private volatile boolean hasFeedRangeFilteringBeenApplied = false;
     public boolean isPerPartitionAutomaticFailoverEnabledAndWriteRequest;
+    public volatile boolean isWriteBarrier = false;
 
     private final AtomicReference<HttpTransportSerializer> httpTransportSerializer = new AtomicReference<>(null);
 

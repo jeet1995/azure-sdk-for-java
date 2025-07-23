@@ -20,6 +20,7 @@ import com.azure.cosmos.implementation.MutableVolatile;
 import com.azure.cosmos.implementation.Quadruple;
 import com.azure.cosmos.implementation.RMResources;
 import com.azure.cosmos.implementation.RequestChargeTracker;
+import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.apachecommons.lang.tuple.Pair;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -90,6 +92,7 @@ public class QuorumReader {
     private final StoreReader storeReader;
     private final GatewayServiceConfigurationReader serviceConfigReader;
     private final IAuthorizationTokenProvider authorizationTokenProvider;
+    private static final AtomicInteger fakeBarrierCount = new AtomicInteger(0);
 
     public QuorumReader(
         DiagnosticsClientContext diagnosticsClientContext,
@@ -166,7 +169,8 @@ public class QuorumReader {
                                     entity,
                                     this.authorizationTokenProvider,
                                     secondaryQuorumReadResult.selectedLsn,
-                                    secondaryQuorumReadResult.globalCommittedSelectedLsn);
+                                    secondaryQuorumReadResult.globalCommittedSelectedLsn,
+                                    false);
 
                                         return barrierRequestObs.flux().flatMap(barrierRequest -> {
                                     Mono<Boolean> readBarrierObs = this.waitForReadBarrierAsync(
@@ -307,13 +311,13 @@ public class QuorumReader {
                     return Mono.just(res.getKey());
                 }
 
-                long readLsn = res.getValue().getValue0();
-                long globalCommittedLSN = res.getValue().getValue1();
-                StoreResult storeResult = res.getValue().getValue2();
-                List<String> storeResponses = res.getValue().getValue3();
+                long readLsn = res.getValue() != null && res.getValue().getValue0() != null ? res.getValue().getValue0() : -1L;
+                long globalCommittedLSN = res.getValue() != null && res.getValue().getValue1() != null ? res.getValue().getValue1() : -1L;
+                StoreResult storeResult = res.getValue() != null && res.getValue().getValue2() != null ? res.getValue().getValue2() : null;
+                List<String> storeResponses = res.getValue() != null && res.getValue().getValue3() != null ? res.getValue().getValue3() : new ArrayList<>();
 
                 // ReadBarrier required
-                Mono<RxDocumentServiceRequest> barrierRequestObs = BarrierRequestHelper.createAsync(this.diagnosticsClientContext, entity, this.authorizationTokenProvider, readLsn, globalCommittedLSN);
+                Mono<RxDocumentServiceRequest> barrierRequestObs = BarrierRequestHelper.createAsync(this.diagnosticsClientContext, entity, this.authorizationTokenProvider, readLsn, globalCommittedLSN, false);
                 return barrierRequestObs.flatMap(
                     barrierRequest -> {
                         Mono<Boolean> waitForObs = this.waitForReadBarrierAsync(barrierRequest, false, readQuorum, readLsn, globalCommittedLSN, readMode);
@@ -487,7 +491,7 @@ public class QuorumReader {
                     logger.info("Store LSN {} and quorum acked LSN {} don't match", storeResult.lsn, storeResult.quorumAckedLSN);
                     long higherLsn = Math.max(storeResult.lsn, storeResult.quorumAckedLSN);
 
-                    Mono<RxDocumentServiceRequest> waitForLsnRequestObs = BarrierRequestHelper.createAsync(this.diagnosticsClientContext, entity, this.authorizationTokenProvider, higherLsn, null);
+                    Mono<RxDocumentServiceRequest> waitForLsnRequestObs = BarrierRequestHelper.createAsync(this.diagnosticsClientContext, entity, this.authorizationTokenProvider, higherLsn, null, false);
                     return waitForLsnRequestObs.flatMap(
                         waitForLsnRequest -> {
                             Mono<PrimaryReadOutcome> primaryWaitForLsnResponseObs = this.waitForPrimaryLsnAsync(waitForLsnRequest, higherLsn, readQuorum);
