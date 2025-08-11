@@ -12,6 +12,7 @@ import com.codahale.metrics.Timer;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
@@ -125,9 +126,19 @@ class AsyncQueryBenchmark extends AsyncBenchmark<FeedResponse<PojoizedJson>> {
             obs = cosmosAsyncContainer.queryItems(query, options, PojoizedJson.class).byPage();
         } else if (configuration.getOperationType() == Configuration.Operation.ReadAllItemsOfLogicalPartition) {
 
+            Mono<Long> sparsityMono = sparsityMono(i);
+
             int index = r.nextInt(this.configuration.getNumberOfPreCreatedDocuments());
             String pk = (String) docsToRead.get(index).getProperty(partitionKey);
-            obs = cosmosAsyncContainer.readAllItems(new PartitionKey(pk), options, PojoizedJson.class).byPage();
+
+            if (sparsityMono != null) {
+                obs = sparsityMono.flux().flatMap(
+                    null,
+                    null,
+                    () -> cosmosAsyncContainer.readAllItems(new PartitionKey(pk), options, PojoizedJson.class).byPage());
+            } else {
+                obs = cosmosAsyncContainer.readAllItems(new PartitionKey(pk), options, PojoizedJson.class).byPage();
+            }
         } else {
             throw new IllegalArgumentException("Unsupported Operation: " + configuration.getOperationType());
         }
