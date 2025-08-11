@@ -644,7 +644,7 @@ abstract class AsyncBenchmark<T> {
         }
     }
 
-    protected Mono sparsityMono(long i) {
+    protected Mono<Long> sparsityMono(long i) {
         Duration duration = configuration.getSparsityWaitTime();
         if (duration != null && !duration.isZero()) {
             if (configuration.getSkipWarmUpOperations() > i) {
