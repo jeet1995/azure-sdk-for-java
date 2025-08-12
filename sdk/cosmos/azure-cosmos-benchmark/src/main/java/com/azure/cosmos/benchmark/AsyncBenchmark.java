@@ -111,6 +111,7 @@ abstract class AsyncBenchmark<T> {
             .setRegionScopedSessionCapturingEnabled(cosmosClientBuilder, cfg.isRegionScopedSessionContainerEnabled());
 
         CosmosClientTelemetryConfig telemetryConfig = new CosmosClientTelemetryConfig()
+            .enableTransportLevelTracing()
             .sendClientTelemetryToService(cfg.isClientTelemetryEnabled())
             .diagnosticsThresholds(
                 new CosmosDiagnosticsThresholds()
@@ -328,6 +329,9 @@ abstract class AsyncBenchmark<T> {
                 .directMode();
 
         if (shouldOpenConnectionsAndInitCaches) {
+
+            // Close the existing client to stick to singleton pattern
+            cosmosClient.close();
 
             logger.info("Proactively establishing connections...");
 
