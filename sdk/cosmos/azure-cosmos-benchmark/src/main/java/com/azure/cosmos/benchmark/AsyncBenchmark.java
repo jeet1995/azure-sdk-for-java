@@ -94,6 +94,7 @@ abstract class AsyncBenchmark<T> {
 
         CosmosClientTelemetryConfig telemetryConfig = new CosmosClientTelemetryConfig()
             .sendClientTelemetryToService(cfg.isClientTelemetryEnabled())
+            .enableTransportLevelTracing()
             .diagnosticsThresholds(
                 new CosmosDiagnosticsThresholds()
                     .setPointOperationLatencyThreshold(cfg.getPointOperationThreshold())
@@ -282,6 +283,9 @@ abstract class AsyncBenchmark<T> {
                 .directMode();
 
         if (shouldOpenConnectionsAndInitCaches) {
+
+            // Close the existing client to stick to singleton pattern
+            cosmosClient.close();
 
             logger.info("Proactively establishing connections...");
 
