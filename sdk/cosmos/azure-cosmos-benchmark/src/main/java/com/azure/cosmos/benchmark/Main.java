@@ -78,6 +78,7 @@ public class Main {
         switch (cfg.getOperationType()) {
             case ReadLatency:
             case ReadThroughput:
+            case ReadAllItemsOfLogicalPartition:
                 break;
             default:
                 if (cfg.getSparsityWaitTime() != null) {
