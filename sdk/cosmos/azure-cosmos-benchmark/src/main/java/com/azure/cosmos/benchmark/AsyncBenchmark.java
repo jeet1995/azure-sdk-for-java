@@ -152,6 +152,7 @@ abstract class AsyncBenchmark<T> {
             .setRegionScopedSessionCapturingEnabled(benchmarkSpecificClientBuilder, cfg.isRegionScopedSessionContainerEnabled());
 
         CosmosClientTelemetryConfig telemetryConfig = new CosmosClientTelemetryConfig()
+            .enableTransportLevelTracing()
             .diagnosticsThresholds(
                 new CosmosDiagnosticsThresholds()
                     .setPointOperationLatencyThreshold(cfg.getPointOperationThreshold())
@@ -397,6 +398,9 @@ abstract class AsyncBenchmark<T> {
                 .directMode();
 
         if (shouldOpenConnectionsAndInitCaches) {
+
+            // Close the existing client as we are going to create a new client with proactive connection
+            benchmarkWorkloadClient.close();
 
             logger.info("Proactively establishing connections...");
 
