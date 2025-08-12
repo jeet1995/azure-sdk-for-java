@@ -142,7 +142,20 @@ abstract class AsyncBenchmark<T> {
         cosmosClientBuilder.clientTelemetryConfig(telemetryConfig);
 
         if (cfg.getConnectionMode().equals(ConnectionMode.DIRECT)) {
-            cosmosClientBuilder = cosmosClientBuilder.directMode(DirectConnectionConfig.getDefaultConfig());
+
+            DirectConnectionConfig directConnectionConfig = DirectConnectionConfig.getDefaultConfig();
+
+            if (configuration.getIdleConnectionTimeout() != null) {
+                logger.info("Setting idle connection timeout to {}", configuration.getIdleConnectionTimeout());
+                directConnectionConfig.setIdleConnectionTimeout(configuration.getIdleConnectionTimeout());
+            }
+
+            if (configuration.getIdleEndpointTimeout() != null) {
+                logger.info("Setting idle endpoint timeout to {}", configuration.getIdleEndpointTimeout());
+                directConnectionConfig.setIdleEndpointTimeout(configuration.getIdleEndpointTimeout());
+            }
+
+            cosmosClientBuilder = cosmosClientBuilder.directMode(directConnectionConfig);
         } else {
             GatewayConnectionConfig gatewayConnectionConfig = new GatewayConnectionConfig();
             gatewayConnectionConfig.setMaxConnectionPoolSize(cfg.getMaxConnectionPoolSize());
@@ -333,6 +346,22 @@ abstract class AsyncBenchmark<T> {
                 cosmosClientBuilder = cosmosClientBuilderForOpeningConnections
                         .openConnectionsAndInitCaches(cosmosContainerProactiveInitConfigBuilder.build())
                         .endpointDiscoveryEnabled(true);
+
+                DirectConnectionConfig directConnectionConfig = DirectConnectionConfig.getDefaultConfig();
+
+                if (configuration.getIdleConnectionTimeout() != null) {
+                    logger.info("Setting idle connection timeout to {}", configuration.getIdleConnectionTimeout());
+                    directConnectionConfig.setIdleConnectionTimeout(configuration.getIdleConnectionTimeout());
+                }
+
+                if (configuration.getIdleEndpointTimeout() != null) {
+                    logger.info("Setting idle endpoint timeout to {}", configuration.getIdleEndpointTimeout());
+                    directConnectionConfig.setIdleEndpointTimeout(configuration.getIdleEndpointTimeout());
+                }
+
+                cosmosClientBuilder = cosmosClientBuilder
+                        .directMode(directConnectionConfig)
+                        .endpointDiscoveryEnabled(true);
             } else {
 
                 logger.info("Setting an aggressive proactive connection establishment duration of {}", configuration.getAggressiveWarmupDuration());
@@ -342,6 +371,22 @@ abstract class AsyncBenchmark<T> {
 
                 cosmosClientBuilder = cosmosClientBuilder
                         .openConnectionsAndInitCaches(cosmosContainerProactiveInitConfigBuilder.build())
+                        .endpointDiscoveryEnabled(true);
+
+                DirectConnectionConfig directConnectionConfig = DirectConnectionConfig.getDefaultConfig();
+
+                if (configuration.getIdleConnectionTimeout() != null) {
+                    logger.info("Setting idle connection timeout to {}", configuration.getIdleConnectionTimeout());
+                    directConnectionConfig.setIdleConnectionTimeout(configuration.getIdleConnectionTimeout());
+                }
+
+                if (configuration.getIdleEndpointTimeout() != null) {
+                    logger.info("Setting idle endpoint timeout to {}", configuration.getIdleEndpointTimeout());
+                    directConnectionConfig.setIdleEndpointTimeout(configuration.getIdleEndpointTimeout());
+                }
+
+                cosmosClientBuilder = cosmosClientBuilder
+                        .directMode(directConnectionConfig)
                         .endpointDiscoveryEnabled(true);
             }
 
@@ -361,11 +406,23 @@ abstract class AsyncBenchmark<T> {
 
             logger.info("Creating unwarmed container");
 
+            DirectConnectionConfig directConnectionConfig = DirectConnectionConfig.getDefaultConfig();
+
+            if (configuration.getIdleConnectionTimeout() != null) {
+                logger.info("Setting idle connection timeout to {}", configuration.getIdleConnectionTimeout());
+                directConnectionConfig.setIdleConnectionTimeout(configuration.getIdleConnectionTimeout());
+            }
+
+            if (configuration.getIdleEndpointTimeout() != null) {
+                logger.info("Setting idle endpoint timeout to {}", configuration.getIdleEndpointTimeout());
+                directConnectionConfig.setIdleEndpointTimeout(configuration.getIdleEndpointTimeout());
+            }
+
             CosmosAsyncClient clientForUnwarmedContainer = new CosmosClientBuilder()
                     .endpoint(configuration.getServiceEndpoint())
                     .key(configuration.getMasterKey())
                     .preferredRegions(configuration.getPreferredRegionsList())
-                    .directMode()
+                    .directMode(directConnectionConfig)
                     .buildAsyncClient();
 
             clientForUnwarmedContainer.createDatabaseIfNotExists(configuration.getDatabaseId()).block();

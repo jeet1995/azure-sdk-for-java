@@ -208,6 +208,12 @@ public class Configuration {
         + "PT20.345S (20.345 seconds), PT15M (15 minutes)", converter = DurationConverter.class)
     private Duration sparsityWaitTime = null;
 
+    @Parameter(names = "-idleConnectionTimeout", description = "The duration for which if a connection is idle, it will be closed", converter = DurationConverter.class)
+    private Duration idleConnectionTimeout = null;
+
+    @Parameter(names = "-idleEndpointTimeout", description = "The duration for which if an endpoint is idle, all connections to said endpoint will be closed", converter = DurationConverter.class)
+    private Duration idleEndpointTimeout = null;
+
     @Parameter(names = "-skipWarmUpOperations", description = "the number of operations to be skipped before starting perf numbers.")
     private int skipWarmUpOperations = 0;
 
@@ -368,6 +374,14 @@ public class Configuration {
 
     public Duration getSparsityWaitTime() {
         return sparsityWaitTime;
+    }
+
+    public Duration getIdleConnectionTimeout() {
+        return idleConnectionTimeout;
+    }
+
+    public Duration getIdleEndpointTimeout() {
+        return idleEndpointTimeout;
     }
 
     public boolean isDisablePassingPartitionKeyAsOptionOnWrite() {
