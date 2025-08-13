@@ -469,14 +469,13 @@ abstract class AsyncBenchmark<T> {
             }
 
             CosmosAsyncDatabase databaseForProactiveConnectionManagement;
-            try (CosmosAsyncClient openConnectionsAsyncClient = benchmarkSpecificClientBuilder.buildAsyncClient()) {
+            CosmosAsyncClient openConnectionsAsyncClient = benchmarkSpecificClientBuilder.buildAsyncClient();
 
-                if (!isManagedIdentityRequired) {
-                    openConnectionsAsyncClient.createDatabaseIfNotExists(cosmosAsyncDatabase.getId()).block();
-                }
-
-                databaseForProactiveConnectionManagement = openConnectionsAsyncClient.getDatabase(cosmosAsyncDatabase.getId());
+            if (!isManagedIdentityRequired) {
+                openConnectionsAsyncClient.createDatabaseIfNotExists(cosmosAsyncDatabase.getId()).block();
             }
+
+            databaseForProactiveConnectionManagement = openConnectionsAsyncClient.getDatabase(cosmosAsyncDatabase.getId());
 
             if (!isManagedIdentityRequired) {
                 databaseForProactiveConnectionManagement.createContainerIfNotExists(configuration.getCollectionId(), "/id").block();
