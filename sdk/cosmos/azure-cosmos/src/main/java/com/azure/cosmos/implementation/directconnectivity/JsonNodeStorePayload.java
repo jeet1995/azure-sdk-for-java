@@ -4,7 +4,9 @@
 package com.azure.cosmos.implementation.directconnectivity;
 
 import com.azure.cosmos.implementation.Configs;
+import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.Utils;
+import com.fasterxml.jackson.core.exc.StreamConstraintsException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.util.internal.StringUtil;
@@ -43,7 +45,19 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
                 logger.warn("Unable to parse JSON, fallback to use customized charset decoder.", e);
                 return fromJsonWithFallbackCharsetDecoder(bytes);
             } else {
-                throw new IllegalStateException("Unable to parse JSON.", e);
+                Exception nestedException = new IllegalStateException("Unable to parse JSON.", e);
+
+                if (e instanceof StreamConstraintsException) {
+                    throw Utils.createCosmosException(
+                        HttpConstants.StatusCodes.INTERNAL_SERVER_ERROR,
+                        HttpConstants.SubStatusCodes.STREAMS_CONSTRAINED,
+                        nestedException);
+                }
+
+                throw Utils.createCosmosException(
+                    HttpConstants.StatusCodes.INTERNAL_SERVER_ERROR,
+                    HttpConstants.SubStatusCodes.FAILED_TO_PARSE_SERVER_RESPONSE,
+                    nestedException);
             }
         }
     }
@@ -53,12 +67,24 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
             String sanitizedJson = fallbackCharsetDecoder.decode(ByteBuffer.wrap(bytes)).toString();
             return Utils.getSimpleObjectMapper().readTree(sanitizedJson);
         } catch (IOException e) {
-            throw new IllegalStateException(
+            IllegalStateException nestedException = new IllegalStateException(
                 String.format(
                     "Unable to parse JSON with fallback charset decoder[OnMalformedInput %s, OnUnmappedCharacter %s]",
                     Configs.getCharsetDecoderErrorActionOnMalformedInput(),
                     Configs.getCharsetDecoderErrorActionOnUnmappedCharacter()),
                 e);
+
+            if (e instanceof StreamConstraintsException) {
+                throw Utils.createCosmosException(
+                    HttpConstants.StatusCodes.INTERNAL_SERVER_ERROR,
+                    HttpConstants.SubStatusCodes.STREAMS_CONSTRAINED,
+                    nestedException);
+            }
+
+            throw Utils.createCosmosException(
+                HttpConstants.StatusCodes.INTERNAL_SERVER_ERROR,
+                HttpConstants.SubStatusCodes.FAILED_TO_PARSE_SERVER_RESPONSE,
+                nestedException);
         }
     }
 

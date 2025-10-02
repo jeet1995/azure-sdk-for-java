@@ -34,6 +34,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkArgument;
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
@@ -58,6 +59,8 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
     private volatile String lastServerContinuationToken;
     private volatile boolean hasMoreResults;
     private volatile boolean hasServerContinuationTokenChange;
+    private final int maxStreamsConstrainedRetries = 10;
+    private final AtomicInteger streamsConstrainedRetries = new AtomicInteger(0);
     private final FeedRangeThroughputControlConfigManager feedRangeThroughputControlConfigManager;
 
     public PartitionProcessorImpl(ChangeFeedObserver<T> observer,
@@ -222,6 +225,20 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                             this.resultException = new RuntimeException(clientException);
                         }
                         break;
+                        case STREAMS_CONSTRAINED: {
+                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
+                                logger.error(
+                                    "Lease with token {}: Reached max retries for streams constrained exception, failing.",
+                                    this.lease.getLeaseToken());
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            logger.warn(
+                                "Lease with token {}: Streams constrained exception encountered, will retry.",
+                                this.lease.getLeaseToken(),
+                                clientException);
+                        }
                         case MAX_ITEM_COUNT_TOO_LARGE: {
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(

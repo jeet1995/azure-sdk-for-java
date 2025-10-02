@@ -4,6 +4,7 @@ package com.azure.cosmos.implementation;
 
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.ConsistencyLevel;
+import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.CosmosItemSerializer;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
@@ -78,6 +79,8 @@ public class Utils {
     public static final Duration ONE_SECOND = Duration.ofSeconds(1);
     public static final Duration HALF_SECOND = Duration.ofMillis(500);
     public static final Duration SIX_SECONDS = Duration.ofSeconds(6);
+    private static final ImplementationBridgeHelpers.CosmosExceptionHelper.CosmosExceptionAccessor cosmosExceptionAccessor =
+        ImplementationBridgeHelpers.CosmosExceptionHelper.getCosmosExceptionAccessor();
 
     private static final ObjectMapper simpleObjectMapperAllowingDuplicatedProperties =
         createAndInitializeObjectMapper(true);
@@ -813,5 +816,14 @@ public class Utils {
         } else {
             return duration1.compareTo(duration2) < 0 ? duration1 : duration2;
         }
+    }
+
+    public static CosmosException createCosmosException(int statusCode, int substatusCode, Exception nestedException) {
+        CosmosException exceptionToThrow
+            = cosmosExceptionAccessor.createCosmosException(statusCode, nestedException);
+
+        BridgeInternal.setSubStatusCode(exceptionToThrow, substatusCode);
+
+        return exceptionToThrow;
     }
 }
