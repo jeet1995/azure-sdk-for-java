@@ -228,7 +228,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                         case STREAMS_CONSTRAINED: {
                             if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
                                 logger.error(
-                                    "Lease with token {}: Reached max retries for streams constrained exception, failing.",
+                                    "Lease with token {}: Reached max retries for streams constrained exception, exiting.",
                                     this.lease.getLeaseToken());
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
