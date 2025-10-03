@@ -818,9 +818,13 @@ public class Utils {
         }
     }
 
-    public static CosmosException createCosmosException(int statusCode, int substatusCode, Exception nestedException) {
-        CosmosException exceptionToThrow
-            = cosmosExceptionAccessor.createCosmosException(statusCode, nestedException);
+    public static CosmosException createCosmosException(int statusCode, int substatusCode, Exception nestedException, Map<String, String> responseHeaders) {
+        CosmosException exceptionToThrow = BridgeInternal.createCosmosException(
+            nestedException.getMessage(),
+            nestedException,
+            responseHeaders,
+            statusCode,
+            "");
 
         BridgeInternal.setSubStatusCode(exceptionToThrow, substatusCode);
 

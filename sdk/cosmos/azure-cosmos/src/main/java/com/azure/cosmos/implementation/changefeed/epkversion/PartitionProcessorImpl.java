@@ -5,6 +5,7 @@ package com.azure.cosmos.implementation.changefeed.epkversion;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.ThroughputControlGroupConfig;
 import com.azure.cosmos.implementation.CosmosSchedulers;
+import com.azure.cosmos.implementation.Strings;
 import com.azure.cosmos.implementation.Utils;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.changefeed.CancellationToken;
@@ -27,6 +28,7 @@ import com.azure.cosmos.implementation.feedranges.FeedRangeEpkImpl;
 import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.ModelBridgeInternal;
+import com.azure.cosmos.util.CosmosChangeFeedContinuationTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -61,6 +63,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
     private volatile boolean hasServerContinuationTokenChange;
     private final int maxStreamsConstrainedRetries = 10;
     private final AtomicInteger streamsConstrainedRetries = new AtomicInteger(0);
+    private final AtomicInteger unparseableDocumentRetries = new AtomicInteger(0);
     private final FeedRangeThroughputControlConfigManager feedRangeThroughputControlConfigManager;
 
     public PartitionProcessorImpl(ChangeFeedObserver<T> observer,
@@ -265,7 +268,39 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                     }).flatMap(values -> Flux.empty());
                             }
                         }
-                        break;
+                        case PARSING_ERROR:
+                            if (this.unparseableDocumentRetries.incrementAndGet() == 1) {
+                                logger.warn(
+                                    "Lease with token {}: Attempting a retry on parsing error.",
+                                    this.lease.getLeaseToken());
+                                this.resultException = new RuntimeException(clientException);
+                                this.options.setMaxItemCount(1);
+                                return Flux.empty();
+                            } else {
+
+                                // No way to recover from this
+                                logger.error("Encountered parsing error which is not recoverable, attempting to skip document", clientException);
+
+                                String continuation = CosmosChangeFeedContinuationTokenUtils.extractContinuationTokenFromCosmosException(clientException);
+
+                                if (Strings.isNullOrEmpty(continuation)) {
+                                    logger.error(
+                                        "Lease with token {}: Unable to extract continuation token from the parsing exception, failing.",
+                                        this.lease.getLeaseToken());
+                                    this.resultException = new RuntimeException(clientException);
+                                    return Flux.error(throwable);
+                                }
+
+                                ChangeFeedState continuationState = ChangeFeedState.fromString(continuation);
+                                return this.checkpointer.checkpointPartition(continuationState)
+                                    .doOnError(t -> {
+                                        logger.warn(
+                                            "Failed to checkpoint Lease with token {} from thread {}",
+                                            this.lease.getLeaseToken(),
+                                            Thread.currentThread().getId(),
+                                            t);
+                                    });
+                            }
                         default: {
                             logger.error(
                                 "Lease with token {}: Unrecognized Cosmos exception returned error code {}",
