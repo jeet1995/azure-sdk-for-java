@@ -59,6 +59,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
     private volatile boolean hasMoreResults;
     private volatile boolean hasServerContinuationTokenChange;
     private final FeedRangeThroughputControlConfigManager feedRangeThroughputControlConfigManager;
+    private Instant lastProcessedTime;
 
     public PartitionProcessorImpl(ChangeFeedObserver<T> observer,
                                   ChangeFeedContextClient documentClient,
@@ -82,6 +83,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 settings.getMaxItemCount(),
                 this.changeFeedMode);
         this.feedRangeThroughputControlConfigManager = feedRangeThroughputControlConfigManager;
+        this.lastProcessedTime = Instant.now();
     }
 
     @Override
@@ -144,6 +146,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 this.lastServerContinuationToken = continuationToken;
                 this.hasMoreResults = !ModelBridgeInternal.noChanges(documentFeedResponse);
 
+                lastProcessedTime = Instant.now();
                 if (documentFeedResponse.getResults() != null && documentFeedResponse.getResults().size() > 0) {
                     logger.info("Lease with token {}: processing {} feeds with owner {}.",
                         this.lease.getLeaseToken(), documentFeedResponse.getResults().size(), this.lease.getOwner());
@@ -197,10 +200,13 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
 
                     CosmosException clientException = (CosmosException) throwable;
                     logger.warn(
-                        "Lease with token {}: CosmosException was thrown from thread {} for lease with owner {}",
+                        "Lease with token {}: CosmosException was thrown from thread {} for lease with owner {} " +
+                            "exception msg {}, exception cause {}",
                         this.lease.getLeaseToken(),
                         Thread.currentThread().getId(),
                         this.lease.getOwner(),
+                        clientException.getMessage(),
+                        clientException.getCause() == null ? "" : clientException.getCause().getMessage(),
                         clientException);
                     StatusCodeErrorType docDbError =
                         ExceptionClassifier.classifyClientException(clientException);
@@ -321,6 +327,11 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
     @Override
     public RuntimeException getResultException() {
         return this.resultException;
+    }
+
+    @Override
+    public Instant getLastProcessedTime() {
+        return this.lastProcessedTime;
     }
 
     private Mono<Void> dispatchChanges(
