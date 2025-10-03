@@ -192,6 +192,9 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 if (this.options.getMaxItemCount() != this.settings.getMaxItemCount()) {
                     this.options.setMaxItemCount(this.settings.getMaxItemCount());   // Reset after successful execution.
                 }
+
+                this.streamsConstrainedRetries.set(0);
+                this.unparseableDocumentRetries.set(0);
             })
             .onErrorResume(throwable -> {
                 if (throwable instanceof CosmosException) {
