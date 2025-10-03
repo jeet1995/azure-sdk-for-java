@@ -5,6 +5,7 @@ package com.azure.cosmos.implementation.changefeed.epkversion;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.ThroughputControlGroupConfig;
 import com.azure.cosmos.implementation.CosmosSchedulers;
+import com.azure.cosmos.implementation.Strings;
 import com.azure.cosmos.implementation.Utils;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.changefeed.CancellationToken;
@@ -27,6 +28,7 @@ import com.azure.cosmos.implementation.feedranges.FeedRangeEpkImpl;
 import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.ModelBridgeInternal;
+import com.azure.cosmos.util.CosmosChangeFeedContinuationTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -34,6 +36,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkArgument;
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
@@ -58,6 +61,9 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
     private volatile String lastServerContinuationToken;
     private volatile boolean hasMoreResults;
     private volatile boolean hasServerContinuationTokenChange;
+    private final int maxStreamsConstrainedRetries = 10;
+    private final AtomicInteger streamsConstrainedRetries = new AtomicInteger(0);
+    private final AtomicInteger unparseableDocumentRetries = new AtomicInteger(0);
     private final FeedRangeThroughputControlConfigManager feedRangeThroughputControlConfigManager;
 
     public PartitionProcessorImpl(ChangeFeedObserver<T> observer,
@@ -186,6 +192,9 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 if (this.options.getMaxItemCount() != this.settings.getMaxItemCount()) {
                     this.options.setMaxItemCount(this.settings.getMaxItemCount());   // Reset after successful execution.
                 }
+
+                this.streamsConstrainedRetries.set(0);
+                this.unparseableDocumentRetries.set(0);
             })
             .onErrorResume(throwable -> {
                 if (throwable instanceof CosmosException) {
@@ -222,6 +231,20 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                             this.resultException = new RuntimeException(clientException);
                         }
                         break;
+                        case STREAMS_CONSTRAINED: {
+                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
+                                logger.error(
+                                    "Lease with token {}: Reached max retries for streams constrained exception, exiting.",
+                                    this.lease.getLeaseToken());
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            logger.warn(
+                                "Lease with token {}: Streams constrained exception encountered, will retry.",
+                                this.lease.getLeaseToken(),
+                                clientException);
+                        }
                         case MAX_ITEM_COUNT_TOO_LARGE: {
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(
@@ -248,7 +271,39 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                     }).flatMap(values -> Flux.empty());
                             }
                         }
-                        break;
+                        case PARSING_ERROR:
+                            if (this.unparseableDocumentRetries.incrementAndGet() == 1) {
+                                logger.warn(
+                                    "Lease with token {}: Attempting a retry on parsing error.",
+                                    this.lease.getLeaseToken());
+                                this.resultException = new RuntimeException(clientException);
+                                this.options.setMaxItemCount(1);
+                                return Flux.empty();
+                            } else {
+
+                                // No way to recover from this
+                                logger.error("Encountered parsing error which is not recoverable, attempting to skip document", clientException);
+
+                                String continuation = CosmosChangeFeedContinuationTokenUtils.extractContinuationTokenFromCosmosException(clientException);
+
+                                if (Strings.isNullOrEmpty(continuation)) {
+                                    logger.error(
+                                        "Lease with token {}: Unable to extract continuation token from the parsing exception, failing.",
+                                        this.lease.getLeaseToken());
+                                    this.resultException = new RuntimeException(clientException);
+                                    return Flux.error(throwable);
+                                }
+
+                                ChangeFeedState continuationState = ChangeFeedState.fromString(continuation);
+                                return this.checkpointer.checkpointPartition(continuationState)
+                                    .doOnError(t -> {
+                                        logger.warn(
+                                            "Failed to checkpoint Lease with token {} from thread {}",
+                                            this.lease.getLeaseToken(),
+                                            Thread.currentThread().getId(),
+                                            t);
+                                    });
+                            }
                         default: {
                             logger.error(
                                 "Lease with token {}: Unrecognized Cosmos exception returned error code {}",

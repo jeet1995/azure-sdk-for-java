@@ -7,6 +7,7 @@ import com.azure.cosmos.ThroughputControlGroupConfig;
 import com.azure.cosmos.implementation.CosmosSchedulers;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
+import com.azure.cosmos.implementation.Strings;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.changefeed.CancellationToken;
 import com.azure.cosmos.implementation.changefeed.ChangeFeedContextClient;
@@ -28,6 +29,7 @@ import com.azure.cosmos.implementation.feedranges.FeedRangePartitionKeyRangeImpl
 import com.azure.cosmos.models.CosmosChangeFeedRequestOptions;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.ModelBridgeInternal;
+import com.azure.cosmos.util.CosmosChangeFeedContinuationTokenUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +38,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkArgument;
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
@@ -58,6 +61,9 @@ class PartitionProcessorImpl implements PartitionProcessor {
     private volatile String lastServerContinuationToken;
     private volatile boolean hasMoreResults;
     private volatile boolean hasServerContinuationTokenChange;
+    private final int maxStreamsConstrainedRetries = 10;
+    private final AtomicInteger streamsConstrainedRetries = new AtomicInteger(0);
+    private final AtomicInteger unparseableDocumentRetries = new AtomicInteger(0);
     private final FeedRangeThroughputControlConfigManager feedRangeThroughputControlConfigManager;
 
     public PartitionProcessorImpl(ChangeFeedObserver<JsonNode> observer,
@@ -194,6 +200,9 @@ class PartitionProcessorImpl implements PartitionProcessor {
                 if (this.options.getMaxItemCount() != this.settings.getMaxItemCount()) {
                     this.options.setMaxItemCount(this.settings.getMaxItemCount());   // Reset after successful execution.
                 }
+
+                this.streamsConstrainedRetries.set(0);
+                this.unparseableDocumentRetries.set(0);
             })
             .onErrorResume(throwable -> {
                 if (throwable instanceof CosmosException) {
@@ -225,6 +234,20 @@ class PartitionProcessorImpl implements PartitionProcessor {
                             this.resultException = new RuntimeException(clientException);
                         }
                         break;
+                        case STREAMS_CONSTRAINED: {
+                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
+                                logger.error(
+                                    "Partition {}: Reached max retries for streams constrained exception, failing.",
+                                    this.lease.getLeaseToken());
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            logger.warn(
+                                "Partition {}: Streams constrained exception encountered, will retry.",
+                                this.lease.getLeaseToken(),
+                                clientException);
+                        }
                         case MAX_ITEM_COUNT_TOO_LARGE: {
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(
@@ -251,7 +274,39 @@ class PartitionProcessorImpl implements PartitionProcessor {
                                     }).flatMap(values -> Flux.empty());
                             }
                         }
-                        break;
+                        case PARSING_ERROR:
+                            if (this.unparseableDocumentRetries.incrementAndGet() == 1) {
+                                logger.warn(
+                                    "Lease with token {}: Attempting a retry on parsing error.",
+                                    this.lease.getLeaseToken());
+                                this.resultException = new RuntimeException(clientException);
+                                this.options.setMaxItemCount(1);
+                                return Flux.empty();
+                            } else {
+
+                                // No way to recover from this
+                                logger.error("Encountered parsing error which is not recoverable, attempting to skip document", clientException);
+
+                                String continuation = CosmosChangeFeedContinuationTokenUtils.extractContinuationTokenFromCosmosException(clientException);
+
+                                if (Strings.isNullOrEmpty(continuation)) {
+                                    logger.error(
+                                        "Partition {}: Unable to extract continuation token post the parsing exception, failing.",
+                                        this.lease.getLeaseToken());
+                                    this.resultException = new RuntimeException(clientException);
+                                    return Flux.error(throwable);
+                                }
+
+                                ChangeFeedState continuationState = ChangeFeedState.fromString(continuation);
+                                return this.checkpointer.checkpointPartition(continuationState)
+                                    .doOnError(t -> {
+                                        logger.warn(
+                                            "Failed to checkpoint Lease with token {} from thread {}",
+                                            this.lease.getLeaseToken(),
+                                            Thread.currentThread().getId(),
+                                            t);
+                                    });
+                            }
                         default: {
                             logger.error("Unrecognized Cosmos exception returned error code {}", docDbError, clientException);
                             this.resultException = new RuntimeException(clientException);
