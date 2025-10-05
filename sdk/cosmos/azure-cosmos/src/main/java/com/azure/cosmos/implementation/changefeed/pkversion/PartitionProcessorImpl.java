@@ -275,9 +275,9 @@ class PartitionProcessorImpl implements PartitionProcessor {
                             }
                         }
                         case PARSING_ERROR:
-                            if (this.unparseableDocumentRetries.incrementAndGet() == 1) {
+                            if (this.unparseableDocumentRetries.compareAndSet(0, 1)) {
                                 logger.warn(
-                                    "Lease with token {}: Attempting a retry on parsing error.",
+                                    "Partition {}: Attempting a retry on parsing error.",
                                     this.lease.getLeaseToken());
                                 this.resultException = new RuntimeException(clientException);
                                 this.options.setMaxItemCount(1);
@@ -285,7 +285,7 @@ class PartitionProcessorImpl implements PartitionProcessor {
                             } else {
 
                                 // No way to recover from this
-                                logger.error("Encountered parsing error which is not recoverable, attempting to skip document", clientException);
+                                logger.error("Partition {}: Encountered parsing error which is not recoverable, attempting to skip document", this.lease.getLeaseToken(), clientException);
 
                                 String continuation = CosmosChangeFeedContinuationTokenUtils.extractContinuationTokenFromCosmosException(clientException);
 
