@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -68,6 +69,8 @@ public class RequestOptions implements OverridableRequestOptions {
     private PartitionKeyDefinition partitionKeyDefinition;
     private String operationId;
 
+    private Consumer<RxDocumentServiceRequest> responseInterceptor;
+
     public RequestOptions() {
 
         this.markE2ETimeoutInRequestContextCallbackHook = new AtomicReference<>(null);
@@ -101,6 +104,7 @@ public class RequestOptions implements OverridableRequestOptions {
         this.markE2ETimeoutInRequestContextCallbackHook = new AtomicReference<>(null);
         this.effectiveItemSerializer= toBeCloned.effectiveItemSerializer;
         this.partitionKeyDefinition = toBeCloned.partitionKeyDefinition;
+        this.responseInterceptor = toBeCloned.responseInterceptor;
 
         if (toBeCloned.customOptions != null) {
             this.customOptions = new HashMap<>(toBeCloned.customOptions);
@@ -719,5 +723,13 @@ public class RequestOptions implements OverridableRequestOptions {
 
     public void setOperationId(String operationId) {
         this.operationId = operationId;
+    }
+
+    public Consumer<RxDocumentServiceRequest> getResponseInterceptor() {
+        return this.responseInterceptor;
+    }
+
+    public void setResponseInterceptor(Consumer<RxDocumentServiceRequest> responseInterceptor) {
+        this.responseInterceptor = responseInterceptor;
     }
 }

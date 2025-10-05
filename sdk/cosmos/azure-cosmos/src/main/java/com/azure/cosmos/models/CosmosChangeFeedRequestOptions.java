@@ -11,6 +11,7 @@ import com.azure.cosmos.implementation.CosmosChangeFeedRequestOptionsImpl;
 import com.azure.cosmos.implementation.CosmosPagedFluxOptions;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
+import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.changefeed.common.ChangeFeedMode;
 import com.azure.cosmos.implementation.changefeed.common.ChangeFeedStartFromInternal;
@@ -31,6 +32,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
 
@@ -607,6 +610,14 @@ public final class CosmosChangeFeedRequestOptions {
      */
     public Set<String> getKeywordIdentifiers() {
         return this.actualRequestOptions.getKeywordIdentifiers();
+    }
+
+    public void setResponseInterceptor(Callable<Void> responseInterceptor) {
+        this.actualRequestOptions.setResponseInterceptor(responseInterceptor);
+    }
+
+    public Callable<Void> getResponseInterceptor() {
+        return this.actualRequestOptions.getResponseInterceptor();
     }
 
     void setOperationContextAndListenerTuple(OperationContextAndListenerTuple operationContextAndListenerTuple) {

@@ -87,6 +87,8 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                 settings.getStartState(),
                 settings.getMaxItemCount(),
                 this.changeFeedMode);
+        this.options.setResponseInterceptor(settings.getResponseInterceptor());
+
         this.feedRangeThroughputControlConfigManager = feedRangeThroughputControlConfigManager;
     }
 
@@ -244,6 +246,19 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                 "Lease with token {}: Streams constrained exception encountered, will retry.",
                                 this.lease.getLeaseToken(),
                                 clientException);
+
+                            if (this.options.getMaxItemCount() <= 1) {
+                                logger.error(
+                                    "Cannot reduce maxItemCount further as it's already at {}",
+                                    this.options.getMaxItemCount(),
+                                    clientException);
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            this.options.setMaxItemCount(this.options.getMaxItemCount() / 2);
+                            logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
+                            return Flux.empty();
                         }
                         case MAX_ITEM_COUNT_TOO_LARGE: {
                             if (this.options.getMaxItemCount() <= 1) {
@@ -270,6 +285,8 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                         return !cancellationToken.isCancellationRequested() && currentTime.isBefore(stopTimer);
                                     }).flatMap(values -> Flux.empty());
                             }
+
+                            break;
                         }
                         case PARSING_ERROR:
                             if (this.unparseableDocumentRetries.compareAndSet(0, 1)) {

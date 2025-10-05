@@ -9,6 +9,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.Callable;
 
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
 
@@ -55,6 +56,7 @@ public final class ChangeFeedProcessorOptions {
 
     private Scheduler scheduler;
     private ThroughputControlGroupConfig feedPollThroughputControlGroupConfig;
+    private Callable<Void> responseInterceptor;
 
     /**
      * Instantiates a new Change feed processor options.
@@ -386,7 +388,7 @@ public final class ChangeFeedProcessorOptions {
      * Please use this config with caution. By default, CFP will try to process the changes as fast as possible,
      * only use this config if you want to limit the RU that can be used for your change feed processing.
      * By using this config, it can slow down the process and cause the lag.
-     * 
+     *
      * For direct mode, please configure the throughput control group with the total RU you would allow for changeFeed processing.
      * For gateway mode, please configure the throughput control group with the total RU you would allow for changeFeed processing / total CFP Instances.
      *
@@ -428,5 +430,14 @@ public final class ChangeFeedProcessorOptions {
      */
     public boolean isLeaseVerificationEnabledOnRestart() {
         return this.leaseVerificationOnRestartEnabled;
+    }
+
+    public ChangeFeedProcessorOptions setResponseInterceptor(Callable<Void> responseInterceptor) {
+        this.responseInterceptor = responseInterceptor;
+        return this;
+    }
+
+    public Callable<Void> getResponseInterceptor() {
+        return this.responseInterceptor;
     }
 }

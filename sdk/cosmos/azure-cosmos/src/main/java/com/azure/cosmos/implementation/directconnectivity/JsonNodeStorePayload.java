@@ -5,6 +5,7 @@ package com.azure.cosmos.implementation.directconnectivity;
 
 import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.HttpConstants;
+import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.Utils;
 import com.fasterxml.jackson.core.exc.StreamConstraintsException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,6 +20,8 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 
 public class JsonNodeStorePayload implements StorePayload<JsonNode> {
     private static final Logger logger = LoggerFactory.getLogger(JsonNodeStorePayload.class);
@@ -26,25 +29,47 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
     private final int responsePayloadSize;
     private final JsonNode jsonValue;
 
-    public JsonNodeStorePayload(ByteBufInputStream bufferStream, int readableBytes, Map<String, String> responseHeaders) {
+    public JsonNodeStorePayload(
+        ByteBufInputStream bufferStream,
+        int readableBytes,
+        Map<String, String> responseHeaders,
+        Callable<Void> interceptor) throws Exception {
+
         if (readableBytes > 0) {
             this.responsePayloadSize = readableBytes;
-            this.jsonValue = fromJson(bufferStream, readableBytes, responseHeaders);
+            this.jsonValue = fromJson(bufferStream, readableBytes, responseHeaders, interceptor);
         } else {
             this.responsePayloadSize = 0;
             this.jsonValue = null;
         }
     }
 
-    private static JsonNode fromJson(ByteBufInputStream bufferStream, int readableBytes, Map<String, String> responseHeaders) {
+    private static JsonNode fromJson(
+        ByteBufInputStream bufferStream,
+        int readableBytes,
+        Map<String, String> responseHeaders,
+        Callable<Void> interceptor) throws Exception {
+
         byte[] bytes = new byte[readableBytes];
         try {
             bufferStream.read(bytes);
+
+            if (interceptor != null) {
+                // Log if a fallback charset decoder is enabled for this request
+                interceptor.call();
+            }
+
             return Utils.getSimpleObjectMapper().readTree(bytes);
         } catch (IOException e) {
             if (fallbackCharsetDecoder != null) {
                 logger.warn("Unable to parse JSON, fallback to use customized charset decoder.", e);
-                return fromJsonWithFallbackCharsetDecoder(bytes, responseHeaders);
+
+                if (interceptor != null) {
+                    // Log if a fallback charset decoder is enabled for this request
+                    interceptor.call();
+                }
+
+                return fromJsonWithFallbackCharsetDecoder(bytes, responseHeaders, interceptor);
             } else {
                 Exception nestedException = new IllegalStateException("Unable to parse JSON.", e);
 
@@ -65,8 +90,14 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
         }
     }
 
-    private static JsonNode fromJsonWithFallbackCharsetDecoder(byte[] bytes, Map<String, String> responseHeaders) {
+    private static JsonNode fromJsonWithFallbackCharsetDecoder(byte[] bytes, Map<String, String> responseHeaders, Callable<Void> interceptor) throws Exception {
         try {
+
+            if (interceptor != null) {
+                // Log if a fallback charset decoder is enabled for this request
+                interceptor.call();
+            }
+
             String sanitizedJson = fallbackCharsetDecoder.decode(ByteBuffer.wrap(bytes)).toString();
             return Utils.getSimpleObjectMapper().readTree(sanitizedJson);
         } catch (IOException e) {

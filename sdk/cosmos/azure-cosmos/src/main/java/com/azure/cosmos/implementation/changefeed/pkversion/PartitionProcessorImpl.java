@@ -82,6 +82,8 @@ class PartitionProcessorImpl implements PartitionProcessor {
         ChangeFeedState state = settings.getStartState();
         this.options = ModelBridgeInternal.createChangeFeedRequestOptionsForChangeFeedState(state);
         this.options.setMaxItemCount(settings.getMaxItemCount());
+        this.options.setResponseInterceptor(settings.getResponseInterceptor());
+
         // For pk version, merge is not support, exclude it from the capabilities header
         ImplementationBridgeHelpers.CosmosChangeFeedRequestOptionsHelper.getCosmosChangeFeedRequestOptionsAccessor()
             .setHeader(
@@ -247,6 +249,20 @@ class PartitionProcessorImpl implements PartitionProcessor {
                                 "Partition {}: Streams constrained exception encountered, will retry.",
                                 this.lease.getLeaseToken(),
                                 clientException);
+
+
+                            if (this.options.getMaxItemCount() <= 1) {
+                                logger.error(
+                                    "Cannot reduce maxItemCount further as it's already at {}",
+                                    this.options.getMaxItemCount(),
+                                    clientException);
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            this.options.setMaxItemCount(this.options.getMaxItemCount() / 2);
+                            logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
+                            return Flux.empty();
                         }
                         case MAX_ITEM_COUNT_TOO_LARGE: {
                             if (this.options.getMaxItemCount() <= 1) {
@@ -273,6 +289,8 @@ class PartitionProcessorImpl implements PartitionProcessor {
                                         return !cancellationToken.isCancellationRequested() && currentTime.isBefore(stopTimer);
                                     }).flatMap(values -> Flux.empty());
                             }
+
+                            break;
                         }
                         case PARSING_ERROR:
                             if (this.unparseableDocumentRetries.compareAndSet(0, 1)) {

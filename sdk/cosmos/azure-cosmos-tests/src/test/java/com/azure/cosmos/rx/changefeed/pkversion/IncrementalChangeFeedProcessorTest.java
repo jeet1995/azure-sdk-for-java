@@ -48,6 +48,7 @@ import com.azure.cosmos.test.faultinjection.FaultInjectionRuleBuilder;
 import com.azure.cosmos.test.faultinjection.FaultInjectionServerErrorResult;
 import com.azure.cosmos.test.faultinjection.FaultInjectionServerErrorType;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.exc.StreamConstraintsException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -80,6 +81,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -272,6 +274,91 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
 //            safeDeleteCollection(createdLeaseCollection);
 
             // Allow some time for the collections to be deleted before exiting.            Thread.sleep(500);
+        }
+    }
+
+    @Test(groups = { "long-emulator" }, enabled = true, timeOut = 12 * TIMEOUT)
+    public void readFeedDocumentsStartFromBeginningWithJsonProcessingErrors() throws InterruptedException {
+        CosmosAsyncContainer createdFeedCollection = createFeedCollection(FEED_COLLECTION_THROUGHPUT);
+        CosmosAsyncContainer createdLeaseCollection = createLeaseCollection(LEASE_COLLECTION_THROUGHPUT);
+
+        System.setProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_MALFORMED_INPUT", "REPLACE");
+        System.setProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_UNMAPPED_CHARACTER", "REPLACE");
+
+        try {
+            List<InternalObjectNode> createdDocuments = new ArrayList<>();
+            Map<String, JsonNode> receivedDocuments = new ConcurrentHashMap<>();
+            AtomicInteger counter = new AtomicInteger(0);
+
+            Callable<Void> responseInterceptor = () -> {
+                if (counter.get() == 5) {
+                    log.info("Enabling fallback charset decoder for request count {}", counter.get());
+                } else {
+                    throw new StreamConstraintsException("Simulated exception to skip logging");
+                }
+                return null;
+            };
+
+            changeFeedProcessor = new ChangeFeedProcessorBuilder()
+                .hostName(hostName)
+                .handleChanges((docs) -> {
+                    log.info("START processing from thread {}", Thread.currentThread().getId());
+                    for (JsonNode item : docs) {
+                        processItem(item, receivedDocuments);
+                    }
+                    counter.incrementAndGet();
+                    log.info("END processing from thread {}", Thread.currentThread().getId());
+                })
+                .feedContainer(createdFeedCollection)
+                .leaseContainer(createdLeaseCollection)
+                .options(new ChangeFeedProcessorOptions()
+                    .setLeaseRenewInterval(Duration.ofSeconds(20))
+                    .setLeaseAcquireInterval(Duration.ofSeconds(10))
+                    .setLeaseExpirationInterval(Duration.ofSeconds(30))
+                    .setFeedPollDelay(Duration.ofSeconds(2))
+                    .setLeasePrefix("TEST")
+                    .setMaxItemCount(10)
+                    .setStartFromBeginning(true)
+                    .setMaxScaleCount(0) // unlimited
+                    .setResponseInterceptor(responseInterceptor)
+                )
+                .buildChangeFeedProcessor();
+
+            startChangeFeedProcessor(changeFeedProcessor);
+
+            // Wait for the feed processor to receive and process the documents.
+            Thread.sleep(20000 * CHANGE_FEED_PROCESSOR_TIMEOUT);
+
+            assertThat(changeFeedProcessor.isStarted()).as("Change Feed Processor instance is running").isTrue();
+
+            safeStopChangeFeedProcessor(changeFeedProcessor);
+            for (InternalObjectNode item : createdDocuments) {
+                assertThat(receivedDocuments.containsKey(item.getId())).as("Document with getId: " + item.getId()).isTrue();
+            }
+
+            // Wait for the feed processor to shutdown.
+            Thread.sleep(CHANGE_FEED_PROCESSOR_TIMEOUT);
+
+            // restart the change feed processor and verify it can start successfully
+            startChangeFeedProcessor(changeFeedProcessor);
+
+            // Wait for the feed processor to start
+            Thread.sleep(2 * CHANGE_FEED_PROCESSOR_TIMEOUT);
+
+            assertThat(changeFeedProcessor.isStarted()).as("Change Feed Processor instance is running").isTrue();
+
+            safeStopChangeFeedProcessor(changeFeedProcessor);
+            // Wait for the feed processor to shutdown.
+            Thread.sleep(CHANGE_FEED_PROCESSOR_TIMEOUT);
+        } finally {
+            safeDeleteCollection(createdFeedCollection);
+            safeDeleteCollection(createdLeaseCollection);
+
+            System.clearProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_MALFORMED_INPUT");
+            System.clearProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_UNMAPPED_CHARACTER");
+
+            // Allow some time for the collections to be deleted before exiting.
+            Thread.sleep(500);
         }
     }
 
