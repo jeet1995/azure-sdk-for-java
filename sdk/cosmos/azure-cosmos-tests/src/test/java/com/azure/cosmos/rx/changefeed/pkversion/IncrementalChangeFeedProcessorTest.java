@@ -47,6 +47,8 @@ import com.azure.cosmos.test.faultinjection.FaultInjectionRule;
 import com.azure.cosmos.test.faultinjection.FaultInjectionRuleBuilder;
 import com.azure.cosmos.test.faultinjection.FaultInjectionServerErrorResult;
 import com.azure.cosmos.test.faultinjection.FaultInjectionServerErrorType;
+import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.exc.StreamConstraintsException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -288,14 +290,36 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
         try {
             List<InternalObjectNode> createdDocuments = new ArrayList<>();
             Map<String, JsonNode> receivedDocuments = new ConcurrentHashMap<>();
-            AtomicInteger counter = new AtomicInteger(0);
+            setupReadFeedDocuments(createdDocuments, createdFeedCollection, 100);
+            AtomicInteger pageCounter = new AtomicInteger(0);
+            AtomicInteger exceptionCounter = new AtomicInteger(0);
 
             Callable<Void> responseInterceptor = () -> {
-                if (counter.get() == 5) {
-                    log.info("Enabling fallback charset decoder for request count {}", counter.get());
-                } else {
-                    throw new StreamConstraintsException("Simulated exception to skip logging");
+                // inject when certain no. of pages have been processed
+                if (pageCounter.incrementAndGet() > 1 && pageCounter.get() % 5 == 0) {
+                    if (exceptionCounter.get() < 4) {
+                        exceptionCounter.incrementAndGet();
+                        throw new JacksonException("Simulated exception to skip logging") {
+                            @Override
+                            public JsonLocation getLocation() {
+                                return null;
+                            }
+
+                            @Override
+                            public String getOriginalMessage() {
+                                return "";
+                            }
+
+                            @Override
+                            public Object getProcessor() {
+                                return null;
+                            }
+                        };
+                    } else {
+                        exceptionCounter.set(0);
+                    }
                 }
+
                 return null;
             };
 
@@ -306,7 +330,6 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
                     for (JsonNode item : docs) {
                         processItem(item, receivedDocuments);
                     }
-                    counter.incrementAndGet();
                     log.info("END processing from thread {}", Thread.currentThread().getId());
                 })
                 .feedContainer(createdFeedCollection)
@@ -317,7 +340,7 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
                     .setLeaseExpirationInterval(Duration.ofSeconds(30))
                     .setFeedPollDelay(Duration.ofSeconds(2))
                     .setLeasePrefix("TEST")
-                    .setMaxItemCount(10)
+                    .setMaxItemCount(4)
                     .setStartFromBeginning(true)
                     .setMaxScaleCount(0) // unlimited
                     .setResponseInterceptor(responseInterceptor)
@@ -327,7 +350,7 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
             startChangeFeedProcessor(changeFeedProcessor);
 
             // Wait for the feed processor to receive and process the documents.
-            Thread.sleep(20000 * CHANGE_FEED_PROCESSOR_TIMEOUT);
+            Thread.sleep(20 * CHANGE_FEED_PROCESSOR_TIMEOUT);
 
             assertThat(changeFeedProcessor.isStarted()).as("Change Feed Processor instance is running").isTrue();
 

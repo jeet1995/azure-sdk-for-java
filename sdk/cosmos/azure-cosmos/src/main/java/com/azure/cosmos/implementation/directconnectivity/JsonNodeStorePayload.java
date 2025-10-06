@@ -52,12 +52,13 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
 
         byte[] bytes = new byte[readableBytes];
         try {
-            bufferStream.read(bytes);
 
             if (interceptor != null) {
                 // Log if a fallback charset decoder is enabled for this request
                 interceptor.call();
             }
+
+            bufferStream.read(bytes);
 
             return Utils.getSimpleObjectMapper().readTree(bytes);
         } catch (IOException e) {
