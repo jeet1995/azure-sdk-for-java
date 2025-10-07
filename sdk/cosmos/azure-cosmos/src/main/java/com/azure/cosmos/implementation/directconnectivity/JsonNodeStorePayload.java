@@ -54,7 +54,6 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
         try {
 
             if (interceptor != null) {
-                // Log if a fallback charset decoder is enabled for this request
                 interceptor.call();
             }
 
@@ -66,7 +65,6 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
                 logger.warn("Unable to parse JSON, fallback to use customized charset decoder.", e);
 
                 if (interceptor != null) {
-                    // Log if a fallback charset decoder is enabled for this request
                     interceptor.call();
                 }
 

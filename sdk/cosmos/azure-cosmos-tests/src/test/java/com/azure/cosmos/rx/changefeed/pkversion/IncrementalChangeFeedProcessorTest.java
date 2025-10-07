@@ -124,6 +124,33 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
         };
     }
 
+    @DataProvider(name = "parsingErrorArgProvider")
+    public static Object[][] parsingErrorArgProvider() {
+        return new Object[][]{
+            {
+                new StreamConstraintsException("A StreamConstraintsException has been hit!"),
+            },
+            {
+                new JacksonException("A JacksonException has been hit!") {
+                    @Override
+                    public JsonLocation getLocation() {
+                        return null;
+                    }
+
+                    @Override
+                    public String getOriginalMessage() {
+                        return "";
+                    }
+
+                    @Override
+                    public Object getProcessor() {
+                        return null;
+                    }
+                }
+            }
+        };
+    }
+
     @DataProvider
     public Object[] incrementalChangeFeedModeStartFromSetting() {
         return new Object[] { true, false };
@@ -279,44 +306,26 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
         }
     }
 
-    @Test(groups = { "long-emulator" }, enabled = true, timeOut = 12 * TIMEOUT)
-    public void readFeedDocumentsStartFromBeginningWithJsonProcessingErrors() throws InterruptedException {
+    @Test(groups = { "long-emulator" }, dataProvider = "parsingErrorArgProvider", timeOut = 12 * TIMEOUT)
+    public void readFeedDocumentsStartFromBeginningWithJsonProcessingErrors(Exception exceptionType) throws InterruptedException {
+
         CosmosAsyncContainer createdFeedCollection = createFeedCollection(FEED_COLLECTION_THROUGHPUT);
         CosmosAsyncContainer createdLeaseCollection = createLeaseCollection(LEASE_COLLECTION_THROUGHPUT);
+        Callable<Void> responseInterceptor = null;
 
-//        System.setProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_MALFORMED_INPUT", "REPLACE");
-//        System.setProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_UNMAPPED_CHARACTER", "REPLACE");
+        // Response Interceptor Properties
+        AtomicInteger pageCounter = new AtomicInteger(0);
+        AtomicInteger exceptionCounter = new AtomicInteger(0);
+        AtomicInteger totalExceptionHits = new AtomicInteger(0);
 
-        try {
-            List<InternalObjectNode> createdDocuments = new ArrayList<>();
-            Map<String, JsonNode> receivedDocuments = new ConcurrentHashMap<>();
-            setupReadFeedDocuments(createdDocuments, createdFeedCollection, 100);
-            AtomicInteger pageCounter = new AtomicInteger(0);
-            AtomicInteger exceptionCounter = new AtomicInteger(0);
-            AtomicInteger totalExceptionHits = new AtomicInteger(0);
-
-            Callable<Void> responseInterceptor = () -> {
+        if (exceptionType instanceof StreamConstraintsException) {
+            responseInterceptor = () -> {
                 // inject when certain no. of pages have been processed
                 if (pageCounter.get() > 1 && pageCounter.get() % 2 == 0) {
-                    if (exceptionCounter.get() < 2) {
+                    if (exceptionCounter.get() < 3) {
                         exceptionCounter.incrementAndGet();
                         totalExceptionHits.incrementAndGet();
-                        throw new JacksonException("Simulated exception to skip logging") {
-                            @Override
-                            public JsonLocation getLocation() {
-                                return null;
-                            }
-
-                            @Override
-                            public String getOriginalMessage() {
-                                return "";
-                            }
-
-                            @Override
-                            public Object getProcessor() {
-                                return null;
-                            }
-                        };
+                        throw exceptionType;
                     } else {
                         exceptionCounter.set(0);
                     }
@@ -324,6 +333,27 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
 
                 return null;
             };
+        } else {
+            responseInterceptor = () -> {
+                // inject when certain no. of pages have been processed
+                if (pageCounter.get() > 1 && pageCounter.get() % 2 == 0) {
+                    if (exceptionCounter.get() < 2) {
+                        exceptionCounter.incrementAndGet();
+                        totalExceptionHits.incrementAndGet();
+                        throw exceptionType;
+                    } else {
+                        exceptionCounter.set(0);
+                    }
+                }
+
+                return null;
+            };
+        }
+
+        try {
+            List<InternalObjectNode> createdDocuments = new ArrayList<>();
+            Map<String, JsonNode> receivedDocuments = new ConcurrentHashMap<>();
+            setupReadFeedDocuments(createdDocuments, createdFeedCollection, 100);
 
             changeFeedProcessor = new ChangeFeedProcessorBuilder()
                 .hostName(hostName)
@@ -353,35 +383,39 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
 
             startChangeFeedProcessor(changeFeedProcessor);
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 5; i++) {
                 setupReadFeedDocuments(createdDocuments, createdFeedCollection, 100);
                 Thread.sleep(10_000);
             }
 
             // Wait for the feed processor to receive and process the documents.
-            Thread.sleep(40 * CHANGE_FEED_PROCESSOR_TIMEOUT);
+            Thread.sleep(20 * CHANGE_FEED_PROCESSOR_TIMEOUT);
 
             assertThat(changeFeedProcessor.isStarted()).as("Change Feed Processor instance is running").isTrue();
 
             safeStopChangeFeedProcessor(changeFeedProcessor);
 
+            // Wait for the feed processor to shutdown.
+            Thread.sleep(CHANGE_FEED_PROCESSOR_TIMEOUT);
+
             logger.warn("Total documents received: {}", receivedDocuments.size());
             logger.warn("Total created documents : {}", createdDocuments.size());
             logger.warn("Total exception hits : {}", totalExceptionHits.get());
 
-            for (InternalObjectNode item : createdDocuments) {
-                assertThat(receivedDocuments.containsKey(item.getId())).as("Document with getId: " + item.getId()).isTrue();
+            assertThat(totalExceptionHits.get()).isGreaterThan(0);
+
+            if (exceptionType instanceof StreamConstraintsException) {
+                assertThat(receivedDocuments.size()).isEqualTo(createdDocuments.size());
+
+                for (InternalObjectNode item : createdDocuments) {
+                    assertThat(receivedDocuments.containsKey(item.getId())).as("Document with getId: " + item.getId()).isTrue();
+                }
+            } else {
+                assertThat(receivedDocuments.size()).isEqualTo(createdDocuments.size() - totalExceptionHits.get() / 2);
             }
-
-            // Wait for the feed processor to shutdown.
-            Thread.sleep(CHANGE_FEED_PROCESSOR_TIMEOUT);
-
         } finally {
             safeDeleteCollection(createdFeedCollection);
             safeDeleteCollection(createdLeaseCollection);
-
-//            System.clearProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_MALFORMED_INPUT");
-//            System.clearProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_UNMAPPED_CHARACTER");
 
             // Allow some time for the collections to be deleted before exiting.
             Thread.sleep(500);

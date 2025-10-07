@@ -432,11 +432,24 @@ public final class ChangeFeedProcessorOptions {
         return this.leaseVerificationOnRestartEnabled;
     }
 
+    /**
+     * Sets a callback to be invoked after every response from the service to the Change Feed requests.
+     * This can be used for logging or metrics gathering purposes.
+     *
+     * @param responseInterceptor a callback to be invoked after every response from the service to the Change Feed requests.
+     * @return the {@link ChangeFeedProcessorOptions}.
+     */
     public ChangeFeedProcessorOptions setResponseInterceptor(Callable<Void> responseInterceptor) {
         this.responseInterceptor = responseInterceptor;
         return this;
     }
 
+    /**
+     * Gets a callback to be invoked after every response from the service to the Change Feed requests.
+     * This can be used for logging or metrics gathering purposes.
+     *
+     * @return a callback to be invoked after every response from the service to the Change Feed requests.
+     */
     public Callable<Void> getResponseInterceptor() {
         return this.responseInterceptor;
     }

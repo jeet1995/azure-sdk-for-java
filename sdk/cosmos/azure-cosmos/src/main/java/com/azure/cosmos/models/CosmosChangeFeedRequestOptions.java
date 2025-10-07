@@ -3,7 +3,6 @@
 
 package com.azure.cosmos.models;
 
-import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosDiagnosticsThresholds;
 import com.azure.cosmos.CosmosItemSerializer;
 import com.azure.cosmos.ReadConsistencyStrategy;
@@ -11,7 +10,6 @@ import com.azure.cosmos.implementation.CosmosChangeFeedRequestOptionsImpl;
 import com.azure.cosmos.implementation.CosmosPagedFluxOptions;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
-import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
 import com.azure.cosmos.implementation.changefeed.common.ChangeFeedMode;
 import com.azure.cosmos.implementation.changefeed.common.ChangeFeedStartFromInternal;
@@ -33,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 
 import static com.azure.cosmos.implementation.guava25.base.Preconditions.checkNotNull;
 
@@ -612,10 +609,22 @@ public final class CosmosChangeFeedRequestOptions {
         return this.actualRequestOptions.getKeywordIdentifiers();
     }
 
+    /**
+     * Sets the response interceptor to be called after receiving the response
+     * for the request.
+     *
+     * @param responseInterceptor the response interceptor.
+     */
     public void setResponseInterceptor(Callable<Void> responseInterceptor) {
         this.actualRequestOptions.setResponseInterceptor(responseInterceptor);
     }
 
+    /**
+     * Gets the response interceptor to be called after receiving the response
+     * for the request.
+     *
+     * @return the response interceptor.
+     */
     public Callable<Void> getResponseInterceptor() {
         return this.actualRequestOptions.getResponseInterceptor();
     }

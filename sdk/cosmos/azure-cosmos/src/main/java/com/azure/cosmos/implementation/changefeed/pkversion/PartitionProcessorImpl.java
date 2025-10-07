@@ -4,6 +4,7 @@ package com.azure.cosmos.implementation.changefeed.pkversion;
 
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.ThroughputControlGroupConfig;
+import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.CosmosSchedulers;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
@@ -18,7 +19,6 @@ import com.azure.cosmos.implementation.changefeed.PartitionCheckpointer;
 import com.azure.cosmos.implementation.changefeed.ProcessorSettings;
 import com.azure.cosmos.implementation.changefeed.common.ChangeFeedObserverContextImpl;
 import com.azure.cosmos.implementation.changefeed.common.ChangeFeedState;
-import com.azure.cosmos.implementation.changefeed.common.ChangeFeedStateV1;
 import com.azure.cosmos.implementation.changefeed.common.ExceptionClassifier;
 import com.azure.cosmos.implementation.changefeed.common.StatusCodeErrorType;
 import com.azure.cosmos.implementation.changefeed.exceptions.FeedRangeGoneException;
@@ -267,6 +267,17 @@ class PartitionProcessorImpl implements PartitionProcessor {
                             break;
                         }
                         case PARSING_ERROR:
+
+                            if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
+                                logger.error(
+                                    "Partition {}: Parsing error encountered. To enable automatic retries, please set the '{}' configuration to 'true'. Failing.",
+                                    this.lease.getLeaseToken(),
+                                    Configs.CHANGE_FEED_PROCESSOR_MALFORMED_RESPONSE_RECOVERY_ENABLED,
+                                    clientException);
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
                             if (this.unparseableDocumentRetries.compareAndSet(0, 1)) {
                                 logger.warn(
                                     "Partition {}: Attempting a retry on parsing error.",
@@ -290,6 +301,11 @@ class PartitionProcessorImpl implements PartitionProcessor {
 
                                 ChangeFeedState continuationState = ChangeFeedState.fromString(continuation);
                                 return this.checkpointer.checkpointPartition(continuationState)
+                                    .doOnSuccess(lease1 -> {
+                                        logger.info("Partition {}: Successfully skipped the unparseable document.", this.lease.getLeaseToken());
+                                        this.options =
+                                            CosmosChangeFeedRequestOptions
+                                                .createForProcessingFromContinuation(continuation);                                    })
                                     .doOnError(t -> {
                                         logger.warn(
                                             "Failed to checkpoint Lease with token {} from thread {}",
@@ -299,6 +315,17 @@ class PartitionProcessorImpl implements PartitionProcessor {
                                     });
                             }
                         case STREAMS_CONSTRAINED: {
+
+                            if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
+                                logger.error(
+                                    "Partition {}: Streams constrained exception encountered. To enable automatic retries, please set the '{}' configuration to 'true'. Failing.",
+                                    this.lease.getLeaseToken(),
+                                    Configs.CHANGE_FEED_PROCESSOR_MALFORMED_RESPONSE_RECOVERY_ENABLED,
+                                    clientException);
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
                             if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
                                 logger.error(
                                     "Partition {}: Reached max retries for streams constrained exception, failing.",
