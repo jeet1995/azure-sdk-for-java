@@ -261,7 +261,6 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                         return !cancellationToken.isCancellationRequested() && currentTime.isBefore(stopTimer);
                                     }).flatMap(values -> Flux.empty());
                             }
-
                             break;
                         }
                         case STREAMS_CONSTRAINED: {
@@ -277,22 +276,26 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
 
                             if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
                                 logger.error(
-                                    "Lease with token {}: Reached max retries for streams constrained exception, exiting.",
-                                    this.lease.getLeaseToken());
+                                    "Lease with token {}: Reached max retries for streams constrained exception with statusCode [{}] : subStatusCode [{}] : message [{}].",
+                                    this.lease.getLeaseToken(),
+                                    clientException.getStatusCode(),
+                                    clientException.getSubStatusCode(),
+                                    clientException.getMessage());
+                                logger.error("Streams constrained retries exhausted.", clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
 
                             logger.warn(
                                 "Lease with token {}: Streams constrained exception encountered, will retry.",
-                                this.lease.getLeaseToken(),
-                                clientException);
+                                this.lease.getLeaseToken());
+                            logger.warn("Streams constrained exception.", clientException);
 
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(
                                     "Cannot reduce maxItemCount further as it's already at {}",
-                                    this.options.getMaxItemCount(),
-                                    clientException);
+                                    this.options.getMaxItemCount());
+                                logger.error("Streams constrained retries exhausted.", clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
@@ -306,8 +309,8 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                             if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
                                 logger.error(
                                     "Lease with token {}: Encountered parsing error and the feature flag to skip unparseable documents is disabled, failing.",
-                                    this.lease.getLeaseToken(),
-                                    clientException);
+                                    this.lease.getLeaseToken());
+                                logger.error("Parsing error.", clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
@@ -316,6 +319,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                 logger.warn(
                                     "Lease with token {}: Attempting a retry on parsing error.",
                                     this.lease.getLeaseToken());
+                                logger.warn("Parsing error.", clientException);
                                 this.options.setMaxItemCount(1);
                                 return Flux.empty();
                             } else {
@@ -329,6 +333,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                     logger.error(
                                         "Lease with token {}: Unable to extract continuation token from the parsing exception, failing.",
                                         this.lease.getLeaseToken());
+                                    logger.error("Parsing error.", clientException);
                                     this.resultException = new RuntimeException(clientException);
                                     return Flux.error(throwable);
                                 }
@@ -343,8 +348,9 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                         logger.warn(
                                             "Failed to checkpoint Lease with token {} from thread {}",
                                             this.lease.getLeaseToken(),
-                                            Thread.currentThread().getId(),
-                                            t);
+                                            Thread.currentThread().getId());
+                                        logger.warn("Parsing error.", t);
+                                        this.resultException = new RuntimeException(t);
                                     });
                             }
                         default: {

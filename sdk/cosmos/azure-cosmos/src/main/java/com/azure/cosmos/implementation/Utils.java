@@ -817,12 +817,14 @@ public class Utils {
     }
 
     public static CosmosException createCosmosException(int statusCode, int substatusCode, Exception nestedException, Map<String, String> responseHeaders) {
+
+        // TODO: Review adding resource address
         CosmosException exceptionToThrow = BridgeInternal.createCosmosException(
             nestedException.getMessage(),
             nestedException,
             responseHeaders,
             statusCode,
-            "");
+            Strings.Emtpy);
 
         BridgeInternal.setSubStatusCode(exceptionToThrow, substatusCode);
 
