@@ -268,13 +268,16 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                             if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
                                 logger.error(
                                     "Lease with token {}: Encountered streams constrained error and the feature flag to retry on streams constrained is disabled, failing.",
-                                    this.lease.getLeaseToken(),
-                                    clientException);
+                                    this.lease.getLeaseToken());
+                                logger.error("Streams constrained exception.", clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
 
-                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
+                            int retryCount = this.streamsConstrainedRetries.incrementAndGet();
+                            boolean shouldRetry = retryCount <= this.maxStreamsConstrainedRetries;
+
+                            if (!shouldRetry) {
                                 logger.error(
                                     "Lease with token {}: Reached max retries for streams constrained exception with statusCode [{}] : subStatusCode [{}] : message [{}].",
                                     this.lease.getLeaseToken(),
@@ -289,6 +292,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                             logger.warn(
                                 "Lease with token {}: Streams constrained exception encountered, will retry.",
                                 this.lease.getLeaseToken());
+                            logger.warn("Streams constrained retry {}/{}", retryCount, this.maxStreamsConstrainedRetries);
                             logger.warn("Streams constrained exception.", clientException);
 
                             if (this.options.getMaxItemCount() <= 1) {
@@ -308,8 +312,9 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
 
                             if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
                                 logger.error(
-                                    "Lease with token {}: Encountered parsing error and the feature flag to skip unparseable documents is disabled, failing.",
-                                    this.lease.getLeaseToken());
+                                    "Lease with token {}: Parsing error encountered. To enable automatic retries, please set the '{}' configuration to 'true'. Failing.",
+                                    this.lease.getLeaseToken(),
+                                    Configs.CHANGE_FEED_PROCESSOR_MALFORMED_RESPONSE_RECOVERY_ENABLED);
                                 logger.error("Parsing error.", clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
@@ -325,7 +330,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                             } else {
 
                                 // No way to recover from this
-                                logger.error("Encountered parsing error which is not recoverable, attempting to skip document", clientException);
+                                logger.error("Lease with token {}: Encountered parsing error which is not recoverable, attempting to skip document", this.lease.getLeaseToken(), clientException);
 
                                 String continuation = CosmosChangeFeedContinuationTokenUtils.extractContinuationTokenFromCosmosException(clientException);
 
@@ -341,7 +346,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                 ChangeFeedState continuationState = ChangeFeedState.fromString(continuation);
                                 return this.checkpointer.checkpointPartition(continuationState)
                                     .doOnSuccess(lease1 -> {
-                                        logger.info("Partition {}: Successfully skipped the unparseable document.", this.lease.getLeaseToken());
+                                        logger.info("Lease with token {}: Successfully skipped the unparseable document.", this.lease.getLeaseToken());
                                         this.options = PartitionProcessorHelper.createForProcessingFromContinuation(continuation, this.changeFeedMode);
                                     })
                                     .doOnError(t -> {
@@ -349,7 +354,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                             "Failed to checkpoint Lease with token {} from thread {}",
                                             this.lease.getLeaseToken(),
                                             Thread.currentThread().getId());
-                                        logger.warn("Parsing error.", t);
+                                        logger.warn("Error in checkpointing after unparseable document.", t);
                                         this.resultException = new RuntimeException(t);
                                     });
                             }

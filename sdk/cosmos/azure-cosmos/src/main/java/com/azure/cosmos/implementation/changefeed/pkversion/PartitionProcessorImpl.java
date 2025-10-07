@@ -266,54 +266,6 @@ class PartitionProcessorImpl implements PartitionProcessor {
 
                             break;
                         }
-                        case PARSING_ERROR:
-
-                            if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
-                                logger.error(
-                                    "Partition {}: Parsing error encountered. To enable automatic retries, please set the '{}' configuration to 'true'. Failing.",
-                                    this.lease.getLeaseToken(),
-                                    Configs.CHANGE_FEED_PROCESSOR_MALFORMED_RESPONSE_RECOVERY_ENABLED,
-                                    clientException);
-                                this.resultException = new RuntimeException(clientException);
-                                return Flux.error(throwable);
-                            }
-
-                            if (this.unparseableDocumentRetries.compareAndSet(0, 1)) {
-                                logger.warn(
-                                    "Partition {}: Attempting a retry on parsing error.",
-                                    this.lease.getLeaseToken());
-                                this.options.setMaxItemCount(1);
-                                return Flux.empty();
-                            } else {
-
-                                // No way to recover from this
-                                logger.error("Partition {}: Encountered parsing error which is not recoverable, attempting to skip document", this.lease.getLeaseToken(), clientException);
-
-                                String continuation = CosmosChangeFeedContinuationTokenUtils.extractContinuationTokenFromCosmosException(clientException);
-
-                                if (Strings.isNullOrEmpty(continuation)) {
-                                    logger.error(
-                                        "Partition {}: Unable to extract continuation token post the parsing exception, failing.",
-                                        this.lease.getLeaseToken());
-                                    this.resultException = new RuntimeException(clientException);
-                                    return Flux.error(throwable);
-                                }
-
-                                ChangeFeedState continuationState = ChangeFeedState.fromString(continuation);
-                                return this.checkpointer.checkpointPartition(continuationState)
-                                    .doOnSuccess(lease1 -> {
-                                        logger.info("Partition {}: Successfully skipped the unparseable document.", this.lease.getLeaseToken());
-                                        this.options =
-                                            CosmosChangeFeedRequestOptions
-                                                .createForProcessingFromContinuation(continuation);                                    })
-                                    .doOnError(t -> {
-                                        logger.warn(
-                                            "Failed to checkpoint Lease with token {} from thread {}",
-                                            this.lease.getLeaseToken(),
-                                            Thread.currentThread().getId(),
-                                            t);
-                                    });
-                            }
                         case STREAMS_CONSTRAINED: {
 
                             if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
@@ -326,25 +278,32 @@ class PartitionProcessorImpl implements PartitionProcessor {
                                 return Flux.error(throwable);
                             }
 
-                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
+                            int retryCount = this.streamsConstrainedRetries.incrementAndGet();
+                            boolean shouldRetry = retryCount <= this.maxStreamsConstrainedRetries;
+
+                            if (!shouldRetry) {
                                 logger.error(
-                                    "Partition {}: Reached max retries for streams constrained exception, failing.",
-                                    this.lease.getLeaseToken());
+                                    "Partition {}: Reached max retries for streams constrained exception with [{}] : subStatusCode [{}] : message [{}], failing.",
+                                    this.lease.getLeaseToken(),
+                                    clientException.getStatusCode(),
+                                    clientException.getSubStatusCode(),
+                                    clientException.getMessage());
+                                logger.error("Streams constrained retries exhausted", clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
 
                             logger.warn(
                                 "Partition {}: Streams constrained exception encountered, will retry.",
-                                this.lease.getLeaseToken(),
-                                clientException);
-
+                                this.lease.getLeaseToken());
+                            logger.warn("Streams constrained retry {}/{}", retryCount, this.maxStreamsConstrainedRetries);
+                            logger.warn("Streams constrained exception.", clientException);
 
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(
                                     "Cannot reduce maxItemCount further as it's already at {}",
-                                    this.options.getMaxItemCount(),
-                                    clientException);
+                                    this.options.getMaxItemCount());
+                                logger.error("Streams constrained retries exhausted.", clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
@@ -353,6 +312,56 @@ class PartitionProcessorImpl implements PartitionProcessor {
                             logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
                             return Flux.empty();
                         }
+                        case PARSING_ERROR:
+
+                            if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
+                                logger.error(
+                                    "Partition {}: Parsing error encountered. To enable automatic retries, please set the '{}' configuration to 'true'. Failing.",
+                                    this.lease.getLeaseToken(),
+                                    Configs.CHANGE_FEED_PROCESSOR_MALFORMED_RESPONSE_RECOVERY_ENABLED);
+                                logger.error("Parsing error.", clientException);
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            if (this.unparseableDocumentRetries.compareAndSet(0, 1)) {
+                                logger.warn(
+                                    "Partition {}: Attempting a retry on parsing error.",
+                                    this.lease.getLeaseToken());
+                                logger.warn("Parsing error.", clientException);
+                                this.options.setMaxItemCount(1);
+                                return Flux.empty();
+                            } else {
+
+                                logger.error("Partition {}: Encountered parsing error which is not recoverable, attempting to skip document", this.lease.getLeaseToken(), clientException);
+
+                                String continuation = CosmosChangeFeedContinuationTokenUtils.extractContinuationTokenFromCosmosException(clientException);
+
+                                if (Strings.isNullOrEmpty(continuation)) {
+                                    logger.error(
+                                        "Partition {}: Unable to extract continuation token post the parsing exception, failing.",
+                                        this.lease.getLeaseToken());
+                                    logger.error("Parsing error.", clientException);
+                                    this.resultException = new RuntimeException(clientException);
+                                    return Flux.error(throwable);
+                                }
+
+                                ChangeFeedState continuationState = ChangeFeedState.fromString(continuation);
+                                return this.checkpointer.checkpointPartition(continuationState)
+                                    .doOnSuccess(lease1 -> {
+                                        logger.info("Partition {}: Successfully skipped the unparseable document.", this.lease.getLeaseToken());
+                                        this.options =
+                                            CosmosChangeFeedRequestOptions
+                                                .createForProcessingFromContinuation(continuation);                                    })
+                                    .doOnError(t -> {
+                                        logger.error(
+                                            "Failed to checkpoint Lease with token {} from thread {}",
+                                            this.lease.getLeaseToken(),
+                                            Thread.currentThread().getId());
+                                        logger.error("Error in checkpointing after unparseable document.", t);
+                                        this.resultException = new RuntimeException(t);
+                                    });
+                            }
                         default: {
                             logger.error("Unrecognized Cosmos exception returned error code {}", docDbError, clientException);
                             this.resultException = new RuntimeException(clientException);
