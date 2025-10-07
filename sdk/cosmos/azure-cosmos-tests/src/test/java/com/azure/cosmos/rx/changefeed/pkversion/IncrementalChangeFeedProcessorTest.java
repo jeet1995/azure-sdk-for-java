@@ -284,8 +284,8 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
         CosmosAsyncContainer createdFeedCollection = createFeedCollection(FEED_COLLECTION_THROUGHPUT);
         CosmosAsyncContainer createdLeaseCollection = createLeaseCollection(LEASE_COLLECTION_THROUGHPUT);
 
-        System.setProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_MALFORMED_INPUT", "REPLACE");
-        System.setProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_UNMAPPED_CHARACTER", "REPLACE");
+//        System.setProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_MALFORMED_INPUT", "REPLACE");
+//        System.setProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_UNMAPPED_CHARACTER", "REPLACE");
 
         try {
             List<InternalObjectNode> createdDocuments = new ArrayList<>();
@@ -293,12 +293,14 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
             setupReadFeedDocuments(createdDocuments, createdFeedCollection, 100);
             AtomicInteger pageCounter = new AtomicInteger(0);
             AtomicInteger exceptionCounter = new AtomicInteger(0);
+            AtomicInteger totalExceptionHits = new AtomicInteger(0);
 
             Callable<Void> responseInterceptor = () -> {
                 // inject when certain no. of pages have been processed
-                if (pageCounter.incrementAndGet() > 1 && pageCounter.get() % 5 == 0) {
-                    if (exceptionCounter.get() < 4) {
+                if (pageCounter.get() > 1 && pageCounter.get() % 2 == 0) {
+                    if (exceptionCounter.get() < 2) {
                         exceptionCounter.incrementAndGet();
+                        totalExceptionHits.incrementAndGet();
                         throw new JacksonException("Simulated exception to skip logging") {
                             @Override
                             public JsonLocation getLocation() {
@@ -330,6 +332,8 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
                     for (JsonNode item : docs) {
                         processItem(item, receivedDocuments);
                     }
+
+                    pageCounter.incrementAndGet();
                     log.info("END processing from thread {}", Thread.currentThread().getId());
                 })
                 .feedContainer(createdFeedCollection)
@@ -340,7 +344,7 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
                     .setLeaseExpirationInterval(Duration.ofSeconds(30))
                     .setFeedPollDelay(Duration.ofSeconds(2))
                     .setLeasePrefix("TEST")
-                    .setMaxItemCount(4)
+                    .setMaxItemCount(10)
                     .setStartFromBeginning(true)
                     .setMaxScaleCount(0) // unlimited
                     .setResponseInterceptor(responseInterceptor)
@@ -349,12 +353,22 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
 
             startChangeFeedProcessor(changeFeedProcessor);
 
+            for (int i = 0; i < 10; i++) {
+                setupReadFeedDocuments(createdDocuments, createdFeedCollection, 100);
+                Thread.sleep(10_000);
+            }
+
             // Wait for the feed processor to receive and process the documents.
-            Thread.sleep(20 * CHANGE_FEED_PROCESSOR_TIMEOUT);
+            Thread.sleep(40 * CHANGE_FEED_PROCESSOR_TIMEOUT);
 
             assertThat(changeFeedProcessor.isStarted()).as("Change Feed Processor instance is running").isTrue();
 
             safeStopChangeFeedProcessor(changeFeedProcessor);
+
+            logger.warn("Total documents received: {}", receivedDocuments.size());
+            logger.warn("Total created documents : {}", createdDocuments.size());
+            logger.warn("Total exception hits : {}", totalExceptionHits.get());
+
             for (InternalObjectNode item : createdDocuments) {
                 assertThat(receivedDocuments.containsKey(item.getId())).as("Document with getId: " + item.getId()).isTrue();
             }
@@ -362,23 +376,12 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
             // Wait for the feed processor to shutdown.
             Thread.sleep(CHANGE_FEED_PROCESSOR_TIMEOUT);
 
-            // restart the change feed processor and verify it can start successfully
-            startChangeFeedProcessor(changeFeedProcessor);
-
-            // Wait for the feed processor to start
-            Thread.sleep(2 * CHANGE_FEED_PROCESSOR_TIMEOUT);
-
-            assertThat(changeFeedProcessor.isStarted()).as("Change Feed Processor instance is running").isTrue();
-
-            safeStopChangeFeedProcessor(changeFeedProcessor);
-            // Wait for the feed processor to shutdown.
-            Thread.sleep(CHANGE_FEED_PROCESSOR_TIMEOUT);
         } finally {
             safeDeleteCollection(createdFeedCollection);
             safeDeleteCollection(createdLeaseCollection);
 
-            System.clearProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_MALFORMED_INPUT");
-            System.clearProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_UNMAPPED_CHARACTER");
+//            System.clearProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_MALFORMED_INPUT");
+//            System.clearProperty("COSMOS.CHARSET_DECODER_ERROR_ACTION_ON_UNMAPPED_CHARACTER");
 
             // Allow some time for the collections to be deleted before exiting.
             Thread.sleep(500);

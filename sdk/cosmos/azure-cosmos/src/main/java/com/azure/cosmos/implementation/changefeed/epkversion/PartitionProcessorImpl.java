@@ -195,6 +195,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                     this.options.setMaxItemCount(this.settings.getMaxItemCount());   // Reset after successful execution.
                 }
 
+                this.options.setResponseInterceptor(settings.getResponseInterceptor());
                 this.streamsConstrainedRetries.set(0);
                 this.unparseableDocumentRetries.set(0);
             })
@@ -233,33 +234,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                             this.resultException = new RuntimeException(clientException);
                         }
                         break;
-                        case STREAMS_CONSTRAINED: {
-                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
-                                logger.error(
-                                    "Lease with token {}: Reached max retries for streams constrained exception, exiting.",
-                                    this.lease.getLeaseToken());
-                                this.resultException = new RuntimeException(clientException);
-                                return Flux.error(throwable);
-                            }
 
-                            logger.warn(
-                                "Lease with token {}: Streams constrained exception encountered, will retry.",
-                                this.lease.getLeaseToken(),
-                                clientException);
-
-                            if (this.options.getMaxItemCount() <= 1) {
-                                logger.error(
-                                    "Cannot reduce maxItemCount further as it's already at {}",
-                                    this.options.getMaxItemCount(),
-                                    clientException);
-                                this.resultException = new RuntimeException(clientException);
-                                return Flux.error(throwable);
-                            }
-
-                            this.options.setMaxItemCount(this.options.getMaxItemCount() / 2);
-                            logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
-                            return Flux.empty();
-                        }
                         case MAX_ITEM_COUNT_TOO_LARGE: {
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(
@@ -288,12 +263,38 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
 
                             break;
                         }
+                        case STREAMS_CONSTRAINED: {
+                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
+                                logger.error(
+                                    "Lease with token {}: Reached max retries for streams constrained exception, exiting.",
+                                    this.lease.getLeaseToken());
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            logger.warn(
+                                "Lease with token {}: Streams constrained exception encountered, will retry.",
+                                this.lease.getLeaseToken(),
+                                clientException);
+
+                            if (this.options.getMaxItemCount() <= 1) {
+                                logger.error(
+                                    "Cannot reduce maxItemCount further as it's already at {}",
+                                    this.options.getMaxItemCount(),
+                                    clientException);
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            this.options.setMaxItemCount(this.options.getMaxItemCount() / 2);
+                            logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
+                            return Flux.empty();
+                        }
                         case PARSING_ERROR:
                             if (this.unparseableDocumentRetries.compareAndSet(0, 1)) {
                                 logger.warn(
                                     "Lease with token {}: Attempting a retry on parsing error.",
                                     this.lease.getLeaseToken());
-                                this.resultException = new RuntimeException(clientException);
                                 this.options.setMaxItemCount(1);
                                 return Flux.empty();
                             } else {

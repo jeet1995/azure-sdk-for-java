@@ -172,6 +172,8 @@ public class DocumentServiceRequestContext implements Cloneable {
         context.endToEndOperationLatencyPolicyConfig = this.endToEndOperationLatencyPolicyConfig;
         context.unavailableRegionsForPartition = this.unavailableRegionsForPartition;
         context.crossRegionAvailabilityContextForRequest = this.crossRegionAvailabilityContextForRequest;
+        context.responseInterceptor = this.responseInterceptor;
+
         return context;
     }
 

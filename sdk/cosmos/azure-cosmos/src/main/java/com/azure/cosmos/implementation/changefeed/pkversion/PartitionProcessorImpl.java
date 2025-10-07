@@ -18,6 +18,7 @@ import com.azure.cosmos.implementation.changefeed.PartitionCheckpointer;
 import com.azure.cosmos.implementation.changefeed.ProcessorSettings;
 import com.azure.cosmos.implementation.changefeed.common.ChangeFeedObserverContextImpl;
 import com.azure.cosmos.implementation.changefeed.common.ChangeFeedState;
+import com.azure.cosmos.implementation.changefeed.common.ChangeFeedStateV1;
 import com.azure.cosmos.implementation.changefeed.common.ExceptionClassifier;
 import com.azure.cosmos.implementation.changefeed.common.StatusCodeErrorType;
 import com.azure.cosmos.implementation.changefeed.exceptions.FeedRangeGoneException;
@@ -203,6 +204,7 @@ class PartitionProcessorImpl implements PartitionProcessor {
                     this.options.setMaxItemCount(this.settings.getMaxItemCount());   // Reset after successful execution.
                 }
 
+                this.options.setResponseInterceptor(settings.getResponseInterceptor());
                 this.streamsConstrainedRetries.set(0);
                 this.unparseableDocumentRetries.set(0);
             })
@@ -236,34 +238,6 @@ class PartitionProcessorImpl implements PartitionProcessor {
                             this.resultException = new RuntimeException(clientException);
                         }
                         break;
-                        case STREAMS_CONSTRAINED: {
-                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
-                                logger.error(
-                                    "Partition {}: Reached max retries for streams constrained exception, failing.",
-                                    this.lease.getLeaseToken());
-                                this.resultException = new RuntimeException(clientException);
-                                return Flux.error(throwable);
-                            }
-
-                            logger.warn(
-                                "Partition {}: Streams constrained exception encountered, will retry.",
-                                this.lease.getLeaseToken(),
-                                clientException);
-
-
-                            if (this.options.getMaxItemCount() <= 1) {
-                                logger.error(
-                                    "Cannot reduce maxItemCount further as it's already at {}",
-                                    this.options.getMaxItemCount(),
-                                    clientException);
-                                this.resultException = new RuntimeException(clientException);
-                                return Flux.error(throwable);
-                            }
-
-                            this.options.setMaxItemCount(this.options.getMaxItemCount() / 2);
-                            logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
-                            return Flux.empty();
-                        }
                         case MAX_ITEM_COUNT_TOO_LARGE: {
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(
@@ -297,7 +271,6 @@ class PartitionProcessorImpl implements PartitionProcessor {
                                 logger.warn(
                                     "Partition {}: Attempting a retry on parsing error.",
                                     this.lease.getLeaseToken());
-                                this.resultException = new RuntimeException(clientException);
                                 this.options.setMaxItemCount(1);
                                 return Flux.empty();
                             } else {
@@ -325,6 +298,34 @@ class PartitionProcessorImpl implements PartitionProcessor {
                                             t);
                                     });
                             }
+                        case STREAMS_CONSTRAINED: {
+                            if (this.streamsConstrainedRetries.incrementAndGet() > this.maxStreamsConstrainedRetries) {
+                                logger.error(
+                                    "Partition {}: Reached max retries for streams constrained exception, failing.",
+                                    this.lease.getLeaseToken());
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            logger.warn(
+                                "Partition {}: Streams constrained exception encountered, will retry.",
+                                this.lease.getLeaseToken(),
+                                clientException);
+
+
+                            if (this.options.getMaxItemCount() <= 1) {
+                                logger.error(
+                                    "Cannot reduce maxItemCount further as it's already at {}",
+                                    this.options.getMaxItemCount(),
+                                    clientException);
+                                this.resultException = new RuntimeException(clientException);
+                                return Flux.error(throwable);
+                            }
+
+                            this.options.setMaxItemCount(this.options.getMaxItemCount() / 2);
+                            logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
+                            return Flux.empty();
+                        }
                         default: {
                             logger.error("Unrecognized Cosmos exception returned error code {}", docDbError, clientException);
                             this.resultException = new RuntimeException(clientException);
