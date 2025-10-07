@@ -11,6 +11,7 @@ import com.azure.cosmos.implementation.FeedOperationContextForCircuitBreaker;
 import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.OperationType;
+import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.perPartitionCircuitBreaker.GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
@@ -217,9 +218,9 @@ abstract class Fetcher<T> {
                     CosmosException cosmosException = (CosmosException) throwable;
                     Map<String, String> responseHeaders = cosmosException.getResponseHeaders();
 
-                    if (responseHeaders != null && (responseHeaders.containsKey(HttpConstants.HttpHeaders.E_TAG) && responseHeaders.containsKey(HttpConstants.HttpHeaders.CONTINUATION))) {
+                    if (responseHeaders != null) {
                         String responseContinuation =
-                            OperationType.ReadFeed.equals(request.getOperationType()) ?
+                            OperationType.ReadFeed.equals(request.getOperationType()) && ResourceType.Document.equals(request.getResourceType()) ?
                                 responseHeaders.get(HttpConstants.HttpHeaders.E_TAG) :
                                 responseHeaders.get(HttpConstants.HttpHeaders.CONTINUATION);
 
