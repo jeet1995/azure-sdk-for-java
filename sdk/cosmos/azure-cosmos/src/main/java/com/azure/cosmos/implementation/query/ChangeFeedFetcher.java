@@ -9,7 +9,7 @@ import com.azure.cosmos.implementation.DiagnosticsClientContext;
 import com.azure.cosmos.implementation.DocumentClientRetryPolicy;
 import com.azure.cosmos.implementation.GlobalEndpointManager;
 import com.azure.cosmos.implementation.HttpConstants;
-import com.azure.cosmos.implementation.Utils;
+import com.azure.cosmos.implementation.guava25.base.Strings;
 import com.azure.cosmos.implementation.perPartitionCircuitBreaker.GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.GoneException;
@@ -154,7 +154,7 @@ class ChangeFeedFetcher<T> extends Fetcher<T> {
 
                        return Mono.just(r);
                    })
-            .repeatWhenEmpty(o -> o);
+                   .repeatWhenEmpty(o -> o);
     }
 
     @Override
@@ -171,13 +171,18 @@ class ChangeFeedFetcher<T> extends Fetcher<T> {
 
     @Override
     protected String applyServerResponseContinuation(String serverContinuationToken, RxDocumentServiceRequest request, CosmosException cosmosException) {
-        String replacedContinuation = this.changeFeedState.applyServerResponseContinuation(
-            serverContinuationToken, request, false);
 
-        Map<String, String> responseHeaders = cosmosException.getResponseHeaders();
-        responseHeaders.put(HttpConstants.HttpHeaders.E_TAG, replacedContinuation);
+        if (!Strings.isNullOrEmpty(serverContinuationToken)) {
+            String replacedContinuation = this.changeFeedState.applyServerResponseContinuation(
+                serverContinuationToken, request, false);
 
-        return replacedContinuation;
+            Map<String, String> responseHeaders = cosmosException.getResponseHeaders();
+            responseHeaders.put(HttpConstants.HttpHeaders.E_TAG, replacedContinuation);
+
+            return replacedContinuation;
+        }
+
+        return com.azure.cosmos.implementation.Strings.Emtpy;
     }
 
     @Override

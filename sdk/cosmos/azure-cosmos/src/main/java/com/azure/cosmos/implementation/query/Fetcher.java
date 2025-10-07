@@ -214,16 +214,17 @@ abstract class Fetcher<T> {
             .doOnError(throwable -> {
 
                 if (throwable instanceof CosmosException) {
-
                     CosmosException cosmosException = (CosmosException) throwable;
                     Map<String, String> responseHeaders = cosmosException.getResponseHeaders();
 
-                    String responseContinuation =
-                        OperationType.ReadFeed.equals(request.getOperationType()) ?
-                            responseHeaders.get(HttpConstants.HttpHeaders.E_TAG) :
-                            responseHeaders.get(HttpConstants.HttpHeaders.CONTINUATION);
+                    if (responseHeaders != null && (responseHeaders.containsKey(HttpConstants.HttpHeaders.E_TAG) && responseHeaders.containsKey(HttpConstants.HttpHeaders.CONTINUATION))) {
+                        String responseContinuation =
+                            OperationType.ReadFeed.equals(request.getOperationType()) ?
+                                responseHeaders.get(HttpConstants.HttpHeaders.E_TAG) :
+                                responseHeaders.get(HttpConstants.HttpHeaders.CONTINUATION);
 
-                    this.updateStateForException(responseContinuation, request, cosmosException);
+                        this.updateStateForException(responseContinuation, request, cosmosException);
+                    }
                 }
 
                 completed.set(true);
