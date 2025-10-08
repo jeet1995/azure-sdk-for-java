@@ -5,7 +5,6 @@ package com.azure.cosmos.implementation.directconnectivity;
 
 import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.HttpConstants;
-import com.azure.cosmos.implementation.RxDocumentServiceRequest;
 import com.azure.cosmos.implementation.Utils;
 import com.fasterxml.jackson.core.exc.StreamConstraintsException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,7 +20,6 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 
 public class JsonNodeStorePayload implements StorePayload<JsonNode> {
     private static final Logger logger = LoggerFactory.getLogger(JsonNodeStorePayload.class);
@@ -61,8 +59,10 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
 
             return Utils.getSimpleObjectMapper().readTree(bytes);
         } catch (IOException e) {
+
+            logger.error("Unable to parse JSON, fallback to use customized charset decoder.", e);
+
             if (fallbackCharsetDecoder != null) {
-                logger.warn("Unable to parse JSON, fallback to use customized charset decoder.", e);
 
                 if (interceptor != null) {
                     interceptor.call();
@@ -75,7 +75,7 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
                 if (e instanceof StreamConstraintsException) {
                     throw Utils.createCosmosException(
                         HttpConstants.StatusCodes.INTERNAL_SERVER_ERROR,
-                        HttpConstants.SubStatusCodes.STREAMS_CONSTRAINED,
+                        HttpConstants.SubStatusCodes.JACKSON_STREAMS_CONSTRAINED,
                         nestedException,
                         responseHeaders);
                 }
@@ -100,6 +100,9 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
             String sanitizedJson = fallbackCharsetDecoder.decode(ByteBuffer.wrap(bytes)).toString();
             return Utils.getSimpleObjectMapper().readTree(sanitizedJson);
         } catch (IOException e) {
+
+            logger.error("Unable to parse JSON in the fallback charset decoder.", e);
+
             IllegalStateException nestedException = new IllegalStateException(
                 String.format(
                     "Unable to parse JSON with fallback charset decoder[OnMalformedInput %s, OnUnmappedCharacter %s]",
@@ -110,7 +113,7 @@ public class JsonNodeStorePayload implements StorePayload<JsonNode> {
             if (e instanceof StreamConstraintsException) {
                 throw Utils.createCosmosException(
                     HttpConstants.StatusCodes.INTERNAL_SERVER_ERROR,
-                    HttpConstants.SubStatusCodes.STREAMS_CONSTRAINED,
+                    HttpConstants.SubStatusCodes.JACKSON_STREAMS_CONSTRAINED,
                     nestedException,
                     responseHeaders);
             }

@@ -263,13 +263,12 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                             }
                             break;
                         }
-                        case STREAMS_CONSTRAINED: {
+                        case JACKSON_STREAMS_CONSTRAINED: {
 
                             if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
                                 logger.error(
-                                    "Lease with token {}: Encountered streams constrained error and the feature flag to retry on streams constrained is disabled, failing.",
-                                    this.lease.getLeaseToken());
-                                logger.error("Streams constrained exception.", clientException);
+                                    "Lease with token : " + this.lease.getLeaseToken() + " : Streams constrained exception encountered. To enable automatic retries, please set the " + Configs.CHANGE_FEED_PROCESSOR_MALFORMED_RESPONSE_RECOVERY_ENABLED + " configuration to 'true'. Failing.",
+                                    clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
@@ -279,66 +278,51 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
 
                             if (!shouldRetry) {
                                 logger.error(
-                                    "Lease with token {}: Reached max retries for streams constrained exception with statusCode [{}] : subStatusCode [{}] : message [{}].",
-                                    this.lease.getLeaseToken(),
-                                    clientException.getStatusCode(),
-                                    clientException.getSubStatusCode(),
-                                    clientException.getMessage());
-                                logger.error("Streams constrained retries exhausted.", clientException);
+                                    "Lease with token : " + this.lease.getLeaseToken() + ": Reached max retries for streams constrained exception with statusCode : [" + clientException.getStatusCode() + "]" + " : subStatusCode " + clientException.getSubStatusCode() + " : message " + clientException.getMessage() + ", failing.",
+                                    clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
 
                             logger.warn(
-                                "Lease with token {}: Streams constrained exception encountered, will retry.",
-                                this.lease.getLeaseToken());
-                            logger.warn("Streams constrained retry {}/{}", retryCount, this.maxStreamsConstrainedRetries);
-                            logger.warn("Streams constrained exception.", clientException);
+                                "Lease with token : " + this.lease.getLeaseToken() + " : Streams constrained exception encountered, will retry. " + "retryCount " + retryCount + " of " + this.maxStreamsConstrainedRetries + " retries.",
+                                clientException);
 
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(
-                                    "Cannot reduce maxItemCount further as it's already at {}",
-                                    this.options.getMaxItemCount());
-                                logger.error("Streams constrained retries exhausted.", clientException);
+                                    "Lease with token : " + this.lease.getLeaseToken() + " Cannot reduce maxItemCount further as it's already at :" + this.options.getMaxItemCount(), clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
 
                             this.options.setMaxItemCount(this.options.getMaxItemCount() / 2);
-                            logger.warn("Reducing maxItemCount, new value: {}", this.options.getMaxItemCount());
+                            logger.warn("Lease with token : " + this.lease.getLeaseToken() + " Reducing maxItemCount, new value: " + this.options.getMaxItemCount());
                             return Flux.empty();
                         }
-                        case PARSING_ERROR:
+                        case JSON_PARSING_ERROR:
 
                             if (!Configs.isChangeFeedProcessorMalformedResponseRecoveryEnabled()) {
                                 logger.error(
-                                    "Lease with token {}: Parsing error encountered. To enable automatic retries, please set the '{}' configuration to 'true'. Failing.",
-                                    this.lease.getLeaseToken(),
-                                    Configs.CHANGE_FEED_PROCESSOR_MALFORMED_RESPONSE_RECOVERY_ENABLED);
-                                logger.error("Parsing error.", clientException);
+                                    "Lease with token : " + this.lease.getLeaseToken() + ": Parsing error encountered. To enable automatic retries, please set the + " + Configs.CHANGE_FEED_PROCESSOR_MALFORMED_RESPONSE_RECOVERY_ENABLED + " configuration to 'true'. Failing.", clientException);
                                 this.resultException = new RuntimeException(clientException);
                                 return Flux.error(throwable);
                             }
 
                             if (this.unparseableDocumentRetries.compareAndSet(0, 1)) {
                                 logger.warn(
-                                    "Lease with token {}: Attempting a retry on parsing error.",
-                                    this.lease.getLeaseToken());
-                                logger.warn("Parsing error.", clientException);
+                                    "Lease with token : " + this.lease.getLeaseToken() + " : Attempting a retry on parsing error.", clientException);
                                 this.options.setMaxItemCount(1);
                                 return Flux.empty();
                             } else {
 
-                                // No way to recover from this
-                                logger.error("Lease with token {}: Encountered parsing error which is not recoverable, attempting to skip document", this.lease.getLeaseToken(), clientException);
+                                logger.error("Lease with token : " + this.lease.getLeaseToken() + " : Encountered parsing error which is not recoverable, attempting to skip document", clientException);
 
                                 String continuation = CosmosChangeFeedContinuationTokenUtils.extractContinuationTokenFromCosmosException(clientException);
 
                                 if (Strings.isNullOrEmpty(continuation)) {
                                     logger.error(
-                                        "Lease with token {}: Unable to extract continuation token from the parsing exception, failing.",
-                                        this.lease.getLeaseToken());
-                                    logger.error("Parsing error.", clientException);
+                                        "Lease with token : " + this.lease.getLeaseToken() + ": Unable to extract continuation token post the parsing exception, failing.",
+                                        clientException);
                                     this.resultException = new RuntimeException(clientException);
                                     return Flux.error(throwable);
                                 }
@@ -346,15 +330,14 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                 ChangeFeedState continuationState = ChangeFeedState.fromString(continuation);
                                 return this.checkpointer.checkpointPartition(continuationState)
                                     .doOnSuccess(lease1 -> {
-                                        logger.info("Lease with token {}: Successfully skipped the unparseable document.", this.lease.getLeaseToken());
-                                        this.options = PartitionProcessorHelper.createForProcessingFromContinuation(continuation, this.changeFeedMode);
+                                        logger.info("Lease with token : " + this.lease.getLeaseToken() + " Successfully skipped the unparseable document.");
+                                        this.options =
+                                            CosmosChangeFeedRequestOptions
+                                                .createForProcessingFromContinuation(continuation);
                                     })
                                     .doOnError(t -> {
-                                        logger.warn(
-                                            "Failed to checkpoint Lease with token {} from thread {}",
-                                            this.lease.getLeaseToken(),
-                                            Thread.currentThread().getId());
-                                        logger.warn("Error in checkpointing after unparseable document.", t);
+                                        logger.error(
+                                            "Failed to checkpoint for lease with token :  " + this.lease.getLeaseToken() + " from thread " + Thread.currentThread().getId(), t);
                                         this.resultException = new RuntimeException(t);
                                     });
                             }

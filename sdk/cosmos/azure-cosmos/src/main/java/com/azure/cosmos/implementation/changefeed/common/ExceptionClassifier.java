@@ -29,10 +29,10 @@ public class ExceptionClassifier {
         }
 
         if (clientException.getStatusCode() == HttpConstants.StatusCodes.INTERNAL_SERVER_ERROR) {
-            if (subStatusCode == HttpConstants.SubStatusCodes.STREAMS_CONSTRAINED) {
-                return StatusCodeErrorType.STREAMS_CONSTRAINED;
+            if (subStatusCode == HttpConstants.SubStatusCodes.JACKSON_STREAMS_CONSTRAINED) {
+                return StatusCodeErrorType.JACKSON_STREAMS_CONSTRAINED;
             } else if (subStatusCode == HttpConstants.SubStatusCodes.FAILED_TO_PARSE_SERVER_RESPONSE) {
-                return StatusCodeErrorType.PARSING_ERROR;
+                return StatusCodeErrorType.JSON_PARSING_ERROR;
             }
         }
 
