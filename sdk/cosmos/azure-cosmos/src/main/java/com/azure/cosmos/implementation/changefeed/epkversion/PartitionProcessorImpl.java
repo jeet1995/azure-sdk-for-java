@@ -287,6 +287,15 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                 "Lease with token : " + this.lease.getLeaseToken() + " : Streams constrained exception encountered, will retry. " + "retryCount " + retryCount + " of " + this.maxStreamsConstrainedRetries + " retries.",
                                 clientException);
 
+
+                            if (this.options.getMaxItemCount() == -1) {
+                                logger.warn(
+                                    "Lease with token : " + this.lease.getLeaseToken() + " : max item count is set to -1, will retry after setting it to 100. " + "retryCount " + retryCount + " of " + this.maxStreamsConstrainedRetries + " retries.",
+                                    clientException);
+                                this.options.setMaxItemCount(100);
+                                return Flux.empty();
+                            }
+
                             if (this.options.getMaxItemCount() <= 1) {
                                 logger.error(
                                     "Lease with token : " + this.lease.getLeaseToken() + " Cannot reduce maxItemCount further as it's already at :" + this.options.getMaxItemCount(), clientException);
@@ -335,7 +344,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                     })
                                     .doOnError(t -> {
                                         logger.error(
-                                            "Failed to checkpoint for lease with token :  " + this.lease.getLeaseToken() + " from thread " + Thread.currentThread().getId(), t);
+                                            "Failed to checkpoint for lease with token :  " + this.lease.getLeaseToken() + " with continuation " + this.lease.getReadableContinuationToken() + " from thread " + Thread.currentThread().getId(), t);
                                         this.resultException = new RuntimeException(t);
                                     });
                             }

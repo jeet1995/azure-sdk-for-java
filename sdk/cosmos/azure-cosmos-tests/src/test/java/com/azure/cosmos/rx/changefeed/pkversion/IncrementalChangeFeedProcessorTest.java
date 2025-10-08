@@ -131,6 +131,7 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
         return new Object[][]{
             {
                 new StreamConstraintsException("A StreamConstraintsException has been hit!"),
+                -1
             },
             {
                 new JacksonException("A JacksonException has been hit!") {
@@ -148,7 +149,31 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
                     public Object getProcessor() {
                         return null;
                     }
-                }
+                },
+                -1
+            },
+            {
+                new StreamConstraintsException("A StreamConstraintsException has been hit!"),
+                10
+            },
+            {
+                new JacksonException("A JacksonException has been hit!") {
+                    @Override
+                    public JsonLocation getLocation() {
+                        return null;
+                    }
+
+                    @Override
+                    public String getOriginalMessage() {
+                        return "";
+                    }
+
+                    @Override
+                    public Object getProcessor() {
+                        return null;
+                    }
+                },
+                10
             }
         };
     }
@@ -309,7 +334,7 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
     }
 
     @Test(groups = { "long-emulator" }, dataProvider = "parsingErrorArgProvider", timeOut = 12 * TIMEOUT)
-    public void readFeedDocumentsStartFromBeginningWithJsonProcessingErrors(Exception exceptionType) throws InterruptedException {
+    public void readFeedDocumentsStartFromBeginningWithJsonProcessingErrors(Exception exceptionType, int maxItemCount) throws InterruptedException {
 
         CosmosAsyncContainer createdFeedCollection = createFeedCollection(FEED_COLLECTION_THROUGHPUT);
         CosmosAsyncContainer createdLeaseCollection = createLeaseCollection(LEASE_COLLECTION_THROUGHPUT);
@@ -376,7 +401,7 @@ public class IncrementalChangeFeedProcessorTest extends TestSuiteBase {
                     .setLeaseExpirationInterval(Duration.ofSeconds(30))
                     .setFeedPollDelay(Duration.ofSeconds(2))
                     .setLeasePrefix("TEST")
-                    .setMaxItemCount(10)
+                    .setMaxItemCount(maxItemCount)
                     .setStartFromBeginning(true)
                     .setMaxScaleCount(0) // unlimited
                     .setResponseInterceptor(responseInterceptor)
