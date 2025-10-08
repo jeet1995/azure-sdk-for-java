@@ -8,6 +8,7 @@ import com.azure.cosmos.implementation.DocumentClientRetryPolicy;
 import com.azure.cosmos.implementation.Exceptions;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
+import com.azure.cosmos.implementation.InvalidPartitionException;
 import com.azure.cosmos.implementation.JsonSerializable;
 import com.azure.cosmos.implementation.ObservableHelper;
 import com.azure.cosmos.implementation.OperationType;
@@ -256,8 +257,8 @@ class DocumentProducer<T> {
                         if (partitionKeyRangesValueHolder == null
                             || partitionKeyRangesValueHolder.v == null
                             || partitionKeyRangesValueHolder.v.size() == 0) {
-                            logger.error("Failed to find at least one child range");
-                            return Mono.error(new IllegalStateException("Failed to find at least one child range"));
+                            logger.error("Failed to find at least one child range for range {}", this.feedRange.getRange() );
+                            return Mono.error(new InvalidPartitionException("Failed to find at least one child range"));
                         }
 
                         if (partitionKeyRangesValueHolder.v.size() == 1) {
@@ -326,12 +327,17 @@ class DocumentProducer<T> {
     }
 
     private Mono<Utils.ValueHolder<List<PartitionKeyRange>>> getReplacementRanges(Range<String> range) {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("DocumentProducer.getReplacementRanges").append(",");
+
         return client.getPartitionKeyRangeCache().tryGetOverlappingRangesAsync(
             null,
             collectionRid,
             range,
             true,
-            qryOptionsAccessor.getProperties(cosmosQueryRequestOptions));
+            qryOptionsAccessor.getProperties(cosmosQueryRequestOptions),
+            sb);
     }
 
     private boolean isSplitOrMerge(CosmosException e) {

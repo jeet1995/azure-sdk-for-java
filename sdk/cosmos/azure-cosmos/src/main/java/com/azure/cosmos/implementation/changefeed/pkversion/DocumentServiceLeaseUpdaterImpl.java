@@ -76,6 +76,7 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
                                 throw new LeaseLostException(cachedLease);
                             }
                         }
+                        logger.info("Partition {} and owner {}: Failed to update.", cachedLease.getLeaseToken(), cachedLease.getOwner(), throwable);
                         return Mono.error(throwable);
                     })
                     .map(cosmosItemResponse -> {
@@ -115,14 +116,18 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
             .onErrorResume(throwable -> {
                 if (throwable instanceof LeaseConflictException) {
                     logger.warn(
-                        "Partition " + cachedLease.getLeaseToken() +
-                            " for the lease with token '" + cachedLease.getConcurrencyToken() +
-                            "' failed to update for owner '" + cachedLease.getOwner() +
-                            "'; current continuation token '" + cachedLease.getReadableContinuationToken() + "'.",
-                        throwable);
+                        "Partition {} for the lease with token {} failed to update due to lease conflict for owner {}; current continuation token {}.",
+                        cachedLease.getLeaseToken(),
+                        cachedLease.getConcurrencyToken(),
+                        cachedLease.getOwner(),
+                        cachedLease.getReadableContinuationToken(), throwable);
 
                     return Mono.just(cachedLease);
                 }
+                logger.warn("Partition {} lease update failed for owner {}; current continuation token {}.",
+                    cachedLease.getLeaseToken(),
+                    cachedLease.getOwner(),
+                    cachedLease.getReadableContinuationToken(), throwable);
                 return Mono.error(throwable);
             });
     }
@@ -148,10 +153,12 @@ class DocumentServiceLeaseUpdaterImpl implements ServiceItemLeaseUpdater {
                             throw new LeaseLostException(lease, ex, true);
                         }
                         default: {
+                            logger.warn("Partition {} and owner {}: Failed to replace.", lease.getLeaseToken(), lease.getOwner(), re);
                             return Mono.error(re);
                         }
                     }
                 }
+                logger.warn("Partition {} and owner {}: Failed to replace.", lease.getLeaseToken(), lease.getOwner(), re);
                 return Mono.error(re);
             });
     }
