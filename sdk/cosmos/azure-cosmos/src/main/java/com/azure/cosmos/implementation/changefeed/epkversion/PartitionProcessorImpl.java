@@ -332,8 +332,7 @@ class PartitionProcessorImpl<T> implements PartitionProcessor {
                                     .doOnSuccess(lease1 -> {
                                         logger.info("Lease with token : " + this.lease.getLeaseToken() + " Successfully skipped the unparseable document.");
                                         this.options =
-                                            CosmosChangeFeedRequestOptions
-                                                .createForProcessingFromContinuation(continuation);
+                                            PartitionProcessorHelper.createForProcessingFromContinuation(continuation, this.changeFeedMode);
                                     })
                                     .doOnError(t -> {
                                         logger.error(
