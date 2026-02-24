@@ -3,6 +3,7 @@
 ### 4.80.0-beta.1 (Unreleased)
 
 #### Features Added
+* Auto-enable thin client (Gateway V2) mode for all Gateway-mode clients. Accounts with thin client endpoints will transparently use the HTTP/2 data plane; accounts without endpoints fall back to regular gateway. Use system property `COSMOS.THINCLIENT_ENABLED=false` (or env var `COSMOS_THINCLIENT_ENABLED=false`) to opt out. - See [PR 48096](https://github.com/Azure/azure-sdk-for-java/pull/48096)
 
 #### Breaking Changes
 
