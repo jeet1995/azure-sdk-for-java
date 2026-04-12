@@ -686,6 +686,9 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             this.clientTelemetryConfig = clientTelemetryConfig;
             this.useThinClient = Configs.isThinClientEnabled()
                 && this.connectionPolicy.getConnectionMode() == ConnectionMode.GATEWAY;
+            if (this.useThinClient) {
+                logger.info("Thin client (Gateway V2) auto-enabled. Opt out with -DCOSMOS.THINCLIENT_ENABLED=false");
+            }
         } catch (RuntimeException e) {
             logger.error("unexpected failure in initializing client.", e);
             close();
