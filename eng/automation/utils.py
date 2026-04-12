@@ -105,6 +105,7 @@ def update_service_files_for_new_lib(sdk_root: str, service: str, group: str, mo
     pom_xml_file = os.path.join(folder, "pom.xml")
     module_folder = os.path.join(folder, module)
     changelog_file = os.path.join(module_folder, "CHANGELOG.md")
+    changelog_str = ""
 
     if os.path.exists(ci_yml_file):
         with open(ci_yml_file, "r") as fin:
@@ -215,7 +216,7 @@ def update_version(sdk_root: str, output_folder: str):
         os.chdir(sdk_root)
         print(os.getcwd())
         subprocess.run(
-            [python_cmd, "eng/versioning/update_versions.py", "--ut", "library", "--bt", "client", "--sr"],
+            [python_cmd, "eng/versioning/update_versions.py", "--skip-readme"],
             stdout=subprocess.DEVNULL,
             stderr=sys.stderr,
         )
@@ -223,11 +224,7 @@ def update_version(sdk_root: str, output_folder: str):
             [
                 python_cmd,
                 "eng/versioning/update_versions.py",
-                "--ut",
-                "library",
-                "--bt",
-                "client",
-                "--tf",
+                "--target-file",
                 "{0}/README.md".format(output_folder),
             ],
             stdout=subprocess.DEVNULL,
@@ -376,7 +373,7 @@ def set_or_increase_version(
 def is_windows():
     return platform.system().lower() == "windows"
 
-
+# Get the latest release version based on current version. If current version is beta, get latest beta version; if current version is GA, get latest GA version.
 def get_latest_release_version(previous_version: str, current_version: str) -> str:
     if "-beta." in current_version and "-beta." not in previous_version:
         # if current version is preview, try compare it with a previous preview release

@@ -64,10 +64,26 @@
 - [Get](#iscsipaths_get)
 - [ListByPrivateCloud](#iscsipaths_listbyprivatecloud)
 
+## Licenses
+
+- [CreateOrUpdate](#licenses_createorupdate)
+- [Delete](#licenses_delete)
+- [Get](#licenses_get)
+- [GetProperties](#licenses_getproperties)
+- [List](#licenses_list)
+
 ## Locations
 
 - [CheckQuotaAvailability](#locations_checkquotaavailability)
 - [CheckTrialAvailability](#locations_checktrialavailability)
+
+## Maintenances
+
+- [Get](#maintenances_get)
+- [InitiateChecks](#maintenances_initiatechecks)
+- [List](#maintenances_list)
+- [Reschedule](#maintenances_reschedule)
+- [Schedule](#maintenances_schedule)
 
 ## Operations
 
@@ -86,6 +102,7 @@
 - [CreateOrUpdate](#privateclouds_createorupdate)
 - [Delete](#privateclouds_delete)
 - [GetByResourceGroup](#privateclouds_getbyresourcegroup)
+- [GetVcfLicense](#privateclouds_getvcflicense)
 - [List](#privateclouds_list)
 - [ListAdminCredentials](#privateclouds_listadmincredentials)
 - [ListByResourceGroup](#privateclouds_listbyresourcegroup)
@@ -178,12 +195,684 @@
 ### Addons_CreateOrUpdate
 
 ```java
+import com.azure.resourcemanager.avs.models.AddonArcProperties;
+import com.azure.resourcemanager.avs.models.AddonHcxProperties;
+import com.azure.resourcemanager.avs.models.AddonSrmProperties;
+import com.azure.resourcemanager.avs.models.AddonVrProperties;
+
+/**
+ * Samples for Addons CreateOrUpdate.
+ */
+public final class AddonsCreateOrUpdateSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_CreateOrUpdate_HCX.json
+     */
+    /**
+     * Sample code: Addons_CreateOrUpdate_HCX.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsCreateOrUpdateHCX(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons()
+            .define("hcx")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withProperties(new AddonHcxProperties().withOffer("VMware MaaS Cloud Provider (Enterprise)"))
+            .create();
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_CreateOrUpdate_SRM.json
+     */
+    /**
+     * Sample code: Addons_CreateOrUpdate_SRM.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsCreateOrUpdateSRM(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons()
+            .define("srm")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withProperties(new AddonSrmProperties().withLicenseKey("fakeTokenPlaceholder"))
+            .create();
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_CreateOrUpdate_HCX_With_Networks.json
+     */
+    /**
+     * Sample code: Addons_CreateOrUpdate_HCX_With_Networks.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsCreateOrUpdateHCXWithNetworks(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons()
+            .define("hcx")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withProperties(new AddonHcxProperties().withOffer("VMware MaaS Cloud Provider (Enterprise)")
+                .withManagementNetwork("10.3.1.0/24")
+                .withUplinkNetwork("10.3.2.0/24"))
+            .create();
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_CreateOrUpdate_ArcReg.json
+     */
+    /**
+     * Sample code: Addons_CreateOrUpdate_ArcReg.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsCreateOrUpdateArcReg(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons()
+            .define("arc")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withProperties(new AddonArcProperties().withVCenter(
+                "subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg_test/providers/Microsoft.ConnectedVMwarevSphere/VCenters/test-vcenter"))
+            .create();
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_CreateOrUpdate_VR.json
+     */
+    /**
+     * Sample code: Addons_CreateOrUpdate_VR.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsCreateOrUpdateVR(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons()
+            .define("vr")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withProperties(new AddonVrProperties().withVrsCount(1))
+            .create();
+    }
+}
+```
+
+### Addons_Delete
+
+```java
+/**
+ * Samples for Addons Delete.
+ */
+public final class AddonsDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_Delete.json
+     */
+    /**
+     * Sample code: Addons_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons().delete("group1", "cloud1", "srm", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Addons_Get
+
+```java
+/**
+ * Samples for Addons Get.
+ */
+public final class AddonsGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_Get_HCX_With_Networks.json
+     */
+    /**
+     * Sample code: Addons_Get_HCX_With_Networks.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsGetHCXWithNetworks(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons().getWithResponse("group1", "cloud1", "hcx", com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_Get_SRM.json
+     */
+    /**
+     * Sample code: Addons_Get_SRM.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsGetSRM(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons().getWithResponse("group1", "cloud1", "srm", com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_Get_VR.json
+     */
+    /**
+     * Sample code: Addons_Get_VR.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsGetVR(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons().getWithResponse("group1", "cloud1", "vr", com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_Get_HCX.json
+     */
+    /**
+     * Sample code: Addons_Get_HCX.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsGetHCX(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons().getWithResponse("group1", "cloud1", "hcx", com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_Get_ArcReg.json
+     */
+    /**
+     * Sample code: Addons_Get_ArcReg.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsGetArcReg(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons().getWithResponse("group1", "cloud1", "arc", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Addons_List
+
+```java
+/**
+ * Samples for Addons List.
+ */
+public final class AddonsListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Addons_List.json
+     */
+    /**
+     * Sample code: Addons_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void addonsList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.addons().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Authorizations_CreateOrUpdate
+
+```java
+/**
+ * Samples for Authorizations CreateOrUpdate.
+ */
+public final class AuthorizationsCreateOrUpdateSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Authorizations_CreateOrUpdate.json
+     */
+    /**
+     * Sample code: Authorizations_CreateOrUpdate.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void authorizationsCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.authorizations().define("authorization1").withExistingPrivateCloud("group1", "cloud1").create();
+    }
+}
+```
+
+### Authorizations_Delete
+
+```java
+/**
+ * Samples for Authorizations Delete.
+ */
+public final class AuthorizationsDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Authorizations_Delete.json
+     */
+    /**
+     * Sample code: Authorizations_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void authorizationsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.authorizations().delete("group1", "cloud1", "authorization1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Authorizations_Get
+
+```java
+/**
+ * Samples for Authorizations Get.
+ */
+public final class AuthorizationsGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Authorizations_Get.json
+     */
+    /**
+     * Sample code: Authorizations_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void authorizationsGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.authorizations()
+            .getWithResponse("group1", "cloud1", "authorization1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Authorizations_List
+
+```java
+/**
+ * Samples for Authorizations List.
+ */
+public final class AuthorizationsListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Authorizations_List.json
+     */
+    /**
+     * Sample code: Authorizations_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void authorizationsList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.authorizations().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### CloudLinks_CreateOrUpdate
+
+```java
+/**
+ * Samples for CloudLinks CreateOrUpdate.
+ */
+public final class CloudLinksCreateOrUpdateSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/CloudLinks_CreateOrUpdate.json
+     */
+    /**
+     * Sample code: CloudLinks_CreateOrUpdate.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void cloudLinksCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.cloudLinks()
+            .define("cloudLink1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withLinkedCloud(
+                "/subscriptions/12341234-1234-1234-1234-123412341234/resourceGroups/mygroup/providers/Microsoft.AVS/privateClouds/cloud2")
+            .create();
+    }
+}
+```
+
+### CloudLinks_Delete
+
+```java
+/**
+ * Samples for CloudLinks Delete.
+ */
+public final class CloudLinksDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/CloudLinks_Delete.json
+     */
+    /**
+     * Sample code: CloudLinks_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void cloudLinksDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.cloudLinks().delete("group1", "cloud1", "cloudLink1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### CloudLinks_Get
+
+```java
+/**
+ * Samples for CloudLinks Get.
+ */
+public final class CloudLinksGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/CloudLinks_Get.json
+     */
+    /**
+     * Sample code: CloudLinks_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void cloudLinksGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.cloudLinks().getWithResponse("group1", "cloud1", "cloudLink1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### CloudLinks_List
+
+```java
+/**
+ * Samples for CloudLinks List.
+ */
+public final class CloudLinksListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/CloudLinks_List.json
+     */
+    /**
+     * Sample code: CloudLinks_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void cloudLinksList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.cloudLinks().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Clusters_CreateOrUpdate
+
+```java
+import com.azure.resourcemanager.avs.models.Sku;
+
+/**
+ * Samples for Clusters CreateOrUpdate.
+ */
+public final class ClustersCreateOrUpdateSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Clusters_CreateOrUpdate.json
+     */
+    /**
+     * Sample code: Clusters_CreateOrUpdate.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void clustersCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.clusters()
+            .define("cluster1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withSku(new Sku().withName("AV20"))
+            .withClusterSize(3)
+            .create();
+    }
+}
+```
+
+### Clusters_Delete
+
+```java
+/**
+ * Samples for Clusters Delete.
+ */
+public final class ClustersDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Clusters_Delete.json
+     */
+    /**
+     * Sample code: Clusters_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void clustersDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.clusters().delete("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Clusters_Get
+
+```java
+/**
+ * Samples for Clusters Get.
+ */
+public final class ClustersGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Clusters_Get.json
+     */
+    /**
+     * Sample code: Clusters_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void clustersGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.clusters().getWithResponse("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Clusters_List
+
+```java
+/**
+ * Samples for Clusters List.
+ */
+public final class ClustersListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Clusters_List.json
+     */
+    /**
+     * Sample code: Clusters_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void clustersList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.clusters().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Clusters_ListZones
+
+```java
+/**
+ * Samples for Clusters ListZones.
+ */
+public final class ClustersListZonesSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Clusters_ListZones.json
+     */
+    /**
+     * Sample code: Clusters_ListZones.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void clustersListZones(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.clusters().listZonesWithResponse("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Clusters_ListZones_Stretched.json
+     */
+    /**
+     * Sample code: Clusters_ListZones_Stretched.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void clustersListZonesStretched(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.clusters().listZonesWithResponse("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Clusters_Update
+
+```java
+import com.azure.resourcemanager.avs.models.Cluster;
+
+/**
+ * Samples for Clusters Update.
+ */
+public final class ClustersUpdateSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Clusters_Update.json
+     */
+    /**
+     * Sample code: Clusters_Update.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void clustersUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        Cluster resource = manager.clusters()
+            .getWithResponse("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE)
+            .getValue();
+        resource.update().withClusterSize(4).apply();
+    }
+}
+```
+
+### Datastores_CreateOrUpdate
+
+```java
+import com.azure.resourcemanager.avs.models.NetAppVolume;
+
+/**
+ * Samples for Datastores CreateOrUpdate.
+ */
+public final class DatastoresCreateOrUpdateSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Datastores_CreateOrUpdate.json
+     */
+    /**
+     * Sample code: Datastores_CreateOrUpdate.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void datastoresCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.datastores()
+            .define("datastore1")
+            .withExistingCluster("group1", "cloud1", "cluster1")
+            .withNetAppVolume(new NetAppVolume().withId(
+                "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/ResourceGroup1/providers/Microsoft.NetApp/netAppAccounts/NetAppAccount1/capacityPools/CapacityPool1/volumes/NFSVol1"))
+            .create();
+    }
+}
+```
+
+### Datastores_Delete
+
+```java
+/**
+ * Samples for Datastores Delete.
+ */
+public final class DatastoresDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Datastores_Delete.json
+     */
+    /**
+     * Sample code: Datastores_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void datastoresDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.datastores().delete("group1", "cloud1", "cluster1", "datastore1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Datastores_Get
+
+```java
+/**
+ * Samples for Datastores Get.
+ */
+public final class DatastoresGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Datastores_Get.json
+     */
+    /**
+     * Sample code: Datastores_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void datastoresGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.datastores()
+            .getWithResponse("group1", "cloud1", "cluster1", "datastore1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Datastores_List
+
+```java
+/**
+ * Samples for Datastores List.
+ */
+public final class DatastoresListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Datastores_List.json
+     */
+    /**
+     * Sample code: Datastores_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void datastoresList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.datastores().list("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### GlobalReachConnections_CreateOrUpdate
+
+```java
+/**
+ * Samples for GlobalReachConnections CreateOrUpdate.
+ */
+public final class GlobalReachConnectionsCreateOrUpdateSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/GlobalReachConnections_CreateOrUpdate.json
+     */
+    /**
+     * Sample code: GlobalReachConnections_CreateOrUpdate.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void globalReachConnectionsCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.globalReachConnections()
+            .define("connection1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withAuthorizationKey("01010101-0101-0101-0101-010101010101")
+            .withPeerExpressRouteCircuit(
+                "/subscriptions/12341234-1234-1234-1234-123412341234/resourceGroups/mygroup/providers/Microsoft.Network/expressRouteCircuits/mypeer")
+            .create();
+    }
+}
+```
+
+### GlobalReachConnections_Delete
+
+```java
+/**
+ * Samples for GlobalReachConnections Delete.
+ */
+public final class GlobalReachConnectionsDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/GlobalReachConnections_Delete.json
+     */
+    /**
+     * Sample code: GlobalReachConnections_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void globalReachConnectionsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.globalReachConnections().delete("group1", "cloud1", "connection1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### GlobalReachConnections_Get
+
+```java
 /**
  * Samples for GlobalReachConnections Get.
  */
 public final class GlobalReachConnectionsGetSamples {
     /*
-     * x-ms-original-file: 2024-09-01/GlobalReachConnections_Get.json
+     * x-ms-original-file: 2025-09-01/GlobalReachConnections_Get.json
      */
     /**
      * Sample code: GlobalReachConnections_Get.
@@ -197,28 +886,156 @@ public final class GlobalReachConnectionsGetSamples {
 }
 ```
 
-### Addons_Delete
+### GlobalReachConnections_List
 
 ```java
 /**
- * Samples for IscsiPaths Get.
+ * Samples for GlobalReachConnections List.
  */
-public final class IscsiPathsGetSamples {
+public final class GlobalReachConnectionsListSamples {
     /*
-     * x-ms-original-file: 2024-09-01/IscsiPaths_Get.json
+     * x-ms-original-file: 2025-09-01/GlobalReachConnections_List.json
      */
     /**
-     * Sample code: IscsiPaths_Get.
+     * Sample code: GlobalReachConnections_List.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void iscsiPathsGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.iscsiPaths().getWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
+    public static void globalReachConnectionsList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.globalReachConnections().list("group1", "cloud1", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### Addons_Get
+### HcxEnterpriseSites_CreateOrUpdate
+
+```java
+/**
+ * Samples for HcxEnterpriseSites CreateOrUpdate.
+ */
+public final class HcxEnterpriseSitesCreateOrUpdateSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/HcxEnterpriseSites_CreateOrUpdate.json
+     */
+    /**
+     * Sample code: HcxEnterpriseSites_CreateOrUpdate.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void hcxEnterpriseSitesCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.hcxEnterpriseSites().define("site1").withExistingPrivateCloud("group1", "cloud1").create();
+    }
+}
+```
+
+### HcxEnterpriseSites_Delete
+
+```java
+/**
+ * Samples for HcxEnterpriseSites Delete.
+ */
+public final class HcxEnterpriseSitesDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/HcxEnterpriseSites_Delete.json
+     */
+    /**
+     * Sample code: HcxEnterpriseSites_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void hcxEnterpriseSitesDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.hcxEnterpriseSites().deleteWithResponse("group1", "cloud1", "site1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### HcxEnterpriseSites_Get
+
+```java
+/**
+ * Samples for HcxEnterpriseSites Get.
+ */
+public final class HcxEnterpriseSitesGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/HcxEnterpriseSites_Get.json
+     */
+    /**
+     * Sample code: HcxEnterpriseSites_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void hcxEnterpriseSitesGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.hcxEnterpriseSites().getWithResponse("group1", "cloud1", "site1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### HcxEnterpriseSites_List
+
+```java
+/**
+ * Samples for HcxEnterpriseSites List.
+ */
+public final class HcxEnterpriseSitesListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/HcxEnterpriseSites_List.json
+     */
+    /**
+     * Sample code: HcxEnterpriseSites_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void hcxEnterpriseSitesList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.hcxEnterpriseSites().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Hosts_Get
+
+```java
+/**
+ * Samples for Hosts Get.
+ */
+public final class HostsGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Hosts_Get.json
+     */
+    /**
+     * Sample code: Hosts_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void hostsGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.hosts()
+            .getWithResponse("group1", "cloud1", "cluster1",
+                "esx03-r52.1111111111111111111.westcentralus.prod.azure.com", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Hosts_List
+
+```java
+/**
+ * Samples for Hosts List.
+ */
+public final class HostsListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Hosts_List.json
+     */
+    /**
+     * Sample code: Hosts_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void hostsList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.hosts().list("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### IscsiPaths_CreateOrUpdate
 
 ```java
 import com.azure.resourcemanager.avs.fluent.models.IscsiPathInner;
@@ -228,7 +1045,7 @@ import com.azure.resourcemanager.avs.fluent.models.IscsiPathInner;
  */
 public final class IscsiPathsCreateOrUpdateSamples {
     /*
-     * x-ms-original-file: 2024-09-01/IscsiPaths_CreateOrUpdate.json
+     * x-ms-original-file: 2025-09-01/IscsiPaths_CreateOrUpdate.json
      */
     /**
      * Sample code: IscsiPaths_CreateOrUpdate.
@@ -243,7 +1060,7 @@ public final class IscsiPathsCreateOrUpdateSamples {
 }
 ```
 
-### Addons_List
+### IscsiPaths_Delete
 
 ```java
 /**
@@ -251,7 +1068,7 @@ public final class IscsiPathsCreateOrUpdateSamples {
  */
 public final class IscsiPathsDeleteSamples {
     /*
-     * x-ms-original-file: 2024-09-01/IscsiPaths_Delete.json
+     * x-ms-original-file: 2025-09-01/IscsiPaths_Delete.json
      */
     /**
      * Sample code: IscsiPaths_Delete.
@@ -264,302 +1081,446 @@ public final class IscsiPathsDeleteSamples {
 }
 ```
 
-### Authorizations_CreateOrUpdate
+### IscsiPaths_Get
 
 ```java
 /**
- * Samples for WorkloadNetworks ListVirtualMachines.
+ * Samples for IscsiPaths Get.
  */
-public final class WorkloadNetworksListVirtualMachinesSamples {
+public final class IscsiPathsGetSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListVirtualMachines.json
+     * x-ms-original-file: 2025-09-01/IscsiPaths_Get.json
      */
     /**
-     * Sample code: WorkloadNetworks_ListVirtualMachines.
+     * Sample code: IscsiPaths_Get.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksListVirtualMachines(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().listVirtualMachines("group1", "cloud1", com.azure.core.util.Context.NONE);
+    public static void iscsiPathsGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.iscsiPaths().getWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### Authorizations_Delete
+### IscsiPaths_ListByPrivateCloud
 
 ```java
-import java.util.Arrays;
-
 /**
- * Samples for WorkloadNetworks CreateVMGroup.
+ * Samples for IscsiPaths ListByPrivateCloud.
  */
-public final class WorkloadNetworksCreateVMGroupSamples {
+public final class IscsiPathsListByPrivateCloudSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_CreateVMGroup.json
+     * x-ms-original-file: 2025-09-01/IscsiPaths_List.json
      */
     /**
-     * Sample code: WorkloadNetworks_CreateVMGroup.
+     * Sample code: IscsiPaths_ListByPrivateCloud.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksCreateVMGroup(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .defineVMGroup("vmGroup1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withDisplayName("vmGroup1")
-            .withMembers(Arrays.asList("564d43da-fefc-2a3b-1d92-42855622fa50"))
-            .withRevision(1L)
-            .create();
+    public static void iscsiPathsListByPrivateCloud(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.iscsiPaths().listByPrivateCloud("group1", "cloud1", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### Authorizations_Get
+### Licenses_CreateOrUpdate
 
 ```java
+import com.azure.resourcemanager.avs.models.LicenseName;
+
 /**
- * Samples for ScriptCmdlets Get.
+ * Samples for Licenses CreateOrUpdate.
  */
-public final class ScriptCmdletsGetSamples {
+public final class LicensesCreateOrUpdateSamples {
     /*
-     * x-ms-original-file: 2024-09-01/ScriptCmdlets_Get.json
+     * x-ms-original-file: 2025-09-01/Licenses_CreateOrUpdate.json
      */
     /**
-     * Sample code: ScriptCmdlets_Get.
+     * Sample code: Licenses_CreateOrUpdate.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void scriptCmdletsGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.scriptCmdlets()
-            .getWithResponse("group1", "cloud1", "package@1.0.2", "New-ExternalSsoDomain",
+    public static void licensesCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.licenses().define(LicenseName.VMWARE_FIREWALL).withExistingPrivateCloud("group1", "cloud1").create();
+    }
+}
+```
+
+### Licenses_Delete
+
+```java
+import com.azure.resourcemanager.avs.models.LicenseName;
+
+/**
+ * Samples for Licenses Delete.
+ */
+public final class LicensesDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Licenses_Delete.json
+     */
+    /**
+     * Sample code: Licenses_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void licensesDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.licenses().delete("group1", "cloud1", LicenseName.VMWARE_FIREWALL, com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Licenses_Get
+
+```java
+import com.azure.resourcemanager.avs.models.LicenseName;
+
+/**
+ * Samples for Licenses Get.
+ */
+public final class LicensesGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Licenses_Get.json
+     */
+    /**
+     * Sample code: Licenses_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void licensesGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.licenses()
+            .getWithResponse("group1", "cloud1", LicenseName.VMWARE_FIREWALL, com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Licenses_GetProperties
+
+```java
+import com.azure.resourcemanager.avs.models.LicenseName;
+
+/**
+ * Samples for Licenses GetProperties.
+ */
+public final class LicensesGetPropertiesSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Licenses_GetProperties.json
+     */
+    /**
+     * Sample code: Licenses_GetProperties.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void licensesGetProperties(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.licenses()
+            .getPropertiesWithResponse("group1", "cloud1", LicenseName.VMWARE_FIREWALL,
                 com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### Authorizations_List
+### Licenses_List
 
 ```java
 /**
- * Samples for PureStoragePolicies List.
+ * Samples for Licenses List.
  */
-public final class PureStoragePoliciesListSamples {
+public final class LicensesListSamples {
     /*
-     * x-ms-original-file: 2024-09-01/PureStoragePolicies_List.json
+     * x-ms-original-file: 2025-09-01/Licenses_List.json
      */
     /**
-     * Sample code: PureStoragePolicies_List.
+     * Sample code: Licenses_List.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void pureStoragePoliciesList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.pureStoragePolicies().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    public static void licensesList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.licenses().list("group1", "cloud1", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### CloudLinks_CreateOrUpdate
+### Locations_CheckQuotaAvailability
 
 ```java
-import com.azure.resourcemanager.avs.models.WorkloadNetworkDnsZone;
+/**
+ * Samples for Locations CheckQuotaAvailability.
+ */
+public final class LocationsCheckQuotaAvailabilitySamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Locations_CheckQuotaAvailability.json
+     */
+    /**
+     * Sample code: Locations_CheckQuotaAvailability.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void locationsCheckQuotaAvailability(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.locations().checkQuotaAvailabilityWithResponse("eastus", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Locations_CheckTrialAvailability
+
+```java
+import com.azure.resourcemanager.avs.models.Sku;
+
+/**
+ * Samples for Locations CheckTrialAvailability.
+ */
+public final class LocationsCheckTrialAvailabilitySamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Locations_CheckTrialAvailability.json
+     */
+    /**
+     * Sample code: Locations_CheckTrialAvailability.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void locationsCheckTrialAvailability(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.locations().checkTrialAvailabilityWithResponse("eastus", null, com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/Locations_CheckTrialAvailabilityWithSku.json
+     */
+    /**
+     * Sample code: Locations_CheckTrialAvailabilityWithSku.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void locationsCheckTrialAvailabilityWithSku(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.locations()
+            .checkTrialAvailabilityWithResponse("eastus", new Sku().withName("avs52t"),
+                com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Maintenances_Get
+
+```java
+/**
+ * Samples for Maintenances Get.
+ */
+public final class MaintenancesGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Maintenances_Get.json
+     */
+    /**
+     * Sample code: Maintenances_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void maintenancesGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.maintenances().getWithResponse("group1", "cloud1", "maintenance1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Maintenances_InitiateChecks
+
+```java
+/**
+ * Samples for Maintenances InitiateChecks.
+ */
+public final class MaintenancesInitiateChecksSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Maintenances_InitiateChecks.json
+     */
+    /**
+     * Sample code: Maintenances_InitiateChecks.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void maintenancesInitiateChecks(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.maintenances()
+            .initiateChecksWithResponse("group1", "cloud1", "maintenance1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Maintenances_List
+
+```java
+
+/**
+ * Samples for Maintenances List.
+ */
+public final class MaintenancesListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Maintenances_List.json
+     */
+    /**
+     * Sample code: Maintenances_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void maintenancesList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.maintenances().list("group1", "cloud1", null, null, null, null, com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Maintenances_Reschedule
+
+```java
+import com.azure.resourcemanager.avs.models.MaintenanceReschedule;
+import java.time.OffsetDateTime;
+
+/**
+ * Samples for Maintenances Reschedule.
+ */
+public final class MaintenancesRescheduleSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Maintenances_Reschedule.json
+     */
+    /**
+     * Sample code: Maintenances_Reschedule.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void maintenancesReschedule(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.maintenances()
+            .rescheduleWithResponse("group1", "cloud1", "maintenance1",
+                new MaintenanceReschedule().withRescheduleTime(OffsetDateTime.parse("2023-01-12T16:17:55.237Z"))
+                    .withMessage("Rescheduled due to xyz"),
+                com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Maintenances_Schedule
+
+```java
+import com.azure.resourcemanager.avs.models.MaintenanceSchedule;
+import java.time.OffsetDateTime;
+
+/**
+ * Samples for Maintenances Schedule.
+ */
+public final class MaintenancesScheduleSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Maintenances_Schedule.json
+     */
+    /**
+     * Sample code: Maintenances_Schedule.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void maintenancesSchedule(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.maintenances()
+            .scheduleWithResponse("group1", "cloud1", "maintenance1",
+                new MaintenanceSchedule().withScheduleTime(OffsetDateTime.parse("2025-09-12T16:17:55.237Z"))
+                    .withMessage("scheduled due to xyz"),
+                com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Operations_List
+
+```java
+/**
+ * Samples for Operations List.
+ */
+public final class OperationsListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Operations_List.json
+     */
+    /**
+     * Sample code: Operations_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void operationsList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.operations().list(com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PlacementPolicies_CreateOrUpdate
+
+```java
+import com.azure.resourcemanager.avs.models.AffinityStrength;
+import com.azure.resourcemanager.avs.models.AffinityType;
+import com.azure.resourcemanager.avs.models.AzureHybridBenefitType;
+import com.azure.resourcemanager.avs.models.VmHostPlacementPolicyProperties;
 import java.util.Arrays;
 
 /**
- * Samples for WorkloadNetworks UpdateDnsZone.
+ * Samples for PlacementPolicies CreateOrUpdate.
  */
-public final class WorkloadNetworksUpdateDnsZoneSamples {
+public final class PlacementPoliciesCreateOrUpdateSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_UpdateDnsZone.json
+     * x-ms-original-file: 2025-09-01/PlacementPolicies_CreateOrUpdate.json
      */
     /**
-     * Sample code: WorkloadNetworks_UpdateDnsZone.
+     * Sample code: PlacementPolicies_CreateOrUpdate.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksUpdateDnsZone(com.azure.resourcemanager.avs.AvsManager manager) {
-        WorkloadNetworkDnsZone resource = manager.workloadNetworks()
-            .getDnsZoneWithResponse("group1", "cloud1", "dnsZone1", com.azure.core.util.Context.NONE)
-            .getValue();
-        resource.update()
-            .withDisplayName("dnsZone1")
-            .withDomain(Arrays.asList())
-            .withDnsServerIps(Arrays.asList("1.1.1.1"))
-            .withSourceIp("8.8.8.8")
-            .withRevision(1L)
-            .apply();
-    }
-}
-```
-
-### CloudLinks_Delete
-
-```java
-/**
- * Samples for PrivateClouds ListAdminCredentials.
- */
-public final class PrivateCloudsListAdminCredentialsSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_ListAdminCredentials.json
-     */
-    /**
-     * Sample code: PrivateClouds_ListAdminCredentials.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsListAdminCredentials(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().listAdminCredentialsWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### CloudLinks_Get
-
-```java
-import java.util.Arrays;
-
-/**
- * Samples for WorkloadNetworks CreateDnsZone.
- */
-public final class WorkloadNetworksCreateDnsZoneSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_CreateDnsZone.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_CreateDnsZone.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksCreateDnsZone(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .defineDnsZone("dnsZone1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withDisplayName("dnsZone1")
-            .withDomain(Arrays.asList())
-            .withDnsServerIps(Arrays.asList("1.1.1.1"))
-            .withSourceIp("8.8.8.8")
-            .withRevision(1L)
+    public static void placementPoliciesCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.placementPolicies()
+            .define("policy1")
+            .withExistingCluster("group1", "cloud1", "cluster1")
+            .withProperties(new VmHostPlacementPolicyProperties().withVmMembers(Arrays.asList(
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.AVS/privateClouds/cloud1/clusters/cluster1/virtualMachines/vm-128",
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.AVS/privateClouds/cloud1/clusters/cluster1/virtualMachines/vm-256"))
+                .withHostMembers(Arrays.asList("fakehost22.nyc1.kubernetes.center", "fakehost23.nyc1.kubernetes.center",
+                    "fakehost24.nyc1.kubernetes.center"))
+                .withAffinityType(AffinityType.ANTI_AFFINITY)
+                .withAffinityStrength(AffinityStrength.MUST)
+                .withAzureHybridBenefitType(AzureHybridBenefitType.SQL_HOST))
             .create();
     }
 }
 ```
 
-### CloudLinks_List
+### PlacementPolicies_Delete
 
 ```java
-import com.azure.resourcemanager.avs.models.WorkloadNetworkSegmentSubnet;
-import java.util.Arrays;
-
 /**
- * Samples for WorkloadNetworks CreateSegments.
+ * Samples for PlacementPolicies Delete.
  */
-public final class WorkloadNetworksCreateSegmentsSamples {
+public final class PlacementPoliciesDeleteSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_CreateSegments.json
+     * x-ms-original-file: 2025-09-01/PlacementPolicies_Delete.json
      */
     /**
-     * Sample code: WorkloadNetworks_CreateSegments.
+     * Sample code: PlacementPolicies_Delete.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksCreateSegments(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .defineSegments("segment1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withDisplayName("segment1")
-            .withConnectedGateway("/infra/tier-1s/gateway")
-            .withSubnet(new WorkloadNetworkSegmentSubnet().withDhcpRanges(Arrays.asList("40.20.0.0-40.20.0.1"))
-                .withGatewayAddress("40.20.20.20/16"))
-            .withRevision(1L)
-            .create();
+    public static void placementPoliciesDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.placementPolicies().delete("group1", "cloud1", "cluster1", "policy1", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### Clusters_CreateOrUpdate
+### PlacementPolicies_Get
 
 ```java
 /**
- * Samples for HcxEnterpriseSites Delete.
+ * Samples for PlacementPolicies Get.
  */
-public final class HcxEnterpriseSitesDeleteSamples {
+public final class PlacementPoliciesGetSamples {
     /*
-     * x-ms-original-file: 2024-09-01/HcxEnterpriseSites_Delete.json
+     * x-ms-original-file: 2025-09-01/PlacementPolicies_Get.json
      */
     /**
-     * Sample code: HcxEnterpriseSites_Delete.
+     * Sample code: PlacementPolicies_Get.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void hcxEnterpriseSitesDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.hcxEnterpriseSites().deleteWithResponse("group1", "cloud1", "site1", com.azure.core.util.Context.NONE);
+    public static void placementPoliciesGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.placementPolicies()
+            .getWithResponse("group1", "cloud1", "cluster1", "policy1", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### Clusters_Delete
-
-```java
-/**
- * Samples for CloudLinks Get.
- */
-public final class CloudLinksGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/CloudLinks_Get.json
-     */
-    /**
-     * Sample code: CloudLinks_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void cloudLinksGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.cloudLinks().getWithResponse("group1", "cloud1", "cloudLink1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Clusters_Get
-
-```java
-/**
- * Samples for ScriptExecutions Delete.
- */
-public final class ScriptExecutionsDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/ScriptExecutions_Delete.json
-     */
-    /**
-     * Sample code: ScriptExecutions_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void scriptExecutionsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.scriptExecutions().delete("group1", "cloud1", "addSsoServer", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Clusters_List
-
-```java
-/**
- * Samples for Datastores List.
- */
-public final class DatastoresListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Datastores_List.json
-     */
-    /**
-     * Sample code: Datastores_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void datastoresList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.datastores().list("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Clusters_ListZones
+### PlacementPolicies_List
 
 ```java
 /**
@@ -567,7 +1528,7 @@ public final class DatastoresListSamples {
  */
 public final class PlacementPoliciesListSamples {
     /*
-     * x-ms-original-file: 2024-09-01/PlacementPolicies_List.json
+     * x-ms-original-file: 2025-09-01/PlacementPolicies_List.json
      */
     /**
      * Sample code: PlacementPolicies_List.
@@ -580,28 +1541,7 @@ public final class PlacementPoliciesListSamples {
 }
 ```
 
-### Clusters_Update
-
-```java
-/**
- * Samples for HcxEnterpriseSites CreateOrUpdate.
- */
-public final class HcxEnterpriseSitesCreateOrUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/HcxEnterpriseSites_CreateOrUpdate.json
-     */
-    /**
-     * Sample code: HcxEnterpriseSites_CreateOrUpdate.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void hcxEnterpriseSitesCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.hcxEnterpriseSites().define("site1").withExistingPrivateCloud("group1", "cloud1").create();
-    }
-}
-```
-
-### Datastores_CreateOrUpdate
+### PlacementPolicies_Update
 
 ```java
 import com.azure.resourcemanager.avs.models.AffinityStrength;
@@ -615,7 +1555,7 @@ import java.util.Arrays;
  */
 public final class PlacementPoliciesUpdateSamples {
     /*
-     * x-ms-original-file: 2024-09-01/PlacementPolicies_Update.json
+     * x-ms-original-file: 2025-09-01/PlacementPolicies_Update.json
      */
     /**
      * Sample code: PlacementPolicies_Update.
@@ -640,1776 +1580,7 @@ public final class PlacementPoliciesUpdateSamples {
 }
 ```
 
-### Datastores_Delete
-
-```java
-/**
- * Samples for PrivateClouds ListByResourceGroup.
- */
-public final class PrivateCloudsListByResourceGroupSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_List.json
-     */
-    /**
-     * Sample code: PrivateClouds_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().listByResourceGroup("group1", com.azure.core.util.Context.NONE);
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_List_Stretched.json
-     */
-    /**
-     * Sample code: PrivateClouds_List_Stretched.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsListStretched(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().listByResourceGroup("group1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Datastores_Get
-
-```java
-/**
- * Samples for ProvisionedNetworks Get.
- */
-public final class ProvisionedNetworksGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/ProvisionedNetworks_Get.json
-     */
-    /**
-     * Sample code: ProvisionedNetworks_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void provisionedNetworksGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.provisionedNetworks().getWithResponse("group1", "cloud1", "vsan", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Datastores_List
-
-```java
-import com.azure.resourcemanager.avs.models.Sku;
-
-/**
- * Samples for Clusters CreateOrUpdate.
- */
-public final class ClustersCreateOrUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Clusters_CreateOrUpdate.json
-     */
-    /**
-     * Sample code: Clusters_CreateOrUpdate.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void clustersCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.clusters()
-            .define("cluster1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withSku(new Sku().withName("AV20"))
-            .withClusterSize(3)
-            .create();
-    }
-}
-```
-
-### GlobalReachConnections_CreateOrUpdate
-
-```java
-/**
- * Samples for PureStoragePolicies Get.
- */
-public final class PureStoragePoliciesGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PureStoragePolicies_Get.json
-     */
-    /**
-     * Sample code: PureStoragePolicies_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void pureStoragePoliciesGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.pureStoragePolicies()
-            .getWithResponse("group1", "cloud1", "storagePolicy1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### GlobalReachConnections_Delete
-
-```java
-/**
- * Samples for Clusters Get.
- */
-public final class ClustersGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Clusters_Get.json
-     */
-    /**
-     * Sample code: Clusters_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void clustersGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.clusters().getWithResponse("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### GlobalReachConnections_Get
-
-```java
-import com.azure.resourcemanager.avs.models.WorkloadNetworkSegment;
-import com.azure.resourcemanager.avs.models.WorkloadNetworkSegmentSubnet;
-import java.util.Arrays;
-
-/**
- * Samples for WorkloadNetworks UpdateSegments.
- */
-public final class WorkloadNetworksUpdateSegmentsSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_UpdateSegments.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_UpdateSegments.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksUpdateSegments(com.azure.resourcemanager.avs.AvsManager manager) {
-        WorkloadNetworkSegment resource = manager.workloadNetworks()
-            .getSegmentWithResponse("group1", "cloud1", "segment1", com.azure.core.util.Context.NONE)
-            .getValue();
-        resource.update()
-            .withConnectedGateway("/infra/tier-1s/gateway")
-            .withSubnet(new WorkloadNetworkSegmentSubnet().withDhcpRanges(Arrays.asList("40.20.0.0-40.20.0.1"))
-                .withGatewayAddress("40.20.20.20/16"))
-            .withRevision(1L)
-            .apply();
-    }
-}
-```
-
-### GlobalReachConnections_List
-
-```java
-/**
- * Samples for Authorizations CreateOrUpdate.
- */
-public final class AuthorizationsCreateOrUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Authorizations_CreateOrUpdate.json
-     */
-    /**
-     * Sample code: Authorizations_CreateOrUpdate.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void authorizationsCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.authorizations().define("authorization1").withExistingPrivateCloud("group1", "cloud1").create();
-    }
-}
-```
-
-### HcxEnterpriseSites_CreateOrUpdate
-
-```java
-/**
- * Samples for WorkloadNetworks GetDnsZone.
- */
-public final class WorkloadNetworksGetDnsZoneSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetDnsZone.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_GetDnsZone.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksGetDnsZone(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .getDnsZoneWithResponse("group1", "cloud1", "dnsZone1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### HcxEnterpriseSites_Delete
-
-```java
-/**
- * Samples for VirtualMachines List.
- */
-public final class VirtualMachinesListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/VirtualMachines_List.json
-     */
-    /**
-     * Sample code: VirtualMachines_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void virtualMachinesList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.virtualMachines().list("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### HcxEnterpriseSites_Get
-
-```java
-import com.azure.resourcemanager.avs.models.VirtualMachineRestrictMovement;
-import com.azure.resourcemanager.avs.models.VirtualMachineRestrictMovementState;
-
-/**
- * Samples for VirtualMachines RestrictMovement.
- */
-public final class VirtualMachinesRestrictMovementSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/VirtualMachines_RestrictMovement.json
-     */
-    /**
-     * Sample code: VirtualMachines_RestrictMovement.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void virtualMachinesRestrictMovement(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.virtualMachines()
-            .restrictMovement("group1", "cloud1", "cluster1", "vm-209",
-                new VirtualMachineRestrictMovement().withRestrictMovement(VirtualMachineRestrictMovementState.ENABLED),
-                com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### HcxEnterpriseSites_List
-
-```java
-/**
- * Samples for WorkloadNetworks DeleteVMGroup.
- */
-public final class WorkloadNetworksDeleteVMGroupSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_DeleteVMGroup.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_DeleteVMGroup.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksDeleteVMGroup(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().deleteVMGroup("group1", "vmGroup1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Hosts_Get
-
-```java
-/**
- * Samples for PlacementPolicies Delete.
- */
-public final class PlacementPoliciesDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PlacementPolicies_Delete.json
-     */
-    /**
-     * Sample code: PlacementPolicies_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void placementPoliciesDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.placementPolicies().delete("group1", "cloud1", "cluster1", "policy1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Hosts_List
-
-```java
-/**
- * Samples for WorkloadNetworks ListSegments.
- */
-public final class WorkloadNetworksListSegmentsSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListSegments.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_ListSegments.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksListSegments(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().listSegments("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### IscsiPaths_CreateOrUpdate
-
-```java
-/**
- * Samples for Authorizations List.
- */
-public final class AuthorizationsListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Authorizations_List.json
-     */
-    /**
-     * Sample code: Authorizations_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void authorizationsList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.authorizations().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### IscsiPaths_Delete
-
-```java
-/**
- * Samples for WorkloadNetworks GetDhcp.
- */
-public final class WorkloadNetworksGetDhcpSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetDhcp.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_GetDhcp.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksGetDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().getDhcpWithResponse("group1", "dhcp1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### IscsiPaths_Get
-
-```java
-/**
- * Samples for WorkloadNetworks ListDhcp.
- */
-public final class WorkloadNetworksListDhcpSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListDhcp.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_ListDhcp.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksListDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().listDhcp("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### IscsiPaths_ListByPrivateCloud
-
-```java
-/**
- * Samples for GlobalReachConnections List.
- */
-public final class GlobalReachConnectionsListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/GlobalReachConnections_List.json
-     */
-    /**
-     * Sample code: GlobalReachConnections_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void globalReachConnectionsList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.globalReachConnections().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Locations_CheckQuotaAvailability
-
-```java
-/**
- * Samples for Datastores Get.
- */
-public final class DatastoresGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Datastores_Get.json
-     */
-    /**
-     * Sample code: Datastores_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void datastoresGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.datastores()
-            .getWithResponse("group1", "cloud1", "cluster1", "datastore1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Locations_CheckTrialAvailability
-
-```java
-/**
- * Samples for IscsiPaths ListByPrivateCloud.
- */
-public final class IscsiPathsListByPrivateCloudSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/IscsiPaths_List.json
-     */
-    /**
-     * Sample code: IscsiPaths_ListByPrivateCloud.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void iscsiPathsListByPrivateCloud(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.iscsiPaths().listByPrivateCloud("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Operations_List
-
-```java
-/**
- * Samples for Clusters ListZones.
- */
-public final class ClustersListZonesSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Clusters_ListZones.json
-     */
-    /**
-     * Sample code: Clusters_ListZones.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void clustersListZones(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.clusters().listZonesWithResponse("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Clusters_ListZones_Stretched.json
-     */
-    /**
-     * Sample code: Clusters_ListZones_Stretched.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void clustersListZonesStretched(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.clusters().listZonesWithResponse("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PlacementPolicies_CreateOrUpdate
-
-```java
-/**
- * Samples for GlobalReachConnections CreateOrUpdate.
- */
-public final class GlobalReachConnectionsCreateOrUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/GlobalReachConnections_CreateOrUpdate.json
-     */
-    /**
-     * Sample code: GlobalReachConnections_CreateOrUpdate.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void globalReachConnectionsCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.globalReachConnections()
-            .define("connection1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withAuthorizationKey("01010101-0101-0101-0101-010101010101")
-            .withPeerExpressRouteCircuit(
-                "/subscriptions/12341234-1234-1234-1234-123412341234/resourceGroups/mygroup/providers/Microsoft.Network/expressRouteCircuits/mypeer")
-            .create();
-    }
-}
-```
-
-### PlacementPolicies_Delete
-
-```java
-/**
- * Samples for VirtualMachines Get.
- */
-public final class VirtualMachinesGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/VirtualMachines_Get.json
-     */
-    /**
-     * Sample code: VirtualMachines_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void virtualMachinesGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.virtualMachines()
-            .getWithResponse("group1", "cloud1", "cluster1", "vm-209", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PlacementPolicies_Get
-
-```java
-/**
- * Samples for Authorizations Delete.
- */
-public final class AuthorizationsDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Authorizations_Delete.json
-     */
-    /**
-     * Sample code: Authorizations_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void authorizationsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.authorizations().delete("group1", "cloud1", "authorization1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PlacementPolicies_List
-
-```java
-import com.azure.resourcemanager.avs.models.AddonArcProperties;
-import com.azure.resourcemanager.avs.models.AddonHcxProperties;
-import com.azure.resourcemanager.avs.models.AddonSrmProperties;
-import com.azure.resourcemanager.avs.models.AddonVrProperties;
-
-/**
- * Samples for Addons CreateOrUpdate.
- */
-public final class AddonsCreateOrUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_CreateOrUpdate_HCX.json
-     */
-    /**
-     * Sample code: Addons_CreateOrUpdate_HCX.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsCreateOrUpdateHCX(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons()
-            .define("hcx")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withProperties(new AddonHcxProperties().withOffer("VMware MaaS Cloud Provider (Enterprise)"))
-            .create();
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_CreateOrUpdate_SRM.json
-     */
-    /**
-     * Sample code: Addons_CreateOrUpdate_SRM.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsCreateOrUpdateSRM(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons()
-            .define("srm")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withProperties(new AddonSrmProperties().withLicenseKey("fakeTokenPlaceholder"))
-            .create();
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_CreateOrUpdate_HCX_With_Networks.json
-     */
-    /**
-     * Sample code: Addons_CreateOrUpdate_HCX_With_Networks.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsCreateOrUpdateHCXWithNetworks(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons()
-            .define("hcx")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withProperties(new AddonHcxProperties().withOffer("VMware MaaS Cloud Provider (Enterprise)")
-                .withManagementNetwork("10.3.1.0/24")
-                .withUplinkNetwork("10.3.2.0/24"))
-            .create();
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_CreateOrUpdate_ArcReg.json
-     */
-    /**
-     * Sample code: Addons_CreateOrUpdate_ArcReg.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsCreateOrUpdateArcReg(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons()
-            .define("arc")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withProperties(new AddonArcProperties().withVCenter(
-                "subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg_test/providers/Microsoft.ConnectedVMwarevSphere/VCenters/test-vcenter"))
-            .create();
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_CreateOrUpdate_VR.json
-     */
-    /**
-     * Sample code: Addons_CreateOrUpdate_VR.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsCreateOrUpdateVR(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons()
-            .define("vr")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withProperties(new AddonVrProperties().withVrsCount(1))
-            .create();
-    }
-}
-```
-
-### PlacementPolicies_Update
-
-```java
-/**
- * Samples for WorkloadNetworks DeleteSegment.
- */
-public final class WorkloadNetworksDeleteSegmentSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_DeleteSegment.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_DeleteSegment.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksDeleteSegment(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().deleteSegment("group1", "cloud1", "segment1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
 ### PrivateClouds_CreateOrUpdate
-
-```java
-/**
- * Samples for Operations List.
- */
-public final class OperationsListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Operations_List.json
-     */
-    /**
-     * Sample code: Operations_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void operationsList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.operations().list(com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PrivateClouds_Delete
-
-```java
-/**
- * Samples for ProvisionedNetworks List.
- */
-public final class ProvisionedNetworksListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/ProvisionedNetworks_List.json
-     */
-    /**
-     * Sample code: ProvisionedNetworks_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void provisionedNetworksList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.provisionedNetworks().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PrivateClouds_GetByResourceGroup
-
-```java
-/**
- * Samples for WorkloadNetworks ListPublicIPs.
- */
-public final class WorkloadNetworksListPublicIPsSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListPublicIPs.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_ListPublicIPs.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksListPublicIPs(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().listPublicIPs("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PrivateClouds_List
-
-```java
-/**
- * Samples for WorkloadNetworks GetDnsService.
- */
-public final class WorkloadNetworksGetDnsServiceSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetDnsService.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_GetDnsService.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksGetDnsService(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .getDnsServiceWithResponse("group1", "cloud1", "dnsService1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PrivateClouds_ListAdminCredentials
-
-```java
-/**
- * Samples for Authorizations Get.
- */
-public final class AuthorizationsGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Authorizations_Get.json
-     */
-    /**
-     * Sample code: Authorizations_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void authorizationsGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.authorizations()
-            .getWithResponse("group1", "cloud1", "authorization1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PrivateClouds_ListByResourceGroup
-
-```java
-/**
- * Samples for ScriptCmdlets List.
- */
-public final class ScriptCmdletsListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/ScriptCmdlets_List.json
-     */
-    /**
-     * Sample code: ScriptCmdlets_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void scriptCmdletsList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.scriptCmdlets().list("group1", "cloud1", "package@1.0.2", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PrivateClouds_RotateNsxtPassword
-
-```java
-/**
- * Samples for WorkloadNetworks ListGateways.
- */
-public final class WorkloadNetworksListGatewaysSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListGateways.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_ListGateways.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksListGateways(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().listGateways("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PrivateClouds_RotateVcenterPassword
-
-```java
-/**
- * Samples for PlacementPolicies Get.
- */
-public final class PlacementPoliciesGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PlacementPolicies_Get.json
-     */
-    /**
-     * Sample code: PlacementPolicies_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void placementPoliciesGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.placementPolicies()
-            .getWithResponse("group1", "cloud1", "cluster1", "policy1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PrivateClouds_Update
-
-```java
-/**
- * Samples for ScriptExecutions Get.
- */
-public final class ScriptExecutionsGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/ScriptExecutions_Get.json
-     */
-    /**
-     * Sample code: ScriptExecutions_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void scriptExecutionsGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.scriptExecutions()
-            .getWithResponse("group1", "cloud1", "addSsoServer", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ProvisionedNetworks_Get
-
-```java
-/**
- * Samples for CloudLinks List.
- */
-public final class CloudLinksListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/CloudLinks_List.json
-     */
-    /**
-     * Sample code: CloudLinks_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void cloudLinksList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.cloudLinks().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ProvisionedNetworks_List
-
-```java
-/**
- * Samples for Hosts Get.
- */
-public final class HostsGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Hosts_Get.json
-     */
-    /**
-     * Sample code: Hosts_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void hostsGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.hosts()
-            .getWithResponse("group1", "cloud1", "cluster1",
-                "esx03-r52.1111111111111111111.westcentralus.prod.azure.com", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PureStoragePolicies_CreateOrUpdate
-
-```java
-import com.azure.resourcemanager.avs.models.NetAppVolume;
-
-/**
- * Samples for Datastores CreateOrUpdate.
- */
-public final class DatastoresCreateOrUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Datastores_CreateOrUpdate.json
-     */
-    /**
-     * Sample code: Datastores_CreateOrUpdate.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void datastoresCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.datastores()
-            .define("datastore1")
-            .withExistingCluster("group1", "cloud1", "cluster1")
-            .withNetAppVolume(new NetAppVolume().withId(
-                "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/ResourceGroup1/providers/Microsoft.NetApp/netAppAccounts/NetAppAccount1/capacityPools/CapacityPool1/volumes/NFSVol1"))
-            .create();
-    }
-}
-```
-
-### PureStoragePolicies_Delete
-
-```java
-/**
- * Samples for PrivateClouds RotateNsxtPassword.
- */
-public final class PrivateCloudsRotateNsxtPasswordSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_RotateNsxtPassword.json
-     */
-    /**
-     * Sample code: PrivateClouds_RotateNsxtPassword.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsRotateNsxtPassword(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().rotateNsxtPassword("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### PureStoragePolicies_Get
-
-```java
-import com.azure.resourcemanager.avs.models.DnsServiceLogLevelEnum;
-import com.azure.resourcemanager.avs.models.WorkloadNetworkDnsService;
-import java.util.Arrays;
-
-/**
- * Samples for WorkloadNetworks UpdateDnsService.
- */
-public final class WorkloadNetworksUpdateDnsServiceSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_UpdateDnsService.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_UpdateDnsService.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksUpdateDnsService(com.azure.resourcemanager.avs.AvsManager manager) {
-        WorkloadNetworkDnsService resource = manager.workloadNetworks()
-            .getDnsServiceWithResponse("group1", "cloud1", "dnsService1", com.azure.core.util.Context.NONE)
-            .getValue();
-        resource.update()
-            .withDisplayName("dnsService1")
-            .withDnsServiceIp("5.5.5.5")
-            .withDefaultDnsZone("defaultDnsZone1")
-            .withFqdnZones(Arrays.asList("fqdnZone1"))
-            .withLogLevel(DnsServiceLogLevelEnum.INFO)
-            .withRevision(1L)
-            .apply();
-    }
-}
-```
-
-### PureStoragePolicies_List
-
-```java
-/**
- * Samples for Datastores Delete.
- */
-public final class DatastoresDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Datastores_Delete.json
-     */
-    /**
-     * Sample code: Datastores_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void datastoresDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.datastores().delete("group1", "cloud1", "cluster1", "datastore1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ScriptCmdlets_Get
-
-```java
-/**
- * Samples for Clusters Delete.
- */
-public final class ClustersDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Clusters_Delete.json
-     */
-    /**
-     * Sample code: Clusters_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void clustersDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.clusters().delete("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ScriptCmdlets_List
-
-```java
-/**
- * Samples for Clusters List.
- */
-public final class ClustersListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Clusters_List.json
-     */
-    /**
-     * Sample code: Clusters_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void clustersList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.clusters().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ScriptExecutions_CreateOrUpdate
-
-```java
-/**
- * Samples for GlobalReachConnections Delete.
- */
-public final class GlobalReachConnectionsDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/GlobalReachConnections_Delete.json
-     */
-    /**
-     * Sample code: GlobalReachConnections_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void globalReachConnectionsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.globalReachConnections().delete("group1", "cloud1", "connection1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ScriptExecutions_Delete
-
-```java
-/**
- * Samples for PrivateClouds List.
- */
-public final class PrivateCloudsListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_ListInSubscription.json
-     */
-    /**
-     * Sample code: PrivateClouds_ListInSubscription.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsListInSubscription(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().list(com.azure.core.util.Context.NONE);
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_ListInSubscription_Stretched.json
-     */
-    /**
-     * Sample code: PrivateClouds_ListInSubscription_Stretched.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsListInSubscriptionStretched(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().list(com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ScriptExecutions_Get
-
-```java
-/**
- * Samples for WorkloadNetworks DeleteDnsZone.
- */
-public final class WorkloadNetworksDeleteDnsZoneSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_DeleteDnsZone.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_DeleteDnsZone.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksDeleteDnsZone(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().deleteDnsZone("group1", "dnsZone1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ScriptExecutions_GetExecutionLogs
-
-```java
-/**
- * Samples for Addons Delete.
- */
-public final class AddonsDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_Delete.json
-     */
-    /**
-     * Sample code: Addons_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons().delete("group1", "cloud1", "srm", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### ScriptExecutions_List
-
-```java
-import com.azure.resourcemanager.avs.models.DnsServiceLogLevelEnum;
-import java.util.Arrays;
-
-/**
- * Samples for WorkloadNetworks CreateDnsService.
- */
-public final class WorkloadNetworksCreateDnsServiceSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_CreateDnsService.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_CreateDnsService.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksCreateDnsService(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .defineDnsService("dnsService1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withDisplayName("dnsService1")
-            .withDnsServiceIp("5.5.5.5")
-            .withDefaultDnsZone("defaultDnsZone1")
-            .withFqdnZones(Arrays.asList("fqdnZone1"))
-            .withLogLevel(DnsServiceLogLevelEnum.INFO)
-            .withRevision(1L)
-            .create();
-    }
-}
-```
-
-### ScriptPackages_Get
-
-```java
-/**
- * Samples for WorkloadNetworks CreatePublicIp.
- */
-public final class WorkloadNetworksCreatePublicIpSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_CreatePublicIP.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_CreatePublicIP.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksCreatePublicIP(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .definePublicIp("publicIP1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withDisplayName("publicIP1")
-            .withNumberOfPublicIPs(32L)
-            .create();
-    }
-}
-```
-
-### ScriptPackages_List
-
-```java
-/**
- * Samples for Addons Get.
- */
-public final class AddonsGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_Get_HCX_With_Networks.json
-     */
-    /**
-     * Sample code: Addons_Get_HCX_With_Networks.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsGetHCXWithNetworks(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons().getWithResponse("group1", "cloud1", "hcx", com.azure.core.util.Context.NONE);
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_Get_SRM.json
-     */
-    /**
-     * Sample code: Addons_Get_SRM.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsGetSRM(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons().getWithResponse("group1", "cloud1", "srm", com.azure.core.util.Context.NONE);
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_Get_VR.json
-     */
-    /**
-     * Sample code: Addons_Get_VR.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsGetVR(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons().getWithResponse("group1", "cloud1", "vr", com.azure.core.util.Context.NONE);
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_Get_HCX.json
-     */
-    /**
-     * Sample code: Addons_Get_HCX.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsGetHCX(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons().getWithResponse("group1", "cloud1", "hcx", com.azure.core.util.Context.NONE);
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_Get_ArcReg.json
-     */
-    /**
-     * Sample code: Addons_Get_ArcReg.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsGetArcReg(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons().getWithResponse("group1", "cloud1", "arc", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### Skus_List
-
-```java
-/**
- * Samples for WorkloadNetworks Get.
- */
-public final class WorkloadNetworksGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_Get.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().getWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### VirtualMachines_Get
-
-```java
-/**
- * Samples for WorkloadNetworks DeletePublicIp.
- */
-public final class WorkloadNetworksDeletePublicIpSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_DeletePublicIP.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_DeletePublicIP.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksDeletePublicIP(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().deletePublicIp("group1", "publicIP1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### VirtualMachines_List
-
-```java
-/**
- * Samples for Locations CheckQuotaAvailability.
- */
-public final class LocationsCheckQuotaAvailabilitySamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Locations_CheckQuotaAvailability.json
-     */
-    /**
-     * Sample code: Locations_CheckQuotaAvailability.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void locationsCheckQuotaAvailability(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.locations().checkQuotaAvailabilityWithResponse("eastus", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### VirtualMachines_RestrictMovement
-
-```java
-/**
- * Samples for Skus List.
- */
-public final class SkusListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Skus_List.json
-     */
-    /**
-     * Sample code: Skus_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void skusList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.skus().list(com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_CreateDhcp
-
-```java
-import com.azure.resourcemanager.avs.models.PureStoragePolicyProperties;
-
-/**
- * Samples for PureStoragePolicies CreateOrUpdate.
- */
-public final class PureStoragePoliciesCreateOrUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PureStoragePolicies_CreateOrUpdate.json
-     */
-    /**
-     * Sample code: PureStoragePolicies_CreateOrUpdate.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void pureStoragePoliciesCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.pureStoragePolicies()
-            .define("storagePolicy1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withProperties(new PureStoragePolicyProperties().withStoragePolicyDefinition("storagePolicyDefinition1")
-                .withStoragePoolId(
-                    "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/PureStorage.Block/storagePools/storagePool1"))
-            .create();
-    }
-}
-```
-
-### WorkloadNetworks_CreateDnsService
-
-```java
-import com.azure.resourcemanager.avs.models.WorkloadNetworkDhcpServer;
-
-/**
- * Samples for WorkloadNetworks CreateDhcp.
- */
-public final class WorkloadNetworksCreateDhcpSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_CreateDhcp.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_CreateDhcp.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksCreateDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .defineDhcp("dhcp1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withProperties(new WorkloadNetworkDhcpServer().withDisplayName("dhcpConfigurations1")
-                .withRevision(1L)
-                .withServerAddress("40.1.5.1/24")
-                .withLeaseTime(86400L))
-            .create();
-    }
-}
-```
-
-### WorkloadNetworks_CreateDnsZone
-
-```java
-import com.azure.resourcemanager.avs.models.WorkloadNetworkDhcp;
-import com.azure.resourcemanager.avs.models.WorkloadNetworkDhcpServer;
-
-/**
- * Samples for WorkloadNetworks UpdateDhcp.
- */
-public final class WorkloadNetworksUpdateDhcpSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_UpdateDhcp.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_UpdateDhcp.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksUpdateDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
-        WorkloadNetworkDhcp resource = manager.workloadNetworks()
-            .getDhcpWithResponse("group1", "dhcp1", "cloud1", com.azure.core.util.Context.NONE)
-            .getValue();
-        resource.update()
-            .withProperties(
-                new WorkloadNetworkDhcpServer().withRevision(1L).withServerAddress("40.1.5.1/24").withLeaseTime(86400L))
-            .apply();
-    }
-}
-```
-
-### WorkloadNetworks_CreatePortMirroring
-
-```java
-import com.azure.resourcemanager.avs.models.Cluster;
-
-/**
- * Samples for Clusters Update.
- */
-public final class ClustersUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Clusters_Update.json
-     */
-    /**
-     * Sample code: Clusters_Update.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void clustersUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        Cluster resource = manager.clusters()
-            .getWithResponse("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE)
-            .getValue();
-        resource.update().withClusterSize(4).apply();
-    }
-}
-```
-
-### WorkloadNetworks_CreatePublicIp
-
-```java
-/**
- * Samples for CloudLinks CreateOrUpdate.
- */
-public final class CloudLinksCreateOrUpdateSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/CloudLinks_CreateOrUpdate.json
-     */
-    /**
-     * Sample code: CloudLinks_CreateOrUpdate.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void cloudLinksCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.cloudLinks()
-            .define("cloudLink1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withLinkedCloud(
-                "/subscriptions/12341234-1234-1234-1234-123412341234/resourceGroups/mygroup/providers/Microsoft.AVS/privateClouds/cloud2")
-            .create();
-    }
-}
-```
-
-### WorkloadNetworks_CreateSegments
-
-```java
-import com.azure.resourcemanager.avs.models.PortMirroringDirectionEnum;
-import com.azure.resourcemanager.avs.models.WorkloadNetworkPortMirroring;
-
-/**
- * Samples for WorkloadNetworks UpdatePortMirroring.
- */
-public final class WorkloadNetworksUpdatePortMirroringSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_UpdatePortMirroring.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_UpdatePortMirroring.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksUpdatePortMirroring(com.azure.resourcemanager.avs.AvsManager manager) {
-        WorkloadNetworkPortMirroring resource = manager.workloadNetworks()
-            .getPortMirroringWithResponse("group1", "cloud1", "portMirroring1", com.azure.core.util.Context.NONE)
-            .getValue();
-        resource.update()
-            .withDirection(PortMirroringDirectionEnum.BIDIRECTIONAL)
-            .withSource("vmGroup1")
-            .withDestination("vmGroup2")
-            .withRevision(1L)
-            .apply();
-    }
-}
-```
-
-### WorkloadNetworks_CreateVMGroup
-
-```java
-/**
- * Samples for CloudLinks Delete.
- */
-public final class CloudLinksDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/CloudLinks_Delete.json
-     */
-    /**
-     * Sample code: CloudLinks_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void cloudLinksDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.cloudLinks().delete("group1", "cloud1", "cloudLink1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_DeleteDhcp
-
-```java
-/**
- * Samples for HcxEnterpriseSites List.
- */
-public final class HcxEnterpriseSitesListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/HcxEnterpriseSites_List.json
-     */
-    /**
-     * Sample code: HcxEnterpriseSites_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void hcxEnterpriseSitesList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.hcxEnterpriseSites().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_DeleteDnsService
-
-```java
-import com.azure.resourcemanager.avs.models.PortMirroringDirectionEnum;
-
-/**
- * Samples for WorkloadNetworks CreatePortMirroring.
- */
-public final class WorkloadNetworksCreatePortMirroringSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_CreatePortMirroring.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_CreatePortMirroring.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksCreatePortMirroring(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .definePortMirroring("portMirroring1")
-            .withExistingPrivateCloud("group1", "cloud1")
-            .withDisplayName("portMirroring1")
-            .withDirection(PortMirroringDirectionEnum.BIDIRECTIONAL)
-            .withSource("vmGroup1")
-            .withDestination("vmGroup2")
-            .withRevision(1L)
-            .create();
-    }
-}
-```
-
-### WorkloadNetworks_DeleteDnsZone
-
-```java
-/**
- * Samples for WorkloadNetworks GetPublicIp.
- */
-public final class WorkloadNetworksGetPublicIpSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetPublicIP.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_GetPublicIP.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksGetPublicIP(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .getPublicIpWithResponse("group1", "cloud1", "publicIP1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_DeletePortMirroring
-
-```java
-/**
- * Samples for PrivateClouds Delete.
- */
-public final class PrivateCloudsDeleteSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_Delete.json
-     */
-    /**
-     * Sample code: PrivateClouds_Delete.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().delete("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_DeletePublicIp
-
-```java
-/**
- * Samples for WorkloadNetworks GetGateway.
- */
-public final class WorkloadNetworksGetGatewaySamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetGateway.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_GetGateway.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksGetGateway(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .getGatewayWithResponse("group1", "cloud1", "gateway1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_DeleteSegment
-
-```java
-/**
- * Samples for WorkloadNetworks ListDnsZones.
- */
-public final class WorkloadNetworksListDnsZonesSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListDnsZones.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_ListDnsZones.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksListDnsZones(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().listDnsZones("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_DeleteVMGroup
-
-```java
-/**
- * Samples for PrivateClouds RotateVcenterPassword.
- */
-public final class PrivateCloudsRotateVcenterPasswordSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_RotateVcenterPassword.json
-     */
-    /**
-     * Sample code: PrivateClouds_RotateVcenterPassword.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsRotateVcenterPassword(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().rotateVcenterPassword("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_Get
-
-```java
-/**
- * Samples for WorkloadNetworks DeleteDhcp.
- */
-public final class WorkloadNetworksDeleteDhcpSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_DeleteDhcp.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_DeleteDhcp.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksDeleteDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().deleteDhcp("group1", "cloud1", "dhcp1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_GetDhcp
-
-```java
-/**
- * Samples for WorkloadNetworks GetPortMirroring.
- */
-public final class WorkloadNetworksGetPortMirroringSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetPortMirroring.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_GetPortMirroring.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksGetPortMirroring(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .getPortMirroringWithResponse("group1", "cloud1", "portMirroring1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_GetDnsService
-
-```java
-/**
- * Samples for Addons List.
- */
-public final class AddonsListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Addons_List.json
-     */
-    /**
-     * Sample code: Addons_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void addonsList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.addons().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_GetDnsZone
 
 ```java
 import com.azure.resourcemanager.avs.models.AvailabilityProperties;
@@ -2419,6 +1590,8 @@ import com.azure.resourcemanager.avs.models.ManagementCluster;
 import com.azure.resourcemanager.avs.models.PrivateCloudIdentity;
 import com.azure.resourcemanager.avs.models.ResourceIdentityType;
 import com.azure.resourcemanager.avs.models.Sku;
+import com.azure.resourcemanager.avs.models.Vcf5License;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -2428,7 +1601,7 @@ import java.util.Map;
  */
 public final class PrivateCloudsCreateOrUpdateSamples {
     /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_CreateOrUpdate.json
+     * x-ms-original-file: 2025-09-01/PrivateClouds_CreateOrUpdate.json
      */
     /**
      * Sample code: PrivateClouds_CreateOrUpdate.
@@ -2445,11 +1618,16 @@ public final class PrivateCloudsCreateOrUpdateSamples {
             .withIdentity(new PrivateCloudIdentity().withType(ResourceIdentityType.SYSTEM_ASSIGNED))
             .withManagementCluster(new ManagementCluster().withClusterSize(4))
             .withNetworkBlock("192.168.48.0/22")
+            .withVcfLicense(new Vcf5License().withLicenseKey("fakeTokenPlaceholder")
+                .withCores(16)
+                .withEndDate(OffsetDateTime.parse("2025-12-31T23:59:59Z"))
+                .withBroadcomSiteId("123456")
+                .withBroadcomContractNumber("123456"))
             .create();
     }
 
     /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_CreateOrUpdate_StretchedZones.json
+     * x-ms-original-file: 2025-09-01/PrivateClouds_CreateOrUpdate_StretchedZones.json
      */
     /**
      * Sample code: PrivateClouds_CreateOrUpdate_StretchedZones.
@@ -2466,11 +1644,16 @@ public final class PrivateCloudsCreateOrUpdateSamples {
             .withZones(Arrays.asList("1", "2"))
             .withManagementCluster(new ManagementCluster().withClusterSize(4))
             .withNetworkBlock("192.168.48.0/22")
+            .withVcfLicense(new Vcf5License().withLicenseKey("fakeTokenPlaceholder")
+                .withCores(16)
+                .withEndDate(OffsetDateTime.parse("2025-12-31T23:59:59Z"))
+                .withBroadcomSiteId("123456")
+                .withBroadcomContractNumber("123456"))
             .create();
     }
 
     /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_CreateOrUpdate_FleetNative.json
+     * x-ms-original-file: 2025-09-01/PrivateClouds_CreateOrUpdate_FleetNative.json
      */
     /**
      * Sample code: PrivateClouds_CreateOrUpdate_FleetNative.
@@ -2489,11 +1672,16 @@ public final class PrivateCloudsCreateOrUpdateSamples {
             .withVirtualNetworkId(
                 "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/virtualNetworks/vnet")
             .withDnsZoneType(DnsZoneType.PRIVATE)
+            .withVcfLicense(new Vcf5License().withLicenseKey("fakeTokenPlaceholder")
+                .withCores(16)
+                .withEndDate(OffsetDateTime.parse("2025-12-31T23:59:59Z"))
+                .withBroadcomSiteId("123456")
+                .withBroadcomContractNumber("123456"))
             .create();
     }
 
     /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_CreateOrUpdate_Stretched.json
+     * x-ms-original-file: 2025-09-01/PrivateClouds_CreateOrUpdate_Stretched.json
      */
     /**
      * Sample code: PrivateClouds_CreateOrUpdate_Stretched.
@@ -2512,6 +1700,11 @@ public final class PrivateCloudsCreateOrUpdateSamples {
                 .withZone(1)
                 .withSecondaryZone(2))
             .withNetworkBlock("192.168.48.0/22")
+            .withVcfLicense(new Vcf5License().withLicenseKey("fakeTokenPlaceholder")
+                .withCores(16)
+                .withEndDate(OffsetDateTime.parse("2025-12-31T23:59:59Z"))
+                .withBroadcomSiteId("123456")
+                .withBroadcomContractNumber("123456"))
             .create();
     }
 
@@ -2529,7 +1722,211 @@ public final class PrivateCloudsCreateOrUpdateSamples {
 }
 ```
 
-### WorkloadNetworks_GetGateway
+### PrivateClouds_Delete
+
+```java
+/**
+ * Samples for PrivateClouds Delete.
+ */
+public final class PrivateCloudsDeleteSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_Delete.json
+     */
+    /**
+     * Sample code: PrivateClouds_Delete.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().delete("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PrivateClouds_GetByResourceGroup
+
+```java
+/**
+ * Samples for PrivateClouds GetByResourceGroup.
+ */
+public final class PrivateCloudsGetByResourceGroupSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_Get.json
+     */
+    /**
+     * Sample code: PrivateClouds_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().getByResourceGroupWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_Get_Stretched.json
+     */
+    /**
+     * Sample code: PrivateClouds_Get_Stretched.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsGetStretched(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().getByResourceGroupWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PrivateClouds_GetVcfLicense
+
+```java
+/**
+ * Samples for PrivateClouds GetVcfLicense.
+ */
+public final class PrivateCloudsGetVcfLicenseSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_GetVcfLicense.json
+     */
+    /**
+     * Sample code: PrivateClouds_GetVcfLicense.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsGetVcfLicense(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().getVcfLicenseWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PrivateClouds_List
+
+```java
+/**
+ * Samples for PrivateClouds List.
+ */
+public final class PrivateCloudsListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_ListInSubscription.json
+     */
+    /**
+     * Sample code: PrivateClouds_ListInSubscription.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsListInSubscription(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().list(com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_ListInSubscription_Stretched.json
+     */
+    /**
+     * Sample code: PrivateClouds_ListInSubscription_Stretched.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsListInSubscriptionStretched(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().list(com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PrivateClouds_ListAdminCredentials
+
+```java
+/**
+ * Samples for PrivateClouds ListAdminCredentials.
+ */
+public final class PrivateCloudsListAdminCredentialsSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_ListAdminCredentials.json
+     */
+    /**
+     * Sample code: PrivateClouds_ListAdminCredentials.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsListAdminCredentials(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().listAdminCredentialsWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PrivateClouds_ListByResourceGroup
+
+```java
+/**
+ * Samples for PrivateClouds ListByResourceGroup.
+ */
+public final class PrivateCloudsListByResourceGroupSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_List.json
+     */
+    /**
+     * Sample code: PrivateClouds_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().listByResourceGroup("group1", com.azure.core.util.Context.NONE);
+    }
+
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_List_Stretched.json
+     */
+    /**
+     * Sample code: PrivateClouds_List_Stretched.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsListStretched(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().listByResourceGroup("group1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PrivateClouds_RotateNsxtPassword
+
+```java
+/**
+ * Samples for PrivateClouds RotateNsxtPassword.
+ */
+public final class PrivateCloudsRotateNsxtPasswordSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_RotateNsxtPassword.json
+     */
+    /**
+     * Sample code: PrivateClouds_RotateNsxtPassword.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsRotateNsxtPassword(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().rotateNsxtPassword("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PrivateClouds_RotateVcenterPassword
+
+```java
+/**
+ * Samples for PrivateClouds RotateVcenterPassword.
+ */
+public final class PrivateCloudsRotateVcenterPasswordSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PrivateClouds_RotateVcenterPassword.json
+     */
+    /**
+     * Sample code: PrivateClouds_RotateVcenterPassword.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void privateCloudsRotateVcenterPassword(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.privateClouds().rotateVcenterPassword("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PrivateClouds_Update
 
 ```java
 import com.azure.resourcemanager.avs.models.Encryption;
@@ -2545,7 +1942,7 @@ import com.azure.resourcemanager.avs.models.ResourceIdentityType;
  */
 public final class PrivateCloudsUpdateSamples {
     /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_Update.json
+     * x-ms-original-file: 2025-09-01/PrivateClouds_Update.json
      */
     /**
      * Sample code: PrivateClouds_Update.
@@ -2567,7 +1964,7 @@ public final class PrivateCloudsUpdateSamples {
     }
 
     /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_Update_Stretched.json
+     * x-ms-original-file: 2025-09-01/PrivateClouds_Update_Stretched.json
      */
     /**
      * Sample code: PrivateClouds_Update_Stretched.
@@ -2583,178 +1980,186 @@ public final class PrivateCloudsUpdateSamples {
 }
 ```
 
-### WorkloadNetworks_GetPortMirroring
+### ProvisionedNetworks_Get
 
 ```java
-import com.azure.resourcemanager.avs.models.WorkloadNetworkVMGroup;
-import java.util.Arrays;
-
 /**
- * Samples for WorkloadNetworks UpdateVMGroup.
+ * Samples for ProvisionedNetworks Get.
  */
-public final class WorkloadNetworksUpdateVMGroupSamples {
+public final class ProvisionedNetworksGetSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_UpdateVMGroup.json
+     * x-ms-original-file: 2025-09-01/ProvisionedNetworks_Get.json
      */
     /**
-     * Sample code: WorkloadNetworks_UpdateVMGroup.
+     * Sample code: ProvisionedNetworks_Get.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksUpdateVMGroup(com.azure.resourcemanager.avs.AvsManager manager) {
-        WorkloadNetworkVMGroup resource = manager.workloadNetworks()
-            .getVMGroupWithResponse("group1", "cloud1", "vmGroup1", com.azure.core.util.Context.NONE)
-            .getValue();
-        resource.update().withMembers(Arrays.asList("564d43da-fefc-2a3b-1d92-42855622fa50")).withRevision(1L).apply();
+    public static void provisionedNetworksGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.provisionedNetworks().getWithResponse("group1", "cloud1", "vsan", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### WorkloadNetworks_GetPublicIp
+### ProvisionedNetworks_List
 
 ```java
-import com.azure.resourcemanager.avs.models.Sku;
+/**
+ * Samples for ProvisionedNetworks List.
+ */
+public final class ProvisionedNetworksListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/ProvisionedNetworks_List.json
+     */
+    /**
+     * Sample code: ProvisionedNetworks_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void provisionedNetworksList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.provisionedNetworks().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PureStoragePolicies_CreateOrUpdate
+
+```java
+import com.azure.resourcemanager.avs.models.PureStoragePolicyProperties;
 
 /**
- * Samples for Locations CheckTrialAvailability.
+ * Samples for PureStoragePolicies CreateOrUpdate.
  */
-public final class LocationsCheckTrialAvailabilitySamples {
+public final class PureStoragePoliciesCreateOrUpdateSamples {
     /*
-     * x-ms-original-file: 2024-09-01/Locations_CheckTrialAvailability.json
+     * x-ms-original-file: 2025-09-01/PureStoragePolicies_CreateOrUpdate.json
      */
     /**
-     * Sample code: Locations_CheckTrialAvailability.
+     * Sample code: PureStoragePolicies_CreateOrUpdate.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void locationsCheckTrialAvailability(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.locations().checkTrialAvailabilityWithResponse("eastus", null, com.azure.core.util.Context.NONE);
+    public static void pureStoragePoliciesCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.pureStoragePolicies()
+            .define("storagePolicy1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withProperties(new PureStoragePolicyProperties().withStoragePolicyDefinition("storagePolicyDefinition1")
+                .withStoragePoolId(
+                    "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/PureStorage.Block/storagePools/storagePool1"))
+            .create();
     }
+}
+```
 
+### PureStoragePolicies_Delete
+
+```java
+/**
+ * Samples for PureStoragePolicies Delete.
+ */
+public final class PureStoragePoliciesDeleteSamples {
     /*
-     * x-ms-original-file: 2024-09-01/Locations_CheckTrialAvailabilityWithSku.json
+     * x-ms-original-file: 2025-09-01/PureStoragePolicies_Delete.json
      */
     /**
-     * Sample code: Locations_CheckTrialAvailabilityWithSku.
+     * Sample code: PureStoragePolicies_Delete.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void locationsCheckTrialAvailabilityWithSku(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.locations()
-            .checkTrialAvailabilityWithResponse("eastus", new Sku().withName("avs52t"),
+    public static void pureStoragePoliciesDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.pureStoragePolicies().delete("group1", "cloud1", "storagePolicy1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PureStoragePolicies_Get
+
+```java
+/**
+ * Samples for PureStoragePolicies Get.
+ */
+public final class PureStoragePoliciesGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PureStoragePolicies_Get.json
+     */
+    /**
+     * Sample code: PureStoragePolicies_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void pureStoragePoliciesGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.pureStoragePolicies()
+            .getWithResponse("group1", "cloud1", "storagePolicy1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### PureStoragePolicies_List
+
+```java
+/**
+ * Samples for PureStoragePolicies List.
+ */
+public final class PureStoragePoliciesListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/PureStoragePolicies_List.json
+     */
+    /**
+     * Sample code: PureStoragePolicies_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void pureStoragePoliciesList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.pureStoragePolicies().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### ScriptCmdlets_Get
+
+```java
+/**
+ * Samples for ScriptCmdlets Get.
+ */
+public final class ScriptCmdletsGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/ScriptCmdlets_Get.json
+     */
+    /**
+     * Sample code: ScriptCmdlets_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void scriptCmdletsGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.scriptCmdlets()
+            .getWithResponse("group1", "cloud1", "package@1.0.2", "New-ExternalSsoDomain",
                 com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### WorkloadNetworks_GetSegment
+### ScriptCmdlets_List
 
 ```java
 /**
- * Samples for HcxEnterpriseSites Get.
+ * Samples for ScriptCmdlets List.
  */
-public final class HcxEnterpriseSitesGetSamples {
+public final class ScriptCmdletsListSamples {
     /*
-     * x-ms-original-file: 2024-09-01/HcxEnterpriseSites_Get.json
+     * x-ms-original-file: 2025-09-01/ScriptCmdlets_List.json
      */
     /**
-     * Sample code: HcxEnterpriseSites_Get.
+     * Sample code: ScriptCmdlets_List.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void hcxEnterpriseSitesGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.hcxEnterpriseSites().getWithResponse("group1", "cloud1", "site1", com.azure.core.util.Context.NONE);
+    public static void scriptCmdletsList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.scriptCmdlets().list("group1", "cloud1", "package@1.0.2", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### WorkloadNetworks_GetVMGroup
-
-```java
-/**
- * Samples for Hosts List.
- */
-public final class HostsListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/Hosts_List.json
-     */
-    /**
-     * Sample code: Hosts_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void hostsList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.hosts().list("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_GetVirtualMachine
-
-```java
-/**
- * Samples for WorkloadNetworks GetVirtualMachine.
- */
-public final class WorkloadNetworksGetVirtualMachineSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetVirtualMachine.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_GetVirtualMachine.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksGetVirtualMachine(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .getVirtualMachineWithResponse("group1", "cloud1", "vm1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_List
-
-```java
-/**
- * Samples for ScriptExecutions List.
- */
-public final class ScriptExecutionsListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/ScriptExecutions_List.json
-     */
-    /**
-     * Sample code: ScriptExecutions_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void scriptExecutionsList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.scriptExecutions().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_ListDhcp
-
-```java
-/**
- * Samples for WorkloadNetworks DeleteDnsService.
- */
-public final class WorkloadNetworksDeleteDnsServiceSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_DeleteDnsService.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_DeleteDnsService.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksDeleteDnsService(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .deleteDnsService("group1", "dnsService1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_ListDnsServices
+### ScriptExecutions_CreateOrUpdate
 
 ```java
 import com.azure.resourcemanager.avs.models.ScriptSecureStringExecutionParameter;
@@ -2766,7 +2171,7 @@ import java.util.Arrays;
  */
 public final class ScriptExecutionsCreateOrUpdateSamples {
     /*
-     * x-ms-original-file: 2024-09-01/ScriptExecutions_CreateOrUpdate.json
+     * x-ms-original-file: 2025-09-01/ScriptExecutions_CreateOrUpdate.json
      */
     /**
      * Sample code: ScriptExecutions_CreateOrUpdate.
@@ -2792,148 +2197,50 @@ public final class ScriptExecutionsCreateOrUpdateSamples {
 }
 ```
 
-### WorkloadNetworks_ListDnsZones
+### ScriptExecutions_Delete
 
 ```java
 /**
- * Samples for WorkloadNetworks GetVMGroup.
+ * Samples for ScriptExecutions Delete.
  */
-public final class WorkloadNetworksGetVMGroupSamples {
+public final class ScriptExecutionsDeleteSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetVMGroup.json
+     * x-ms-original-file: 2025-09-01/ScriptExecutions_Delete.json
      */
     /**
-     * Sample code: WorkloadNetworks_GetVMGroup.
+     * Sample code: ScriptExecutions_Delete.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksGetVMGroup(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .getVMGroupWithResponse("group1", "cloud1", "vmGroup1", com.azure.core.util.Context.NONE);
+    public static void scriptExecutionsDelete(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.scriptExecutions().delete("group1", "cloud1", "addSsoServer", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### WorkloadNetworks_ListGateways
+### ScriptExecutions_Get
 
 ```java
 /**
- * Samples for WorkloadNetworks GetSegment.
+ * Samples for ScriptExecutions Get.
  */
-public final class WorkloadNetworksGetSegmentSamples {
+public final class ScriptExecutionsGetSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_GetSegment.json
+     * x-ms-original-file: 2025-09-01/ScriptExecutions_Get.json
      */
     /**
-     * Sample code: WorkloadNetworks_GetSegment.
+     * Sample code: ScriptExecutions_Get.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksGetSegment(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks()
-            .getSegmentWithResponse("group1", "cloud1", "segment1", com.azure.core.util.Context.NONE);
+    public static void scriptExecutionsGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.scriptExecutions()
+            .getWithResponse("group1", "cloud1", "addSsoServer", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### WorkloadNetworks_ListPortMirroring
-
-```java
-/**
- * Samples for PrivateClouds GetByResourceGroup.
- */
-public final class PrivateCloudsGetByResourceGroupSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_Get.json
-     */
-    /**
-     * Sample code: PrivateClouds_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().getByResourceGroupWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-
-    /*
-     * x-ms-original-file: 2024-09-01/PrivateClouds_Get_Stretched.json
-     */
-    /**
-     * Sample code: PrivateClouds_Get_Stretched.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void privateCloudsGetStretched(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.privateClouds().getByResourceGroupWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_ListPublicIPs
-
-```java
-/**
- * Samples for ScriptPackages Get.
- */
-public final class ScriptPackagesGetSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/ScriptPackages_Get.json
-     */
-    /**
-     * Sample code: ScriptPackages_Get.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void scriptPackagesGet(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.scriptPackages()
-            .getWithResponse("group1", "cloud1", "Microsoft.AVS.Management@3.0.48", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_ListSegments
-
-```java
-/**
- * Samples for WorkloadNetworks ListVMGroups.
- */
-public final class WorkloadNetworksListVMGroupsSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListVMGroups.json
-     */
-    /**
-     * Sample code: WorkloadNetworks_ListVMGroups.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void workloadNetworksListVMGroups(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().listVMGroups("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_ListVMGroups
-
-```java
-/**
- * Samples for ScriptPackages List.
- */
-public final class ScriptPackagesListSamples {
-    /*
-     * x-ms-original-file: 2024-09-01/ScriptPackages_List.json
-     */
-    /**
-     * Sample code: ScriptPackages_List.
-     * 
-     * @param manager Entry point to AvsManager.
-     */
-    public static void scriptPackagesList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.scriptPackages().list("group1", "cloud1", com.azure.core.util.Context.NONE);
-    }
-}
-```
-
-### WorkloadNetworks_ListVirtualMachines
+### ScriptExecutions_GetExecutionLogs
 
 ```java
 import com.azure.resourcemanager.avs.models.ScriptOutputStreamType;
@@ -2944,7 +2251,7 @@ import java.util.Arrays;
  */
 public final class ScriptExecutionsGetExecutionLogsSamples {
     /*
-     * x-ms-original-file: 2024-09-01/ScriptExecutions_GetExecutionLogs.json
+     * x-ms-original-file: 2025-09-01/ScriptExecutions_GetExecutionLogs.json
      */
     /**
      * Sample code: ScriptExecutions_GetExecutionLogs.
@@ -2961,28 +2268,438 @@ public final class ScriptExecutionsGetExecutionLogsSamples {
 }
 ```
 
-### WorkloadNetworks_UpdateDhcp
+### ScriptExecutions_List
 
 ```java
 /**
- * Samples for WorkloadNetworks List.
+ * Samples for ScriptExecutions List.
  */
-public final class WorkloadNetworksListSamples {
+public final class ScriptExecutionsListSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_List.json
+     * x-ms-original-file: 2025-09-01/ScriptExecutions_List.json
      */
     /**
-     * Sample code: WorkloadNetworks_List.
+     * Sample code: ScriptExecutions_List.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksList(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    public static void scriptExecutionsList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.scriptExecutions().list("group1", "cloud1", com.azure.core.util.Context.NONE);
     }
 }
 ```
 
-### WorkloadNetworks_UpdateDnsService
+### ScriptPackages_Get
+
+```java
+/**
+ * Samples for ScriptPackages Get.
+ */
+public final class ScriptPackagesGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/ScriptPackages_Get.json
+     */
+    /**
+     * Sample code: ScriptPackages_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void scriptPackagesGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.scriptPackages()
+            .getWithResponse("group1", "cloud1", "Microsoft.AVS.Management@3.0.48", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### ScriptPackages_List
+
+```java
+/**
+ * Samples for ScriptPackages List.
+ */
+public final class ScriptPackagesListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/ScriptPackages_List.json
+     */
+    /**
+     * Sample code: ScriptPackages_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void scriptPackagesList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.scriptPackages().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### Skus_List
+
+```java
+/**
+ * Samples for Skus List.
+ */
+public final class SkusListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/Skus_List.json
+     */
+    /**
+     * Sample code: Skus_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void skusList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.skus().list(com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### VirtualMachines_Get
+
+```java
+/**
+ * Samples for VirtualMachines Get.
+ */
+public final class VirtualMachinesGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/VirtualMachines_Get.json
+     */
+    /**
+     * Sample code: VirtualMachines_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void virtualMachinesGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.virtualMachines()
+            .getWithResponse("group1", "cloud1", "cluster1", "vm-209", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### VirtualMachines_List
+
+```java
+/**
+ * Samples for VirtualMachines List.
+ */
+public final class VirtualMachinesListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/VirtualMachines_List.json
+     */
+    /**
+     * Sample code: VirtualMachines_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void virtualMachinesList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.virtualMachines().list("group1", "cloud1", "cluster1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### VirtualMachines_RestrictMovement
+
+```java
+import com.azure.resourcemanager.avs.models.VirtualMachineRestrictMovement;
+import com.azure.resourcemanager.avs.models.VirtualMachineRestrictMovementState;
+
+/**
+ * Samples for VirtualMachines RestrictMovement.
+ */
+public final class VirtualMachinesRestrictMovementSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/VirtualMachines_RestrictMovement.json
+     */
+    /**
+     * Sample code: VirtualMachines_RestrictMovement.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void virtualMachinesRestrictMovement(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.virtualMachines()
+            .restrictMovement("group1", "cloud1", "cluster1", "vm-209",
+                new VirtualMachineRestrictMovement().withRestrictMovement(VirtualMachineRestrictMovementState.ENABLED),
+                com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_CreateDhcp
+
+```java
+import com.azure.resourcemanager.avs.models.WorkloadNetworkDhcpServer;
+
+/**
+ * Samples for WorkloadNetworks CreateDhcp.
+ */
+public final class WorkloadNetworksCreateDhcpSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_CreateDhcp.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_CreateDhcp.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksCreateDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .defineDhcp("dhcp1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withProperties(new WorkloadNetworkDhcpServer().withDisplayName("dhcpConfigurations1")
+                .withRevision(1L)
+                .withServerAddress("40.1.5.1/24")
+                .withLeaseTime(86400L))
+            .create();
+    }
+}
+```
+
+### WorkloadNetworks_CreateDnsService
+
+```java
+import com.azure.resourcemanager.avs.models.DnsServiceLogLevelEnum;
+import java.util.Arrays;
+
+/**
+ * Samples for WorkloadNetworks CreateDnsService.
+ */
+public final class WorkloadNetworksCreateDnsServiceSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_CreateDnsService.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_CreateDnsService.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksCreateDnsService(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .defineDnsService("dnsService1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withDisplayName("dnsService1")
+            .withDnsServiceIp("5.5.5.5")
+            .withDefaultDnsZone("defaultDnsZone1")
+            .withFqdnZones(Arrays.asList("fqdnZone1"))
+            .withLogLevel(DnsServiceLogLevelEnum.INFO)
+            .withRevision(1L)
+            .create();
+    }
+}
+```
+
+### WorkloadNetworks_CreateDnsZone
+
+```java
+import java.util.Arrays;
+
+/**
+ * Samples for WorkloadNetworks CreateDnsZone.
+ */
+public final class WorkloadNetworksCreateDnsZoneSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_CreateDnsZone.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_CreateDnsZone.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksCreateDnsZone(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .defineDnsZone("dnsZone1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withDisplayName("dnsZone1")
+            .withDomain(Arrays.asList())
+            .withDnsServerIps(Arrays.asList("1.1.1.1"))
+            .withSourceIp("8.8.8.8")
+            .withRevision(1L)
+            .create();
+    }
+}
+```
+
+### WorkloadNetworks_CreatePortMirroring
+
+```java
+import com.azure.resourcemanager.avs.models.PortMirroringDirectionEnum;
+
+/**
+ * Samples for WorkloadNetworks CreatePortMirroring.
+ */
+public final class WorkloadNetworksCreatePortMirroringSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_CreatePortMirroring.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_CreatePortMirroring.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksCreatePortMirroring(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .definePortMirroring("portMirroring1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withDisplayName("portMirroring1")
+            .withDirection(PortMirroringDirectionEnum.BIDIRECTIONAL)
+            .withSource("vmGroup1")
+            .withDestination("vmGroup2")
+            .withRevision(1L)
+            .create();
+    }
+}
+```
+
+### WorkloadNetworks_CreatePublicIp
+
+```java
+/**
+ * Samples for WorkloadNetworks CreatePublicIp.
+ */
+public final class WorkloadNetworksCreatePublicIpSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_CreatePublicIP.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_CreatePublicIP.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksCreatePublicIP(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .definePublicIp("publicIP1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withDisplayName("publicIP1")
+            .withNumberOfPublicIPs(32L)
+            .create();
+    }
+}
+```
+
+### WorkloadNetworks_CreateSegments
+
+```java
+import com.azure.resourcemanager.avs.models.WorkloadNetworkSegmentSubnet;
+import java.util.Arrays;
+
+/**
+ * Samples for WorkloadNetworks CreateSegments.
+ */
+public final class WorkloadNetworksCreateSegmentsSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_CreateSegments.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_CreateSegments.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksCreateSegments(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .defineSegments("segment1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withDisplayName("segment1")
+            .withConnectedGateway("/infra/tier-1s/gateway")
+            .withSubnet(new WorkloadNetworkSegmentSubnet().withDhcpRanges(Arrays.asList("40.20.0.0-40.20.0.1"))
+                .withGatewayAddress("40.20.20.20/16"))
+            .withRevision(1L)
+            .create();
+    }
+}
+```
+
+### WorkloadNetworks_CreateVMGroup
+
+```java
+import java.util.Arrays;
+
+/**
+ * Samples for WorkloadNetworks CreateVMGroup.
+ */
+public final class WorkloadNetworksCreateVMGroupSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_CreateVMGroup.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_CreateVMGroup.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksCreateVMGroup(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .defineVMGroup("vmGroup1")
+            .withExistingPrivateCloud("group1", "cloud1")
+            .withDisplayName("vmGroup1")
+            .withMembers(Arrays.asList("564d43da-fefc-2a3b-1d92-42855622fa50"))
+            .withRevision(1L)
+            .create();
+    }
+}
+```
+
+### WorkloadNetworks_DeleteDhcp
+
+```java
+/**
+ * Samples for WorkloadNetworks DeleteDhcp.
+ */
+public final class WorkloadNetworksDeleteDhcpSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_DeleteDhcp.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_DeleteDhcp.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksDeleteDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().deleteDhcp("group1", "cloud1", "dhcp1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_DeleteDnsService
+
+```java
+/**
+ * Samples for WorkloadNetworks DeleteDnsService.
+ */
+public final class WorkloadNetworksDeleteDnsServiceSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_DeleteDnsService.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_DeleteDnsService.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksDeleteDnsService(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .deleteDnsService("group1", "dnsService1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_DeleteDnsZone
+
+```java
+/**
+ * Samples for WorkloadNetworks DeleteDnsZone.
+ */
+public final class WorkloadNetworksDeleteDnsZoneSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_DeleteDnsZone.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_DeleteDnsZone.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksDeleteDnsZone(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().deleteDnsZone("group1", "dnsZone1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_DeletePortMirroring
 
 ```java
 /**
@@ -2990,7 +2707,7 @@ public final class WorkloadNetworksListSamples {
  */
 public final class WorkloadNetworksDeletePortMirroringSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_DeletePortMirroring.json
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_DeletePortMirroring.json
      */
     /**
      * Sample code: WorkloadNetworks_DeletePortMirroring.
@@ -3004,7 +2721,393 @@ public final class WorkloadNetworksDeletePortMirroringSamples {
 }
 ```
 
-### WorkloadNetworks_UpdateDnsZone
+### WorkloadNetworks_DeletePublicIp
+
+```java
+/**
+ * Samples for WorkloadNetworks DeletePublicIp.
+ */
+public final class WorkloadNetworksDeletePublicIpSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_DeletePublicIP.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_DeletePublicIP.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksDeletePublicIP(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().deletePublicIp("group1", "publicIP1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_DeleteSegment
+
+```java
+/**
+ * Samples for WorkloadNetworks DeleteSegment.
+ */
+public final class WorkloadNetworksDeleteSegmentSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_DeleteSegment.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_DeleteSegment.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksDeleteSegment(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().deleteSegment("group1", "cloud1", "segment1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_DeleteVMGroup
+
+```java
+/**
+ * Samples for WorkloadNetworks DeleteVMGroup.
+ */
+public final class WorkloadNetworksDeleteVMGroupSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_DeleteVMGroup.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_DeleteVMGroup.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksDeleteVMGroup(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().deleteVMGroup("group1", "vmGroup1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_Get
+
+```java
+/**
+ * Samples for WorkloadNetworks Get.
+ */
+public final class WorkloadNetworksGetSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_Get.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_Get.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGet(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().getWithResponse("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetDhcp
+
+```java
+/**
+ * Samples for WorkloadNetworks GetDhcp.
+ */
+public final class WorkloadNetworksGetDhcpSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetDhcp.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetDhcp.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().getDhcpWithResponse("group1", "dhcp1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetDnsService
+
+```java
+/**
+ * Samples for WorkloadNetworks GetDnsService.
+ */
+public final class WorkloadNetworksGetDnsServiceSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetDnsService.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetDnsService.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetDnsService(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .getDnsServiceWithResponse("group1", "cloud1", "dnsService1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetDnsZone
+
+```java
+/**
+ * Samples for WorkloadNetworks GetDnsZone.
+ */
+public final class WorkloadNetworksGetDnsZoneSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetDnsZone.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetDnsZone.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetDnsZone(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .getDnsZoneWithResponse("group1", "cloud1", "dnsZone1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetGateway
+
+```java
+/**
+ * Samples for WorkloadNetworks GetGateway.
+ */
+public final class WorkloadNetworksGetGatewaySamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetGateway.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetGateway.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetGateway(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .getGatewayWithResponse("group1", "cloud1", "gateway1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetPortMirroring
+
+```java
+/**
+ * Samples for WorkloadNetworks GetPortMirroring.
+ */
+public final class WorkloadNetworksGetPortMirroringSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetPortMirroring.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetPortMirroring.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetPortMirroring(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .getPortMirroringWithResponse("group1", "cloud1", "portMirroring1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetPublicIp
+
+```java
+/**
+ * Samples for WorkloadNetworks GetPublicIp.
+ */
+public final class WorkloadNetworksGetPublicIpSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetPublicIP.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetPublicIP.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetPublicIP(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .getPublicIpWithResponse("group1", "cloud1", "publicIP1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetSegment
+
+```java
+/**
+ * Samples for WorkloadNetworks GetSegment.
+ */
+public final class WorkloadNetworksGetSegmentSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetSegment.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetSegment.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetSegment(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .getSegmentWithResponse("group1", "cloud1", "segment1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetVMGroup
+
+```java
+/**
+ * Samples for WorkloadNetworks GetVMGroup.
+ */
+public final class WorkloadNetworksGetVMGroupSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetVMGroup.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetVMGroup.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetVMGroup(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .getVMGroupWithResponse("group1", "cloud1", "vmGroup1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_GetVirtualMachine
+
+```java
+/**
+ * Samples for WorkloadNetworks GetVirtualMachine.
+ */
+public final class WorkloadNetworksGetVirtualMachineSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_GetVirtualMachine.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_GetVirtualMachine.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksGetVirtualMachine(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks()
+            .getVirtualMachineWithResponse("group1", "cloud1", "vm1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_List
+
+```java
+/**
+ * Samples for WorkloadNetworks List.
+ */
+public final class WorkloadNetworksListSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_List.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_List.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksList(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().list("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_ListDhcp
+
+```java
+/**
+ * Samples for WorkloadNetworks ListDhcp.
+ */
+public final class WorkloadNetworksListDhcpSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListDhcp.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_ListDhcp.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksListDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().listDhcp("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_ListDnsServices
+
+```java
+/**
+ * Samples for WorkloadNetworks ListDnsServices.
+ */
+public final class WorkloadNetworksListDnsServicesSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListDnsServices.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_ListDnsServices.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksListDnsServices(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().listDnsServices("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_ListDnsZones
+
+```java
+/**
+ * Samples for WorkloadNetworks ListDnsZones.
+ */
+public final class WorkloadNetworksListDnsZonesSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListDnsZones.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_ListDnsZones.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksListDnsZones(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().listDnsZones("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_ListGateways
+
+```java
+/**
+ * Samples for WorkloadNetworks ListGateways.
+ */
+public final class WorkloadNetworksListGatewaysSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListGateways.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_ListGateways.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksListGateways(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().listGateways("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_ListPortMirroring
 
 ```java
 /**
@@ -3012,7 +3115,7 @@ public final class WorkloadNetworksDeletePortMirroringSamples {
  */
 public final class WorkloadNetworksListPortMirroringSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListPortMirroring.json
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListPortMirroring.json
      */
     /**
      * Sample code: WorkloadNetworks_ListPortMirroring.
@@ -3025,40 +3128,216 @@ public final class WorkloadNetworksListPortMirroringSamples {
 }
 ```
 
-### WorkloadNetworks_UpdatePortMirroring
+### WorkloadNetworks_ListPublicIPs
 
 ```java
-import com.azure.resourcemanager.avs.models.AffinityStrength;
-import com.azure.resourcemanager.avs.models.AffinityType;
-import com.azure.resourcemanager.avs.models.AzureHybridBenefitType;
-import com.azure.resourcemanager.avs.models.VmHostPlacementPolicyProperties;
-import java.util.Arrays;
-
 /**
- * Samples for PlacementPolicies CreateOrUpdate.
+ * Samples for WorkloadNetworks ListPublicIPs.
  */
-public final class PlacementPoliciesCreateOrUpdateSamples {
+public final class WorkloadNetworksListPublicIPsSamples {
     /*
-     * x-ms-original-file: 2024-09-01/PlacementPolicies_CreateOrUpdate.json
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListPublicIPs.json
      */
     /**
-     * Sample code: PlacementPolicies_CreateOrUpdate.
+     * Sample code: WorkloadNetworks_ListPublicIPs.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void placementPoliciesCreateOrUpdate(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.placementPolicies()
-            .define("policy1")
-            .withExistingCluster("group1", "cloud1", "cluster1")
-            .withProperties(new VmHostPlacementPolicyProperties().withVmMembers(Arrays.asList(
-                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.AVS/privateClouds/cloud1/clusters/cluster1/virtualMachines/vm-128",
-                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.AVS/privateClouds/cloud1/clusters/cluster1/virtualMachines/vm-256"))
-                .withHostMembers(Arrays.asList("fakehost22.nyc1.kubernetes.center", "fakehost23.nyc1.kubernetes.center",
-                    "fakehost24.nyc1.kubernetes.center"))
-                .withAffinityType(AffinityType.ANTI_AFFINITY)
-                .withAffinityStrength(AffinityStrength.MUST)
-                .withAzureHybridBenefitType(AzureHybridBenefitType.SQL_HOST))
-            .create();
+    public static void workloadNetworksListPublicIPs(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().listPublicIPs("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_ListSegments
+
+```java
+/**
+ * Samples for WorkloadNetworks ListSegments.
+ */
+public final class WorkloadNetworksListSegmentsSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListSegments.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_ListSegments.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksListSegments(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().listSegments("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_ListVMGroups
+
+```java
+/**
+ * Samples for WorkloadNetworks ListVMGroups.
+ */
+public final class WorkloadNetworksListVMGroupsSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListVMGroups.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_ListVMGroups.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksListVMGroups(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().listVMGroups("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_ListVirtualMachines
+
+```java
+/**
+ * Samples for WorkloadNetworks ListVirtualMachines.
+ */
+public final class WorkloadNetworksListVirtualMachinesSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_ListVirtualMachines.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_ListVirtualMachines.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksListVirtualMachines(com.azure.resourcemanager.avs.AvsManager manager) {
+        manager.workloadNetworks().listVirtualMachines("group1", "cloud1", com.azure.core.util.Context.NONE);
+    }
+}
+```
+
+### WorkloadNetworks_UpdateDhcp
+
+```java
+import com.azure.resourcemanager.avs.models.WorkloadNetworkDhcp;
+import com.azure.resourcemanager.avs.models.WorkloadNetworkDhcpServer;
+
+/**
+ * Samples for WorkloadNetworks UpdateDhcp.
+ */
+public final class WorkloadNetworksUpdateDhcpSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_UpdateDhcp.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_UpdateDhcp.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksUpdateDhcp(com.azure.resourcemanager.avs.AvsManager manager) {
+        WorkloadNetworkDhcp resource = manager.workloadNetworks()
+            .getDhcpWithResponse("group1", "dhcp1", "cloud1", com.azure.core.util.Context.NONE)
+            .getValue();
+        resource.update()
+            .withProperties(
+                new WorkloadNetworkDhcpServer().withRevision(1L).withServerAddress("40.1.5.1/24").withLeaseTime(86400L))
+            .apply();
+    }
+}
+```
+
+### WorkloadNetworks_UpdateDnsService
+
+```java
+import com.azure.resourcemanager.avs.models.DnsServiceLogLevelEnum;
+import com.azure.resourcemanager.avs.models.WorkloadNetworkDnsService;
+import java.util.Arrays;
+
+/**
+ * Samples for WorkloadNetworks UpdateDnsService.
+ */
+public final class WorkloadNetworksUpdateDnsServiceSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_UpdateDnsService.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_UpdateDnsService.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksUpdateDnsService(com.azure.resourcemanager.avs.AvsManager manager) {
+        WorkloadNetworkDnsService resource = manager.workloadNetworks()
+            .getDnsServiceWithResponse("group1", "cloud1", "dnsService1", com.azure.core.util.Context.NONE)
+            .getValue();
+        resource.update()
+            .withDisplayName("dnsService1")
+            .withDnsServiceIp("5.5.5.5")
+            .withDefaultDnsZone("defaultDnsZone1")
+            .withFqdnZones(Arrays.asList("fqdnZone1"))
+            .withLogLevel(DnsServiceLogLevelEnum.INFO)
+            .withRevision(1L)
+            .apply();
+    }
+}
+```
+
+### WorkloadNetworks_UpdateDnsZone
+
+```java
+import com.azure.resourcemanager.avs.models.WorkloadNetworkDnsZone;
+import java.util.Arrays;
+
+/**
+ * Samples for WorkloadNetworks UpdateDnsZone.
+ */
+public final class WorkloadNetworksUpdateDnsZoneSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_UpdateDnsZone.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_UpdateDnsZone.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksUpdateDnsZone(com.azure.resourcemanager.avs.AvsManager manager) {
+        WorkloadNetworkDnsZone resource = manager.workloadNetworks()
+            .getDnsZoneWithResponse("group1", "cloud1", "dnsZone1", com.azure.core.util.Context.NONE)
+            .getValue();
+        resource.update()
+            .withDisplayName("dnsZone1")
+            .withDomain(Arrays.asList())
+            .withDnsServerIps(Arrays.asList("1.1.1.1"))
+            .withSourceIp("8.8.8.8")
+            .withRevision(1L)
+            .apply();
+    }
+}
+```
+
+### WorkloadNetworks_UpdatePortMirroring
+
+```java
+import com.azure.resourcemanager.avs.models.PortMirroringDirectionEnum;
+import com.azure.resourcemanager.avs.models.WorkloadNetworkPortMirroring;
+
+/**
+ * Samples for WorkloadNetworks UpdatePortMirroring.
+ */
+public final class WorkloadNetworksUpdatePortMirroringSamples {
+    /*
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_UpdatePortMirroring.json
+     */
+    /**
+     * Sample code: WorkloadNetworks_UpdatePortMirroring.
+     * 
+     * @param manager Entry point to AvsManager.
+     */
+    public static void workloadNetworksUpdatePortMirroring(com.azure.resourcemanager.avs.AvsManager manager) {
+        WorkloadNetworkPortMirroring resource = manager.workloadNetworks()
+            .getPortMirroringWithResponse("group1", "cloud1", "portMirroring1", com.azure.core.util.Context.NONE)
+            .getValue();
+        resource.update()
+            .withDirection(PortMirroringDirectionEnum.BIDIRECTIONAL)
+            .withSource("vmGroup1")
+            .withDestination("vmGroup2")
+            .withRevision(1L)
+            .apply();
     }
 }
 ```
@@ -3066,20 +3345,32 @@ public final class PlacementPoliciesCreateOrUpdateSamples {
 ### WorkloadNetworks_UpdateSegments
 
 ```java
+import com.azure.resourcemanager.avs.models.WorkloadNetworkSegment;
+import com.azure.resourcemanager.avs.models.WorkloadNetworkSegmentSubnet;
+import java.util.Arrays;
+
 /**
- * Samples for PureStoragePolicies Delete.
+ * Samples for WorkloadNetworks UpdateSegments.
  */
-public final class PureStoragePoliciesDeleteSamples {
+public final class WorkloadNetworksUpdateSegmentsSamples {
     /*
-     * x-ms-original-file: 2024-09-01/PureStoragePolicies_Delete.json
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_UpdateSegments.json
      */
     /**
-     * Sample code: PureStoragePolicies_Delete.
+     * Sample code: WorkloadNetworks_UpdateSegments.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void pureStoragePoliciesDelete(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.pureStoragePolicies().delete("group1", "cloud1", "storagePolicy1", com.azure.core.util.Context.NONE);
+    public static void workloadNetworksUpdateSegments(com.azure.resourcemanager.avs.AvsManager manager) {
+        WorkloadNetworkSegment resource = manager.workloadNetworks()
+            .getSegmentWithResponse("group1", "cloud1", "segment1", com.azure.core.util.Context.NONE)
+            .getValue();
+        resource.update()
+            .withConnectedGateway("/infra/tier-1s/gateway")
+            .withSubnet(new WorkloadNetworkSegmentSubnet().withDhcpRanges(Arrays.asList("40.20.0.0-40.20.0.1"))
+                .withGatewayAddress("40.20.20.20/16"))
+            .withRevision(1L)
+            .apply();
     }
 }
 ```
@@ -3087,20 +3378,26 @@ public final class PureStoragePoliciesDeleteSamples {
 ### WorkloadNetworks_UpdateVMGroup
 
 ```java
+import com.azure.resourcemanager.avs.models.WorkloadNetworkVMGroup;
+import java.util.Arrays;
+
 /**
- * Samples for WorkloadNetworks ListDnsServices.
+ * Samples for WorkloadNetworks UpdateVMGroup.
  */
-public final class WorkloadNetworksListDnsServicesSamples {
+public final class WorkloadNetworksUpdateVMGroupSamples {
     /*
-     * x-ms-original-file: 2024-09-01/WorkloadNetworks_ListDnsServices.json
+     * x-ms-original-file: 2025-09-01/WorkloadNetworks_UpdateVMGroup.json
      */
     /**
-     * Sample code: WorkloadNetworks_ListDnsServices.
+     * Sample code: WorkloadNetworks_UpdateVMGroup.
      * 
      * @param manager Entry point to AvsManager.
      */
-    public static void workloadNetworksListDnsServices(com.azure.resourcemanager.avs.AvsManager manager) {
-        manager.workloadNetworks().listDnsServices("group1", "cloud1", com.azure.core.util.Context.NONE);
+    public static void workloadNetworksUpdateVMGroup(com.azure.resourcemanager.avs.AvsManager manager) {
+        WorkloadNetworkVMGroup resource = manager.workloadNetworks()
+            .getVMGroupWithResponse("group1", "cloud1", "vmGroup1", com.azure.core.util.Context.NONE)
+            .getValue();
+        resource.update().withMembers(Arrays.asList("564d43da-fefc-2a3b-1d92-42855622fa50")).withRevision(1L).apply();
     }
 }
 ```

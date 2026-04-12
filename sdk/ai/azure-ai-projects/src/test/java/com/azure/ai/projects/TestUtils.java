@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static com.azure.core.test.TestBase.getHttpClients;
+import static com.azure.core.test.TestProxyTestBase.getHttpClients;
 
 public class TestUtils {
 
@@ -22,10 +22,9 @@ public class TestUtils {
      * @return A stream of HttpClients to test.
      */
     static Stream<Arguments> getTestParameters() {
-        // when this issues is closed, the newer version of junit will have better support for
-        // cartesian product of arguments - https://github.com/junit-team/junit5/issues/1427
         List<Arguments> argumentsList = new ArrayList<>();
-        getHttpClients().forEach(httpClient -> argumentsList.add(Arguments.of(httpClient)));
+        getHttpClients()
+            .forEach(httpClient -> argumentsList.add(Arguments.of(httpClient, AIProjectsServiceVersion.V1)));
         return argumentsList.stream();
     }
 }

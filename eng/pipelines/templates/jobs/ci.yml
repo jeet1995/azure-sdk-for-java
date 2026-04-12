@@ -40,6 +40,9 @@ parameters:
   - name: BuildParallelization
     type: string
     default: '2C'
+  - name: BuildOptions
+    type: string
+    default: ''
   - name: TestGoals
     type: string
     default: $(TestGoals)
@@ -80,12 +83,31 @@ jobs:
       Codeql.SkipTaskAutoInjection: false
       SDKType: ${{ parameters.SDKType }}
 
+    # Only run CG and codeql on internal build job
+    ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+      templateContext:
+        sdl:
+          componentgovernance:
+            enabled: true
+          codeql:
+            binaryLanguages: java # Need to specify the language because we clone after the codeql initialize step
+            compiled:
+              enabled: true
+
     pool:
       name: $(LINUXPOOL)
       image: $(LINUXVMIMAGE)
       os: linux
 
     steps:
+      # Fail fast if this is a manual release build but no packages were selected.
+      # When manually triggering the pipeline, at least one release_* parameter must be checked.
+      - ${{ if and(eq(variables['System.TeamProject'], 'internal'), eq(variables['Build.Reason'], 'Manual'), eq(length(parameters.ReleaseArtifacts), 0)) }}:
+        - pwsh: |
+            Write-Host "##vso[task.logissue type=error]No packages selected for release. When manually queuing this pipeline, please select at least one package by checking the appropriate package-name parameter(s)."
+            exit 1
+          displayName: 'Validate: at least one package is selected for release'
+
       # Skip sparse checkout for the `azure-sdk-for-<lang>-pr` private mirrored repositories
       # as we require the GitHub service connection to be loaded.
       - ${{ if not(contains(variables['Build.DefinitionName'], 'java-pr')) }}:
@@ -103,6 +125,9 @@ jobs:
           JobType: 'Build'
           ServiceDirectory: ${{parameters.ServiceDirectory}}
           ExcludePaths: ${{parameters.ExcludePaths}}
+
+      # Authenticate with Azure Artifacts
+      - template: /eng/pipelines/templates/steps/maven-authenticate.yml
 
       - task: UsePythonVersion@0
         displayName: 'Use Python $(PythonVersion)'
@@ -135,11 +160,15 @@ jobs:
         displayName: 'Tag scheduled builds'
         condition: and(succeeded(), eq(variables['Build.SourceBranchName'],'main'),eq(variables['Build.Reason'],'Schedule'))
 
-      - template: /eng/common/pipelines/templates/steps/set-test-pipeline-version.yml
-        parameters:
-          PackageNames: "azure-sdk-template,azure-sdk-template-two,azure-sdk-template-three"
-          ServiceDirectory: "template"
-          TestPipeline: ${{ parameters.TestPipeline }}
+      - ${{ if eq(parameters.TestPipeline, true) }}:
+        - template: /eng/common/pipelines/templates/steps/set-test-pipeline-version.yml
+          parameters:
+            Artifacts:
+              - ${{ each artifact in parameters.ReleaseArtifacts }}:
+                - ${{ if contains(artifact.name, 'azure-sdk-template') }}:
+                  - ${{ artifact }}
+            ServiceDirectory: ${{ parameters.ServiceDirectory }}
+            TestPipeline: ${{ parameters.TestPipeline }}
 
       # The daily dev build variable isn't used for the PullRequests pipeline but is currently used
       # to save off the packageInfo files for all ci pipeline. This needs to be skipped for the
@@ -148,6 +177,7 @@ jobs:
         - template: /eng/common/pipelines/templates/steps/daily-dev-build-variable.yml
           parameters:
             ServiceDirectory: ${{parameters.ServiceDirectory}}
+            Artifacts: ${{parameters.ReleaseArtifacts}}
 
       - task: PowerShell@2
         displayName: Setup Dev versioning
@@ -157,7 +187,6 @@ jobs:
           filePath: eng/pipelines/scripts/Set-Dev-Versioning.ps1
           arguments: >
             -BuildNumber $(Build.BuildNumber)
-            -SdkType ${{parameters.SDKType}}
         env:
           ARTIFACTSJSON: $(ArtifactsJson)
 
@@ -169,10 +198,21 @@ jobs:
               -ServiceDirectory ${{parameters.ServiceDirectory}}
               -OutDirectory $(Build.ArtifactStagingDirectory)/PackageInfo
               -AddDevVersion
+              -artifactList @('${{ replace(convertToJson(parameters.ReleaseArtifacts), '''', '`''') }}' | ConvertFrom-Json | Select-Object -ExpandProperty name)
             pwsh: true
             workingDirectory: $(Pipeline.Workspace)
           displayName: Update package properties with dev version
           condition: and(succeeded(), eq(variables['SetDevVersion'],'true'))
+
+      - ${{if ne(parameters.SDKType, 'data')}}:
+        - template: /eng/common/pipelines/templates/steps/verify-changelogs.yml
+          parameters:
+            PackagePropertiesFolder: $(Build.ArtifactStagingDirectory)/PackageInfo
+
+      - task: PipAuthenticate@1
+        displayName: 'Pip Authenticate to Azure Artifacts'
+        inputs:
+          artifactFeeds: 'public/azure-sdk-for-python'
 
       - script: |
           python -m pip install markdown2==2.4.6 BeautifulSoup4==4.11.1
@@ -250,13 +290,17 @@ jobs:
 
       - template: /eng/common/pipelines/templates/steps/create-apireview.yml
         parameters:
-          Artifacts: ${{parameters.ReleaseArtifacts}}
+          PackageInfoFiles:
+            - ${{ each artifact in parameters.ReleaseArtifacts }}:
+              - $(Build.ArtifactStagingDirectory)/PackageInfo/${{artifact.name}}.json
 
       - template: /eng/common/pipelines/templates/steps/detect-api-changes.yml
 
       - template: /eng/common/pipelines/templates/steps/validate-all-packages.yml
         parameters:
-          Artifacts: ${{ parameters.Artifacts }}
+          PackageInfoFiles:
+            - ${{ each artifact in parameters.ReleaseArtifacts }}:
+              - $(Build.ArtifactStagingDirectory)/PackageInfo/${{artifact.name}}.json
 
       - template: /eng/pipelines/templates/steps/post-job-cleanup.yml
 
@@ -328,11 +372,15 @@ jobs:
           CspellConfigPath: .vscode/cspell.json
           ContinueOnError: false
 
-      - template: /eng/common/pipelines/templates/steps/set-test-pipeline-version.yml
-        parameters:
-          PackageNames: "azure-sdk-template,azure-sdk-template-two,azure-sdk-template-three"
-          ServiceDirectory: "template"
-          TestPipeline: ${{ parameters.TestPipeline }}
+      - ${{ if eq(parameters.TestPipeline, true) }}:
+        - template: /eng/common/pipelines/templates/steps/set-test-pipeline-version.yml
+          parameters:
+            Artifacts:
+              - ${{ each artifact in parameters.ReleaseArtifacts }}:
+                - ${{ if contains(artifact.name, 'azure-sdk-template') }}:
+                  - ${{ artifact }}
+            ServiceDirectory: ${{ parameters.ServiceDirectory }}
+            TestPipeline: ${{ parameters.TestPipeline }}
 
       - template: /eng/common/pipelines/templates/steps/verify-links.yml
         parameters:
@@ -376,46 +424,29 @@ jobs:
           SourceDirectory: $(Build.SourcesDirectory)
           BasePathLength: 38
 
-      - ${{if ne(parameters.SDKType, 'data')}}:
-        - ${{ if and(eq(variables['Build.Reason'], 'PullRequest'), eq(parameters.ServiceDirectory, 'auto')) }}:
-          - template: /eng/common/pipelines/templates/steps/verify-changelogs.yml
-            parameters:
-              PackagePropertiesFolder: $(Build.ArtifactStagingDirectory)/PackageInfo
-        - ${{ else }}:
-          - ${{ each artifact in parameters.Artifacts }}:
-            - ${{if ne(artifact.skipVerifyChangelog, 'true')}}:
-              - template: /eng/common/pipelines/templates/steps/verify-changelog.yml
-                parameters:
-                  PackageName: ${{artifact.name}}
-                  ServiceName: ${{parameters.ServiceDirectory}}
-                  ForRelease: false
-
-      # We `install` the code quality reports tooling into our local m2 cache separately from building the Maven project
-      # reports. This means it is available as part of that, but also so that this is not documented in the project report.
-      - template: /eng/pipelines/templates/steps/install-reporting-tools.yml
-        parameters:
-          JdkVersion: ${{ parameters.JavaBuildVersion }}
-
       - task: UseNode@1
         inputs:
           version: 22.x
         displayName: Use Node.js 22.x
 
+      # Authenticate npm to Azure Artifacts
+      - template: /eng/common/pipelines/templates/steps/create-authenticated-npmrc.yml
+        parameters:
+          npmrcPath: $(Agent.TempDirectory)/analyze-job/.npmrc
+
       - task: PowerShell@2
-        displayName: Verify Code Generation for Pull Request
+        displayName: Verify Swagger and TypeSpec Code Generation
         inputs:
           pwsh: true
           filePath: $(Build.SourcesDirectory)/eng/scripts/Compare-CurrentToCodegeneration.ps1
           arguments: >
             -ServiceDirectories '$(PRServiceDirectories)'
+            -RegenerationType 'All'
+        env:
+          NPM_CONFIG_USERCONFIG: $(Agent.TempDirectory)/analyze-job/.npmrc
 
-      - task: PowerShell@2
-        displayName: Verify TypeSpec Code Generation
-        inputs:
-          pwsh: true
-          filePath: $(Build.SourcesDirectory)/eng/scripts/TypeSpec-Compare-CurrentToCodegeneration.ps1
-          arguments: >
-            -ServiceDirectories '$(PRServiceDirectories)'
+      # Authenticate with Azure Artifacts
+      - template: /eng/pipelines/templates/steps/maven-authenticate.yml
 
       - template: /eng/pipelines/templates/steps/run-and-validate-linting.yml
         parameters:
@@ -460,7 +491,10 @@ jobs:
       ${{ if eq(parameters.ServiceDirectory, 'auto') }}:
         EnablePRGeneration: true
         PRMatrixSparseIndirect: true
-        PRJobBatchSize: 20
+        # Use a PR job batch size of 50 as the design of Java's CI doesn't increase CI times linear for each library
+        # added. So, using a smaller batch size means more CI jobs that are slightly faster than fewer larger jobs.
+        # Overall, using a large batch size reduces overall CI time.
+        PRJobBatchSize: 50
         # This key will use the PackageInfo.Name to populate the ArtifactPackageNames
         PRMatrixKey: 'Name'
         SparseCheckoutPaths:
@@ -492,6 +526,7 @@ jobs:
         TestOptions: ${{ parameters.TestOptions }}
         TestParallelization: ${{ parameters.TestParallelization }}
         BuildParallelization: ${{ parameters.BuildParallelization }}
+        BuildOptions: ${{ parameters.BuildOptions }}
         AdditionalLintingOptions: ${{ parameters.AdditionalLintingOptions }}
         TimeoutInMinutes: ${{ parameters.TimeoutInMinutes }}
         EnvVars: ${{ parameters.EnvVars }}

@@ -1,8 +1,6 @@
 parameters:
   - name: DependsOn
     type: object
-  - name: SDKType
-    type: string
   - name: Artifacts
     type: object
     default: []
@@ -13,7 +11,7 @@ parameters:
     # live tests enabled for release and ReleaseDependsOnLiveTests is false
   - name: Environment
     type: string
-    default: 'maven'
+    default: 'package-publish'
 
 stages:
   # The signing stage is responsible for submitting binaries to ESRP for our official signing
@@ -35,14 +33,10 @@ stages:
         steps:
           - checkout: azure-sdk-build-tools
             path: azure-sdk-build-tools
-          - template: /eng/common/pipelines/templates/steps/sparse-checkout.yml
-            parameters:
-              SkipCheckoutNone: true
-              Repositories:
-                - Name: Azure/azure-sdk-for-java
-                  Commitish: $(Build.SourceVersion)
-                  WorkingDirectory: $(Pipeline.Workspace)/azure-sdk-for-java
-          - template: /eng/pipelines/templates/steps/download-credscan-suppressions.yml
+
+          - checkout: self
+            fetchDepth: 1
+            path: azure-sdk-for-java
 
           - download: current
             displayName: 'Download Artifact: packages'
@@ -82,7 +76,7 @@ stages:
   # the Validation step below publishes a package to a "burner" feed which is cleaned up after the
   # pipeline completes.
   - ${{if and(in(variables['Build.Reason'], 'Manual', ''), eq(variables['System.TeamProject'], 'internal'))}}:
-    - stage:
+    - stage: Release
       displayName: 'Releasing: ${{ length(parameters.Artifacts) }} libraries'
       dependsOn: Signing
       variables:
@@ -162,7 +156,6 @@ stages:
                   - Name: Azure/azure-sdk-for-java
                     Commitish: $(Build.SourceVersion)
                     WorkingDirectory: $(Pipeline.Workspace)/azure-sdk-for-java
-            - template: /eng/pipelines/templates/steps/download-credscan-suppressions.yml
             - download: current
               displayName: 'Download Artifacts'
               artifact: packages-signed
@@ -177,8 +170,10 @@ stages:
                 ArtifactPath: $(Pipeline.Workspace)/packages-signed
             - template: /eng/common/pipelines/templates/steps/create-apireview.yml
               parameters:
+                PackageInfoFiles:
+                  - ${{ each artifact in parameters.Artifacts }}:
+                    - $(Pipeline.Workspace)/packages-signed/PackageInfo/${{artifact.name}}.json
                 ArtifactPath: $(Pipeline.Workspace)/packages-signed
-                Artifacts: ${{parameters.Artifacts}}
                 ConfigFileDir: $(Pipeline.Workspace)/packages-signed/PackageInfo
                 MarkPackageAsShipped: true
                 ArtifactName: packages-signed
@@ -213,19 +208,19 @@ stages:
                 versionSpec: $(PythonVersion)
 
             # Apply the version increment to each library, which only updates the version_client.txt file,
-            # and then call to update_versions will then apply all of the updates.
+            # and then call to update_versions will then apply all the updates.
             - pwsh: |
                 $ArtifactsList = $('$(ArtifactsJson)' | ConvertFrom-Json | Select-Object name, groupId)
                 $ArtifactsList | Format-Table -Property GroupId, Name | Out-String | Write-Host
                 python --version
                 foreach($artifact in $ArtifactsList) {
-                  python eng/versioning/set_versions.py --build-type ${{ parameters.SDKType }} --increment-version --ai $($artifact.name) --gi $($artifact.groupId)
+                  python eng/versioning/set_versions.py --increment-version --ai $($artifact.name) --gi $($artifact.groupId)
                 }
               displayName: Increment package versions
 
             - script: |
                 python --version
-                python eng/versioning/update_versions.py --update-type library --build-type ${{ parameters.SDKType }} --avi --sr
+                python eng/versioning/update_versions.py --auto-version-increment --skip-readme
               displayName: Update pom files for incremented versions
 
             - template: /eng/common/pipelines/templates/steps/create-pull-request.yml
@@ -237,7 +232,7 @@ stages:
 
         - job: PublishDocsMs
           displayName: Docs.MS Release
-          condition: and(succeeded(), ne(variables['Skip.PublishDocs'], 'true'))
+          condition: and(succeeded(), ne(variables['Skip.PublishDocs'], 'true'), ne(variables['Build.Repository.Name'], 'Azure/azure-sdk-for-java-pr'))
           timeoutInMinutes: 180
           dependsOn: PublishDevFeedPackage
 
@@ -279,7 +274,7 @@ stages:
 
         - job: PublishDocs
           displayName: Publish Docs to GitHubIO Blob Storage
-          condition: and(succeeded(), ne(variables['Skip.PublishDocs'], 'true'))
+          condition: and(succeeded(), ne(variables['Skip.PublishDocs'], 'true'), ne(variables['Build.Repository.Name'], 'Azure/azure-sdk-for-java-pr'))
           timeoutInMinutes: 120
           dependsOn: PublishESRPPackage
           variables:

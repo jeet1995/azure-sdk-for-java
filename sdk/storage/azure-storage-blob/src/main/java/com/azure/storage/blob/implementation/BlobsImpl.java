@@ -272,8 +272,10 @@ public final class BlobsImpl {
             @HeaderParam("If-Match") String ifMatch, @HeaderParam("If-None-Match") String ifNoneMatch,
             @HeaderParam("x-ms-if-tags") String ifTags, @HeaderParam("x-ms-version") String version,
             @HeaderParam("x-ms-client-request-id") String requestId,
-            @QueryParam("deletetype") BlobDeleteType blobDeleteType, @HeaderParam("Accept") String accept,
-            Context context);
+            @QueryParam("deletetype") BlobDeleteType blobDeleteType,
+            @HeaderParam("x-ms-access-tier-if-modified-since") DateTimeRfc1123 accessTierIfModifiedSince,
+            @HeaderParam("x-ms-access-tier-if-unmodified-since") DateTimeRfc1123 accessTierIfUnmodifiedSince,
+            @HeaderParam("Accept") String accept, Context context);
 
         @Delete("/{containerName}/{blob}")
         @ExpectedResponses({ 202 })
@@ -288,8 +290,10 @@ public final class BlobsImpl {
             @HeaderParam("If-Match") String ifMatch, @HeaderParam("If-None-Match") String ifNoneMatch,
             @HeaderParam("x-ms-if-tags") String ifTags, @HeaderParam("x-ms-version") String version,
             @HeaderParam("x-ms-client-request-id") String requestId,
-            @QueryParam("deletetype") BlobDeleteType blobDeleteType, @HeaderParam("Accept") String accept,
-            Context context);
+            @QueryParam("deletetype") BlobDeleteType blobDeleteType,
+            @HeaderParam("x-ms-access-tier-if-modified-since") DateTimeRfc1123 accessTierIfModifiedSince,
+            @HeaderParam("x-ms-access-tier-if-unmodified-since") DateTimeRfc1123 accessTierIfUnmodifiedSince,
+            @HeaderParam("Accept") String accept, Context context);
 
         @Delete("/{containerName}/{blob}")
         @ExpectedResponses({ 202 })
@@ -304,8 +308,10 @@ public final class BlobsImpl {
             @HeaderParam("If-Match") String ifMatch, @HeaderParam("If-None-Match") String ifNoneMatch,
             @HeaderParam("x-ms-if-tags") String ifTags, @HeaderParam("x-ms-version") String version,
             @HeaderParam("x-ms-client-request-id") String requestId,
-            @QueryParam("deletetype") BlobDeleteType blobDeleteType, @HeaderParam("Accept") String accept,
-            Context context);
+            @QueryParam("deletetype") BlobDeleteType blobDeleteType,
+            @HeaderParam("x-ms-access-tier-if-modified-since") DateTimeRfc1123 accessTierIfModifiedSince,
+            @HeaderParam("x-ms-access-tier-if-unmodified-since") DateTimeRfc1123 accessTierIfUnmodifiedSince,
+            @HeaderParam("Accept") String accept, Context context);
 
         @Delete("/{containerName}/{blob}")
         @ExpectedResponses({ 202 })
@@ -320,8 +326,10 @@ public final class BlobsImpl {
             @HeaderParam("If-Match") String ifMatch, @HeaderParam("If-None-Match") String ifNoneMatch,
             @HeaderParam("x-ms-if-tags") String ifTags, @HeaderParam("x-ms-version") String version,
             @HeaderParam("x-ms-client-request-id") String requestId,
-            @QueryParam("deletetype") BlobDeleteType blobDeleteType, @HeaderParam("Accept") String accept,
-            Context context);
+            @QueryParam("deletetype") BlobDeleteType blobDeleteType,
+            @HeaderParam("x-ms-access-tier-if-modified-since") DateTimeRfc1123 accessTierIfModifiedSince,
+            @HeaderParam("x-ms-access-tier-if-unmodified-since") DateTimeRfc1123 accessTierIfUnmodifiedSince,
+            @HeaderParam("Accept") String accept, Context context);
 
         @Put("/{containerName}/{blob}")
         @ExpectedResponses({ 200 })
@@ -1468,7 +1476,11 @@ public final class BlobsImpl {
             @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-client-request-id") String requestId,
             @QueryParam("snapshot") String snapshot, @QueryParam("versionid") String versionId,
             @HeaderParam("x-ms-if-tags") String ifTags, @HeaderParam("x-ms-lease-id") String leaseId,
-            @HeaderParam("Accept") String accept, Context context);
+            @HeaderParam("x-ms-blob-if-modified-since") DateTimeRfc1123 ifModifiedSince,
+            @HeaderParam("x-ms-blob-if-unmodified-since") DateTimeRfc1123 ifUnmodifiedSince,
+            @HeaderParam("x-ms-blob-if-match") String ifMatch,
+            @HeaderParam("x-ms-blob-if-none-match") String ifNoneMatch, @HeaderParam("Accept") String accept,
+            Context context);
 
         @Get("/{containerName}/{blob}")
         @ExpectedResponses({ 200 })
@@ -1479,7 +1491,11 @@ public final class BlobsImpl {
             @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-client-request-id") String requestId,
             @QueryParam("snapshot") String snapshot, @QueryParam("versionid") String versionId,
             @HeaderParam("x-ms-if-tags") String ifTags, @HeaderParam("x-ms-lease-id") String leaseId,
-            @HeaderParam("Accept") String accept, Context context);
+            @HeaderParam("x-ms-blob-if-modified-since") DateTimeRfc1123 ifModifiedSince,
+            @HeaderParam("x-ms-blob-if-unmodified-since") DateTimeRfc1123 ifUnmodifiedSince,
+            @HeaderParam("x-ms-blob-if-match") String ifMatch,
+            @HeaderParam("x-ms-blob-if-none-match") String ifNoneMatch, @HeaderParam("Accept") String accept,
+            Context context);
 
         @Get("/{containerName}/{blob}")
         @ExpectedResponses({ 200 })
@@ -1490,7 +1506,11 @@ public final class BlobsImpl {
             @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-client-request-id") String requestId,
             @QueryParam("snapshot") String snapshot, @QueryParam("versionid") String versionId,
             @HeaderParam("x-ms-if-tags") String ifTags, @HeaderParam("x-ms-lease-id") String leaseId,
-            @HeaderParam("Accept") String accept, Context context);
+            @HeaderParam("x-ms-blob-if-modified-since") DateTimeRfc1123 ifModifiedSince,
+            @HeaderParam("x-ms-blob-if-unmodified-since") DateTimeRfc1123 ifUnmodifiedSince,
+            @HeaderParam("x-ms-blob-if-match") String ifMatch,
+            @HeaderParam("x-ms-blob-if-none-match") String ifNoneMatch, @HeaderParam("Accept") String accept,
+            Context context);
 
         @Get("/{containerName}/{blob}")
         @ExpectedResponses({ 200 })
@@ -1501,7 +1521,11 @@ public final class BlobsImpl {
             @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-client-request-id") String requestId,
             @QueryParam("snapshot") String snapshot, @QueryParam("versionid") String versionId,
             @HeaderParam("x-ms-if-tags") String ifTags, @HeaderParam("x-ms-lease-id") String leaseId,
-            @HeaderParam("Accept") String accept, Context context);
+            @HeaderParam("x-ms-blob-if-modified-since") DateTimeRfc1123 ifModifiedSince,
+            @HeaderParam("x-ms-blob-if-unmodified-since") DateTimeRfc1123 ifUnmodifiedSince,
+            @HeaderParam("x-ms-blob-if-match") String ifMatch,
+            @HeaderParam("x-ms-blob-if-none-match") String ifNoneMatch, @HeaderParam("Accept") String accept,
+            Context context);
 
         @Put("/{containerName}/{blob}")
         @ExpectedResponses({ 204 })
@@ -1513,7 +1537,11 @@ public final class BlobsImpl {
             @HeaderParam("Content-MD5") String transactionalContentMD5,
             @HeaderParam("x-ms-content-crc64") String transactionalContentCrc64,
             @HeaderParam("x-ms-client-request-id") String requestId, @HeaderParam("x-ms-if-tags") String ifTags,
-            @HeaderParam("x-ms-lease-id") String leaseId, @BodyParam("application/xml") BlobTags tags,
+            @HeaderParam("x-ms-lease-id") String leaseId,
+            @HeaderParam("x-ms-blob-if-modified-since") DateTimeRfc1123 ifModifiedSince,
+            @HeaderParam("x-ms-blob-if-unmodified-since") DateTimeRfc1123 ifUnmodifiedSince,
+            @HeaderParam("x-ms-blob-if-match") String ifMatch,
+            @HeaderParam("x-ms-blob-if-none-match") String ifNoneMatch, @BodyParam("application/xml") BlobTags tags,
             @HeaderParam("Accept") String accept, Context context);
 
         @Put("/{containerName}/{blob}")
@@ -1526,7 +1554,11 @@ public final class BlobsImpl {
             @HeaderParam("Content-MD5") String transactionalContentMD5,
             @HeaderParam("x-ms-content-crc64") String transactionalContentCrc64,
             @HeaderParam("x-ms-client-request-id") String requestId, @HeaderParam("x-ms-if-tags") String ifTags,
-            @HeaderParam("x-ms-lease-id") String leaseId, @BodyParam("application/xml") BlobTags tags,
+            @HeaderParam("x-ms-lease-id") String leaseId,
+            @HeaderParam("x-ms-blob-if-modified-since") DateTimeRfc1123 ifModifiedSince,
+            @HeaderParam("x-ms-blob-if-unmodified-since") DateTimeRfc1123 ifUnmodifiedSince,
+            @HeaderParam("x-ms-blob-if-match") String ifMatch,
+            @HeaderParam("x-ms-blob-if-none-match") String ifNoneMatch, @BodyParam("application/xml") BlobTags tags,
             @HeaderParam("Accept") String accept, Context context);
 
         @Put("/{containerName}/{blob}")
@@ -1539,7 +1571,11 @@ public final class BlobsImpl {
             @HeaderParam("Content-MD5") String transactionalContentMD5,
             @HeaderParam("x-ms-content-crc64") String transactionalContentCrc64,
             @HeaderParam("x-ms-client-request-id") String requestId, @HeaderParam("x-ms-if-tags") String ifTags,
-            @HeaderParam("x-ms-lease-id") String leaseId, @BodyParam("application/xml") BlobTags tags,
+            @HeaderParam("x-ms-lease-id") String leaseId,
+            @HeaderParam("x-ms-blob-if-modified-since") DateTimeRfc1123 ifModifiedSince,
+            @HeaderParam("x-ms-blob-if-unmodified-since") DateTimeRfc1123 ifUnmodifiedSince,
+            @HeaderParam("x-ms-blob-if-match") String ifMatch,
+            @HeaderParam("x-ms-blob-if-none-match") String ifNoneMatch, @BodyParam("application/xml") BlobTags tags,
             @HeaderParam("Accept") String accept, Context context);
 
         @Put("/{containerName}/{blob}")
@@ -1552,7 +1588,11 @@ public final class BlobsImpl {
             @HeaderParam("Content-MD5") String transactionalContentMD5,
             @HeaderParam("x-ms-content-crc64") String transactionalContentCrc64,
             @HeaderParam("x-ms-client-request-id") String requestId, @HeaderParam("x-ms-if-tags") String ifTags,
-            @HeaderParam("x-ms-lease-id") String leaseId, @BodyParam("application/xml") BlobTags tags,
+            @HeaderParam("x-ms-lease-id") String leaseId,
+            @HeaderParam("x-ms-blob-if-modified-since") DateTimeRfc1123 ifModifiedSince,
+            @HeaderParam("x-ms-blob-if-unmodified-since") DateTimeRfc1123 ifUnmodifiedSince,
+            @HeaderParam("x-ms-blob-if-match") String ifMatch,
+            @HeaderParam("x-ms-blob-if-none-match") String ifNoneMatch, @BodyParam("application/xml") BlobTags tags,
             @HeaderParam("Accept") String accept, Context context);
     }
 
@@ -1564,12 +1604,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -1615,12 +1655,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -1688,12 +1728,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -1738,12 +1778,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -1789,12 +1829,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -1840,12 +1880,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -1913,12 +1953,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -1988,12 +2028,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -2040,12 +2080,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param range Return only the bytes of the blob in the specified range.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -2115,12 +2155,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2157,12 +2197,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2222,12 +2262,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2263,12 +2303,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2305,12 +2345,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2348,12 +2388,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2413,12 +2453,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2480,12 +2520,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2518,12 +2558,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -2598,12 +2638,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -2620,6 +2660,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -2629,11 +2673,12 @@ public final class BlobsImpl {
     public Mono<ResponseBase<BlobsDeleteHeaders, Void>> deleteWithResponseAsync(String containerName, String blob,
         String snapshot, String versionId, Integer timeout, String leaseId, DeleteSnapshotsOptionType deleteSnapshots,
         OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
-        String ifTags, String requestId, BlobDeleteType blobDeleteType) {
+        String ifTags, String requestId, BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince) {
         return FluxUtil
             .withContext(context -> deleteWithResponseAsync(containerName, blob, snapshot, versionId, timeout, leaseId,
                 deleteSnapshots, ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, ifTags, requestId,
-                blobDeleteType, context))
+                blobDeleteType, accessTierIfModifiedSince, accessTierIfUnmodifiedSince, context))
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -2658,12 +2703,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -2680,6 +2725,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -2690,16 +2739,22 @@ public final class BlobsImpl {
     public Mono<ResponseBase<BlobsDeleteHeaders, Void>> deleteWithResponseAsync(String containerName, String blob,
         String snapshot, String versionId, Integer timeout, String leaseId, DeleteSnapshotsOptionType deleteSnapshots,
         OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
-        String ifTags, String requestId, BlobDeleteType blobDeleteType, Context context) {
+        String ifTags, String requestId, BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince, Context context) {
         final String accept = "application/xml";
         DateTimeRfc1123 ifModifiedSinceConverted
             = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
         DateTimeRfc1123 ifUnmodifiedSinceConverted
             = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
+        DateTimeRfc1123 accessTierIfModifiedSinceConverted
+            = accessTierIfModifiedSince == null ? null : new DateTimeRfc1123(accessTierIfModifiedSince);
+        DateTimeRfc1123 accessTierIfUnmodifiedSinceConverted
+            = accessTierIfUnmodifiedSince == null ? null : new DateTimeRfc1123(accessTierIfUnmodifiedSince);
         return service
             .delete(this.client.getUrl(), containerName, blob, snapshot, versionId, timeout, leaseId, deleteSnapshots,
                 ifModifiedSinceConverted, ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, ifTags,
-                this.client.getVersion(), requestId, blobDeleteType, accept, context)
+                this.client.getVersion(), requestId, blobDeleteType, accessTierIfModifiedSinceConverted,
+                accessTierIfUnmodifiedSinceConverted, accept, context)
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -2724,12 +2779,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -2746,6 +2801,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -2755,9 +2814,11 @@ public final class BlobsImpl {
     public Mono<Void> deleteAsync(String containerName, String blob, String snapshot, String versionId, Integer timeout,
         String leaseId, DeleteSnapshotsOptionType deleteSnapshots, OffsetDateTime ifModifiedSince,
         OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, String ifTags, String requestId,
-        BlobDeleteType blobDeleteType) {
+        BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince) {
         return deleteWithResponseAsync(containerName, blob, snapshot, versionId, timeout, leaseId, deleteSnapshots,
-            ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, ifTags, requestId, blobDeleteType)
+            ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, ifTags, requestId, blobDeleteType,
+            accessTierIfModifiedSince, accessTierIfUnmodifiedSince)
                 .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
                 .flatMap(ignored -> Mono.empty());
     }
@@ -2783,12 +2844,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -2805,6 +2866,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -2815,9 +2880,11 @@ public final class BlobsImpl {
     public Mono<Void> deleteAsync(String containerName, String blob, String snapshot, String versionId, Integer timeout,
         String leaseId, DeleteSnapshotsOptionType deleteSnapshots, OffsetDateTime ifModifiedSince,
         OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, String ifTags, String requestId,
-        BlobDeleteType blobDeleteType, Context context) {
+        BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince, Context context) {
         return deleteWithResponseAsync(containerName, blob, snapshot, versionId, timeout, leaseId, deleteSnapshots,
-            ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, ifTags, requestId, blobDeleteType, context)
+            ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, ifTags, requestId, blobDeleteType,
+            accessTierIfModifiedSince, accessTierIfUnmodifiedSince, context)
                 .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
                 .flatMap(ignored -> Mono.empty());
     }
@@ -2843,12 +2910,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -2865,6 +2932,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -2874,11 +2945,12 @@ public final class BlobsImpl {
     public Mono<Response<Void>> deleteNoCustomHeadersWithResponseAsync(String containerName, String blob,
         String snapshot, String versionId, Integer timeout, String leaseId, DeleteSnapshotsOptionType deleteSnapshots,
         OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
-        String ifTags, String requestId, BlobDeleteType blobDeleteType) {
+        String ifTags, String requestId, BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince) {
         return FluxUtil
             .withContext(context -> deleteNoCustomHeadersWithResponseAsync(containerName, blob, snapshot, versionId,
                 timeout, leaseId, deleteSnapshots, ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, ifTags,
-                requestId, blobDeleteType, context))
+                requestId, blobDeleteType, accessTierIfModifiedSince, accessTierIfUnmodifiedSince, context))
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -2903,12 +2975,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -2925,6 +2997,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -2935,16 +3011,22 @@ public final class BlobsImpl {
     public Mono<Response<Void>> deleteNoCustomHeadersWithResponseAsync(String containerName, String blob,
         String snapshot, String versionId, Integer timeout, String leaseId, DeleteSnapshotsOptionType deleteSnapshots,
         OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
-        String ifTags, String requestId, BlobDeleteType blobDeleteType, Context context) {
+        String ifTags, String requestId, BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince, Context context) {
         final String accept = "application/xml";
         DateTimeRfc1123 ifModifiedSinceConverted
             = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
         DateTimeRfc1123 ifUnmodifiedSinceConverted
             = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
+        DateTimeRfc1123 accessTierIfModifiedSinceConverted
+            = accessTierIfModifiedSince == null ? null : new DateTimeRfc1123(accessTierIfModifiedSince);
+        DateTimeRfc1123 accessTierIfUnmodifiedSinceConverted
+            = accessTierIfUnmodifiedSince == null ? null : new DateTimeRfc1123(accessTierIfUnmodifiedSince);
         return service
             .deleteNoCustomHeaders(this.client.getUrl(), containerName, blob, snapshot, versionId, timeout, leaseId,
                 deleteSnapshots, ifModifiedSinceConverted, ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, ifTags,
-                this.client.getVersion(), requestId, blobDeleteType, accept, context)
+                this.client.getVersion(), requestId, blobDeleteType, accessTierIfModifiedSinceConverted,
+                accessTierIfUnmodifiedSinceConverted, accept, context)
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -2969,12 +3051,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -2991,6 +3073,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -3001,16 +3087,22 @@ public final class BlobsImpl {
     public ResponseBase<BlobsDeleteHeaders, Void> deleteWithResponse(String containerName, String blob, String snapshot,
         String versionId, Integer timeout, String leaseId, DeleteSnapshotsOptionType deleteSnapshots,
         OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
-        String ifTags, String requestId, BlobDeleteType blobDeleteType, Context context) {
+        String ifTags, String requestId, BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince, Context context) {
         try {
             final String accept = "application/xml";
             DateTimeRfc1123 ifModifiedSinceConverted
                 = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
             DateTimeRfc1123 ifUnmodifiedSinceConverted
                 = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
+            DateTimeRfc1123 accessTierIfModifiedSinceConverted
+                = accessTierIfModifiedSince == null ? null : new DateTimeRfc1123(accessTierIfModifiedSince);
+            DateTimeRfc1123 accessTierIfUnmodifiedSinceConverted
+                = accessTierIfUnmodifiedSince == null ? null : new DateTimeRfc1123(accessTierIfUnmodifiedSince);
             return service.deleteSync(this.client.getUrl(), containerName, blob, snapshot, versionId, timeout, leaseId,
                 deleteSnapshots, ifModifiedSinceConverted, ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, ifTags,
-                this.client.getVersion(), requestId, blobDeleteType, accept, context);
+                this.client.getVersion(), requestId, blobDeleteType, accessTierIfModifiedSinceConverted,
+                accessTierIfUnmodifiedSinceConverted, accept, context);
         } catch (BlobStorageExceptionInternal internalException) {
             throw ModelHelper.mapToBlobStorageException(internalException);
         }
@@ -3037,12 +3129,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -3059,6 +3151,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -3067,9 +3163,11 @@ public final class BlobsImpl {
     public void delete(String containerName, String blob, String snapshot, String versionId, Integer timeout,
         String leaseId, DeleteSnapshotsOptionType deleteSnapshots, OffsetDateTime ifModifiedSince,
         OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, String ifTags, String requestId,
-        BlobDeleteType blobDeleteType) {
+        BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince) {
         deleteWithResponse(containerName, blob, snapshot, versionId, timeout, leaseId, deleteSnapshots, ifModifiedSince,
-            ifUnmodifiedSince, ifMatch, ifNoneMatch, ifTags, requestId, blobDeleteType, Context.NONE);
+            ifUnmodifiedSince, ifMatch, ifNoneMatch, ifTags, requestId, blobDeleteType, accessTierIfModifiedSince,
+            accessTierIfUnmodifiedSince, Context.NONE);
     }
 
     /**
@@ -3093,12 +3191,12 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param deleteSnapshots Required if the blob has associated snapshots. Specify one of the following two options:
@@ -3115,6 +3213,10 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param blobDeleteType Optional. Only possible value is 'permanent', which specifies to permanently delete a blob
      * if blob soft delete is enabled.
+     * @param accessTierIfModifiedSince Specify this header value to operate only on a blob if the access-tier has been
+     * modified since the specified date/time.
+     * @param accessTierIfUnmodifiedSince Specify this header value to operate only on a blob if the access-tier has not
+     * been modified since the specified date/time.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -3125,16 +3227,22 @@ public final class BlobsImpl {
     public Response<Void> deleteNoCustomHeadersWithResponse(String containerName, String blob, String snapshot,
         String versionId, Integer timeout, String leaseId, DeleteSnapshotsOptionType deleteSnapshots,
         OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
-        String ifTags, String requestId, BlobDeleteType blobDeleteType, Context context) {
+        String ifTags, String requestId, BlobDeleteType blobDeleteType, OffsetDateTime accessTierIfModifiedSince,
+        OffsetDateTime accessTierIfUnmodifiedSince, Context context) {
         try {
             final String accept = "application/xml";
             DateTimeRfc1123 ifModifiedSinceConverted
                 = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
             DateTimeRfc1123 ifUnmodifiedSinceConverted
                 = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
+            DateTimeRfc1123 accessTierIfModifiedSinceConverted
+                = accessTierIfModifiedSince == null ? null : new DateTimeRfc1123(accessTierIfModifiedSince);
+            DateTimeRfc1123 accessTierIfUnmodifiedSinceConverted
+                = accessTierIfUnmodifiedSince == null ? null : new DateTimeRfc1123(accessTierIfUnmodifiedSince);
             return service.deleteNoCustomHeadersSync(this.client.getUrl(), containerName, blob, snapshot, versionId,
                 timeout, leaseId, deleteSnapshots, ifModifiedSinceConverted, ifUnmodifiedSinceConverted, ifMatch,
-                ifNoneMatch, ifTags, this.client.getVersion(), requestId, blobDeleteType, accept, context);
+                ifNoneMatch, ifTags, this.client.getVersion(), requestId, blobDeleteType,
+                accessTierIfModifiedSinceConverted, accessTierIfUnmodifiedSinceConverted, accept, context);
         } catch (BlobStorageExceptionInternal internalException) {
             throw ModelHelper.mapToBlobStorageException(internalException);
         }
@@ -3146,7 +3254,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3169,7 +3277,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3196,7 +3304,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3218,7 +3326,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3242,7 +3350,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3266,7 +3374,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3293,7 +3401,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3322,7 +3430,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3341,7 +3449,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3371,7 +3479,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3397,7 +3505,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3426,7 +3534,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3451,7 +3559,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3477,7 +3585,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3503,7 +3611,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3532,7 +3640,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3563,7 +3671,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3585,7 +3693,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param expiryOptions Required. Indicates mode of the expiry time.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -3615,7 +3723,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -3649,7 +3757,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -3724,7 +3832,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -3758,7 +3866,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -3793,7 +3901,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -3828,7 +3936,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -3903,7 +4011,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -3980,7 +4088,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -4011,7 +4119,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -4087,7 +4195,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4097,8 +4205,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4123,7 +4231,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4133,8 +4241,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4167,7 +4275,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4177,8 +4285,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4202,7 +4310,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4212,8 +4320,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4238,7 +4346,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4248,8 +4356,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4274,7 +4382,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4284,8 +4392,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4317,7 +4425,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4327,8 +4435,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4363,7 +4471,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4373,8 +4481,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4395,7 +4503,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4405,8 +4513,8 @@ public final class BlobsImpl {
      * @param immutabilityPolicyMode Specifies the immutability policy mode to set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4440,14 +4548,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4470,14 +4578,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4504,14 +4612,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4533,14 +4641,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4563,14 +4671,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4593,14 +4701,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4626,14 +4734,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4662,14 +4770,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4689,14 +4797,14 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4725,14 +4833,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4756,14 +4864,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4791,14 +4899,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4821,14 +4929,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4852,14 +4960,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4883,14 +4991,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4917,14 +5025,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -4953,14 +5061,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -4980,14 +5088,14 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param legalHold Specified if a legal hold should be set on the blob.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param context The context to associate with this operation.
@@ -5016,7 +5124,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5060,7 +5168,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5132,7 +5240,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5174,7 +5282,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5218,7 +5326,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5262,7 +5370,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5334,7 +5442,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5408,7 +5516,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5447,7 +5555,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -5520,7 +5628,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5558,7 +5666,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5606,7 +5714,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5644,7 +5752,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5683,7 +5791,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5721,7 +5829,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5769,7 +5877,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5819,7 +5927,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5854,7 +5962,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -5904,7 +6012,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -5937,7 +6045,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -5979,7 +6087,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6012,7 +6120,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6046,7 +6154,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6079,7 +6187,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6121,7 +6229,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6165,7 +6273,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6195,7 +6303,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6239,7 +6347,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6272,7 +6380,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6314,7 +6422,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6347,7 +6455,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6381,7 +6489,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6414,7 +6522,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6456,7 +6564,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6500,7 +6608,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6530,7 +6638,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6577,7 +6685,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6613,7 +6721,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6659,7 +6767,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6695,7 +6803,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6732,7 +6840,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6769,7 +6877,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6815,7 +6923,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6863,7 +6971,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6896,7 +7004,7 @@ public final class BlobsImpl {
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
      * string formats.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
      * specified date/time.
@@ -6939,7 +7047,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -6977,7 +7085,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -7025,7 +7133,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -7063,7 +7171,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -7102,7 +7210,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -7140,7 +7248,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -7187,7 +7295,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -7236,7 +7344,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -7271,7 +7379,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param breakPeriod For a break operation, proposed duration the lease should continue before it is broken, in
      * seconds, between 0 and 60. This break period is only used if it is shorter than the time remaining on the lease.
@@ -7320,7 +7428,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7363,7 +7471,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7434,7 +7542,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7476,7 +7584,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7519,7 +7627,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7562,7 +7670,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7633,7 +7741,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7706,7 +7814,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7744,7 +7852,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7820,7 +7928,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7883,7 +7991,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -7959,7 +8067,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8021,7 +8129,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8084,7 +8192,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8147,7 +8255,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8223,7 +8331,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8301,7 +8409,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8360,7 +8468,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8439,7 +8547,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8509,7 +8617,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8599,7 +8707,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8668,7 +8776,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8738,7 +8846,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8808,7 +8916,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8898,7 +9006,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -8990,7 +9098,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -9056,7 +9164,7 @@ public final class BlobsImpl {
      * length that specifies a page blob snapshot. The value should be URL-encoded as it would appear in a request URI.
      * The source blob must either be public or must be authenticated via a shared access signature.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param metadata Optional. Specifies a user-defined name-value pair associated with the blob. If no name-value
      * pairs are specified, the operation will copy the metadata from the source blob or file to the destination blob.
@@ -9146,7 +9254,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9173,7 +9281,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9205,7 +9313,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9231,7 +9339,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9258,7 +9366,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9285,7 +9393,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9316,7 +9424,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9350,7 +9458,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9373,7 +9481,7 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy Blob operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9410,12 +9518,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9448,12 +9556,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9489,12 +9597,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9527,12 +9635,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9566,12 +9674,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9604,12 +9712,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9645,12 +9753,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9688,12 +9796,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9722,12 +9830,12 @@ public final class BlobsImpl {
      * @param tier Indicates the tier to be set on the blob.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param rehydratePriority Optional: Indicates the priority with which to rehydrate an archived blob.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -9761,7 +9869,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9784,7 +9892,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9812,7 +9920,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9834,7 +9942,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9858,7 +9966,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9881,7 +9989,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9909,7 +10017,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9939,7 +10047,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9958,7 +10066,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9989,10 +10097,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10030,10 +10138,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10093,10 +10201,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10132,10 +10240,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10173,10 +10281,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10214,10 +10322,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10278,10 +10386,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10344,10 +10452,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10386,10 +10494,10 @@ public final class BlobsImpl {
      * @param blob The blob name.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
@@ -10451,18 +10559,24 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -10470,10 +10584,11 @@ public final class BlobsImpl {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<ResponseBase<BlobsGetTagsHeaders, BlobTags>> getTagsWithResponseAsync(String containerName, String blob,
-        Integer timeout, String requestId, String snapshot, String versionId, String ifTags, String leaseId) {
+        Integer timeout, String requestId, String snapshot, String versionId, String ifTags, String leaseId,
+        OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch) {
         return FluxUtil
             .withContext(context -> getTagsWithResponseAsync(containerName, blob, timeout, requestId, snapshot,
-                versionId, ifTags, leaseId, context))
+                versionId, ifTags, leaseId, ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, context))
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -10483,18 +10598,24 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -10504,12 +10625,18 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<ResponseBase<BlobsGetTagsHeaders, BlobTags>> getTagsWithResponseAsync(String containerName, String blob,
         Integer timeout, String requestId, String snapshot, String versionId, String ifTags, String leaseId,
+        OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
         Context context) {
         final String comp = "tags";
         final String accept = "application/xml";
+        DateTimeRfc1123 ifModifiedSinceConverted
+            = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
+        DateTimeRfc1123 ifUnmodifiedSinceConverted
+            = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
         return service
             .getTags(this.client.getUrl(), containerName, blob, comp, timeout, this.client.getVersion(), requestId,
-                snapshot, versionId, ifTags, leaseId, accept, context)
+                snapshot, versionId, ifTags, leaseId, ifModifiedSinceConverted, ifUnmodifiedSinceConverted, ifMatch,
+                ifNoneMatch, accept, context)
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -10519,18 +10646,24 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -10538,41 +10671,11 @@ public final class BlobsImpl {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<BlobTags> getTagsAsync(String containerName, String blob, Integer timeout, String requestId,
-        String snapshot, String versionId, String ifTags, String leaseId) {
-        return getTagsWithResponseAsync(containerName, blob, timeout, requestId, snapshot, versionId, ifTags, leaseId)
-            .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
-            .flatMap(res -> Mono.justOrEmpty(res.getValue()));
-    }
-
-    /**
-     * The Get Tags operation enables users to get the tags associated with a blob.
-     *
-     * @param containerName The container name.
-     * @param blob The blob name.
-     * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
-     * Timeouts for Blob Service Operations.&lt;/a&gt;.
-     * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
-     * analytics logs when storage analytics logging is enabled.
-     * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
-     * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
-     * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
-     * of the blob to operate on. It's for service version 2019-10-10 and newer.
-     * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
-     * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return blob tags on successful completion of {@link Mono}.
-     */
-    @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<BlobTags> getTagsAsync(String containerName, String blob, Integer timeout, String requestId,
-        String snapshot, String versionId, String ifTags, String leaseId, Context context) {
+        String snapshot, String versionId, String ifTags, String leaseId, OffsetDateTime ifModifiedSince,
+        OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch) {
         return getTagsWithResponseAsync(containerName, blob, timeout, requestId, snapshot, versionId, ifTags, leaseId,
-            context).onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
+            ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch)
+                .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
                 .flatMap(res -> Mono.justOrEmpty(res.getValue()));
     }
 
@@ -10582,18 +10685,64 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
+     * @param context The context to associate with this operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return blob tags on successful completion of {@link Mono}.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<BlobTags> getTagsAsync(String containerName, String blob, Integer timeout, String requestId,
+        String snapshot, String versionId, String ifTags, String leaseId, OffsetDateTime ifModifiedSince,
+        OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, Context context) {
+        return getTagsWithResponseAsync(containerName, blob, timeout, requestId, snapshot, versionId, ifTags, leaseId,
+            ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, context)
+                .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
+                .flatMap(res -> Mono.justOrEmpty(res.getValue()));
+    }
+
+    /**
+     * The Get Tags operation enables users to get the tags associated with a blob.
+     *
+     * @param containerName The container name.
+     * @param blob The blob name.
+     * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * Timeouts for Blob Service Operations.&lt;/a&gt;.
+     * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
+     * analytics logs when storage analytics logging is enabled.
+     * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
+     * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
+     * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
+     * of the blob to operate on. It's for service version 2019-10-10 and newer.
+     * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
+     * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -10601,10 +10750,12 @@ public final class BlobsImpl {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<BlobTags>> getTagsNoCustomHeadersWithResponseAsync(String containerName, String blob,
-        Integer timeout, String requestId, String snapshot, String versionId, String ifTags, String leaseId) {
+        Integer timeout, String requestId, String snapshot, String versionId, String ifTags, String leaseId,
+        OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch) {
         return FluxUtil
-            .withContext(context -> getTagsNoCustomHeadersWithResponseAsync(containerName, blob, timeout, requestId,
-                snapshot, versionId, ifTags, leaseId, context))
+            .withContext(
+                context -> getTagsNoCustomHeadersWithResponseAsync(containerName, blob, timeout, requestId, snapshot,
+                    versionId, ifTags, leaseId, ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, context))
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -10614,18 +10765,24 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -10635,12 +10792,18 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<BlobTags>> getTagsNoCustomHeadersWithResponseAsync(String containerName, String blob,
         Integer timeout, String requestId, String snapshot, String versionId, String ifTags, String leaseId,
+        OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
         Context context) {
         final String comp = "tags";
         final String accept = "application/xml";
+        DateTimeRfc1123 ifModifiedSinceConverted
+            = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
+        DateTimeRfc1123 ifUnmodifiedSinceConverted
+            = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
         return service
             .getTagsNoCustomHeaders(this.client.getUrl(), containerName, blob, comp, timeout, this.client.getVersion(),
-                requestId, snapshot, versionId, ifTags, leaseId, accept, context)
+                requestId, snapshot, versionId, ifTags, leaseId, ifModifiedSinceConverted, ifUnmodifiedSinceConverted,
+                ifMatch, ifNoneMatch, accept, context)
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -10650,18 +10813,24 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -10671,12 +10840,18 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public ResponseBase<BlobsGetTagsHeaders, BlobTags> getTagsWithResponse(String containerName, String blob,
         Integer timeout, String requestId, String snapshot, String versionId, String ifTags, String leaseId,
+        OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
         Context context) {
         try {
             final String comp = "tags";
             final String accept = "application/xml";
+            DateTimeRfc1123 ifModifiedSinceConverted
+                = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
+            DateTimeRfc1123 ifUnmodifiedSinceConverted
+                = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
             return service.getTagsSync(this.client.getUrl(), containerName, blob, comp, timeout,
-                this.client.getVersion(), requestId, snapshot, versionId, ifTags, leaseId, accept, context);
+                this.client.getVersion(), requestId, snapshot, versionId, ifTags, leaseId, ifModifiedSinceConverted,
+                ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, accept, context);
         } catch (BlobStorageExceptionInternal internalException) {
             throw ModelHelper.mapToBlobStorageException(internalException);
         }
@@ -10688,18 +10863,24 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -10707,10 +10888,11 @@ public final class BlobsImpl {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public BlobTags getTags(String containerName, String blob, Integer timeout, String requestId, String snapshot,
-        String versionId, String ifTags, String leaseId) {
+        String versionId, String ifTags, String leaseId, OffsetDateTime ifModifiedSince,
+        OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch) {
         try {
             return getTagsWithResponse(containerName, blob, timeout, requestId, snapshot, versionId, ifTags, leaseId,
-                Context.NONE).getValue();
+                ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, Context.NONE).getValue();
         } catch (BlobStorageExceptionInternal internalException) {
             throw ModelHelper.mapToBlobStorageException(internalException);
         }
@@ -10722,18 +10904,24 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
      * @param snapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the blob
      * snapshot to retrieve. For more information on working with blob snapshots, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/creating-a-snapshot-of-a-blob"&gt;Creating
-     * a Snapshot of a Blob.&lt;/a&gt;.
+     * href="https://learn.microsoft.com/rest/api/storageservices/creating-a-snapshot-of-a-blob"&gt;Creating a Snapshot
+     * of a Blob.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -10742,12 +10930,19 @@ public final class BlobsImpl {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<BlobTags> getTagsNoCustomHeadersWithResponse(String containerName, String blob, Integer timeout,
-        String requestId, String snapshot, String versionId, String ifTags, String leaseId, Context context) {
+        String requestId, String snapshot, String versionId, String ifTags, String leaseId,
+        OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch,
+        Context context) {
         try {
             final String comp = "tags";
             final String accept = "application/xml";
+            DateTimeRfc1123 ifModifiedSinceConverted
+                = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
+            DateTimeRfc1123 ifUnmodifiedSinceConverted
+                = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
             return service.getTagsNoCustomHeadersSync(this.client.getUrl(), containerName, blob, comp, timeout,
-                this.client.getVersion(), requestId, snapshot, versionId, ifTags, leaseId, accept, context);
+                this.client.getVersion(), requestId, snapshot, versionId, ifTags, leaseId, ifModifiedSinceConverted,
+                ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, accept, context);
         } catch (BlobStorageExceptionInternal internalException) {
             throw ModelHelper.mapToBlobStorageException(internalException);
         }
@@ -10759,7 +10954,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -10769,6 +10964,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -10778,10 +10979,12 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<ResponseBase<BlobsSetTagsHeaders, Void>> setTagsWithResponseAsync(String containerName, String blob,
         Integer timeout, String versionId, byte[] transactionalContentMD5, byte[] transactionalContentCrc64,
-        String requestId, String ifTags, String leaseId, BlobTags tags) {
+        String requestId, String ifTags, String leaseId, OffsetDateTime ifModifiedSince,
+        OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, BlobTags tags) {
         return FluxUtil
             .withContext(context -> setTagsWithResponseAsync(containerName, blob, timeout, versionId,
-                transactionalContentMD5, transactionalContentCrc64, requestId, ifTags, leaseId, tags, context))
+                transactionalContentMD5, transactionalContentCrc64, requestId, ifTags, leaseId, ifModifiedSince,
+                ifUnmodifiedSince, ifMatch, ifNoneMatch, tags, context))
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -10791,7 +10994,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -10801,6 +11004,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -10811,15 +11020,20 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<ResponseBase<BlobsSetTagsHeaders, Void>> setTagsWithResponseAsync(String containerName, String blob,
         Integer timeout, String versionId, byte[] transactionalContentMD5, byte[] transactionalContentCrc64,
-        String requestId, String ifTags, String leaseId, BlobTags tags, Context context) {
+        String requestId, String ifTags, String leaseId, OffsetDateTime ifModifiedSince,
+        OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, BlobTags tags, Context context) {
         final String comp = "tags";
         final String accept = "application/xml";
         String transactionalContentMD5Converted = Base64Util.encodeToString(transactionalContentMD5);
         String transactionalContentCrc64Converted = Base64Util.encodeToString(transactionalContentCrc64);
+        DateTimeRfc1123 ifModifiedSinceConverted
+            = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
+        DateTimeRfc1123 ifUnmodifiedSinceConverted
+            = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
         return service
             .setTags(this.client.getUrl(), containerName, blob, comp, this.client.getVersion(), timeout, versionId,
-                transactionalContentMD5Converted, transactionalContentCrc64Converted, requestId, ifTags, leaseId, tags,
-                accept, context)
+                transactionalContentMD5Converted, transactionalContentCrc64Converted, requestId, ifTags, leaseId,
+                ifModifiedSinceConverted, ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, tags, accept, context)
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -10829,7 +11043,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -10839,6 +11053,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -10848,10 +11068,11 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Void> setTagsAsync(String containerName, String blob, Integer timeout, String versionId,
         byte[] transactionalContentMD5, byte[] transactionalContentCrc64, String requestId, String ifTags,
-        String leaseId, BlobTags tags) {
+        String leaseId, OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch,
+        String ifNoneMatch, BlobTags tags) {
         return setTagsWithResponseAsync(containerName, blob, timeout, versionId, transactionalContentMD5,
-            transactionalContentCrc64, requestId, ifTags, leaseId, tags)
-                .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
+            transactionalContentCrc64, requestId, ifTags, leaseId, ifModifiedSince, ifUnmodifiedSince, ifMatch,
+            ifNoneMatch, tags).onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
                 .flatMap(ignored -> Mono.empty());
     }
 
@@ -10861,7 +11082,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -10871,6 +11092,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -10881,9 +11108,11 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Void> setTagsAsync(String containerName, String blob, Integer timeout, String versionId,
         byte[] transactionalContentMD5, byte[] transactionalContentCrc64, String requestId, String ifTags,
-        String leaseId, BlobTags tags, Context context) {
+        String leaseId, OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch,
+        String ifNoneMatch, BlobTags tags, Context context) {
         return setTagsWithResponseAsync(containerName, blob, timeout, versionId, transactionalContentMD5,
-            transactionalContentCrc64, requestId, ifTags, leaseId, tags, context)
+            transactionalContentCrc64, requestId, ifTags, leaseId, ifModifiedSince, ifUnmodifiedSince, ifMatch,
+            ifNoneMatch, tags, context)
                 .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException)
                 .flatMap(ignored -> Mono.empty());
     }
@@ -10894,7 +11123,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -10904,6 +11133,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -10913,10 +11148,12 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Void>> setTagsNoCustomHeadersWithResponseAsync(String containerName, String blob,
         Integer timeout, String versionId, byte[] transactionalContentMD5, byte[] transactionalContentCrc64,
-        String requestId, String ifTags, String leaseId, BlobTags tags) {
+        String requestId, String ifTags, String leaseId, OffsetDateTime ifModifiedSince,
+        OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, BlobTags tags) {
         return FluxUtil
             .withContext(context -> setTagsNoCustomHeadersWithResponseAsync(containerName, blob, timeout, versionId,
-                transactionalContentMD5, transactionalContentCrc64, requestId, ifTags, leaseId, tags, context))
+                transactionalContentMD5, transactionalContentCrc64, requestId, ifTags, leaseId, ifModifiedSince,
+                ifUnmodifiedSince, ifMatch, ifNoneMatch, tags, context))
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -10926,7 +11163,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -10936,6 +11173,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -10946,15 +11189,19 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Void>> setTagsNoCustomHeadersWithResponseAsync(String containerName, String blob,
         Integer timeout, String versionId, byte[] transactionalContentMD5, byte[] transactionalContentCrc64,
-        String requestId, String ifTags, String leaseId, BlobTags tags, Context context) {
+        String requestId, String ifTags, String leaseId, OffsetDateTime ifModifiedSince,
+        OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, BlobTags tags, Context context) {
         final String comp = "tags";
         final String accept = "application/xml";
         String transactionalContentMD5Converted = Base64Util.encodeToString(transactionalContentMD5);
         String transactionalContentCrc64Converted = Base64Util.encodeToString(transactionalContentCrc64);
-        return service
-            .setTagsNoCustomHeaders(this.client.getUrl(), containerName, blob, comp, this.client.getVersion(), timeout,
-                versionId, transactionalContentMD5Converted, transactionalContentCrc64Converted, requestId, ifTags,
-                leaseId, tags, accept, context)
+        DateTimeRfc1123 ifModifiedSinceConverted
+            = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
+        DateTimeRfc1123 ifUnmodifiedSinceConverted
+            = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
+        return service.setTagsNoCustomHeaders(this.client.getUrl(), containerName, blob, comp, this.client.getVersion(),
+            timeout, versionId, transactionalContentMD5Converted, transactionalContentCrc64Converted, requestId, ifTags,
+            leaseId, ifModifiedSinceConverted, ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, tags, accept, context)
             .onErrorMap(BlobStorageExceptionInternal.class, ModelHelper::mapToBlobStorageException);
     }
 
@@ -10964,7 +11211,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -10974,6 +11221,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -10984,15 +11237,21 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public ResponseBase<BlobsSetTagsHeaders, Void> setTagsWithResponse(String containerName, String blob,
         Integer timeout, String versionId, byte[] transactionalContentMD5, byte[] transactionalContentCrc64,
-        String requestId, String ifTags, String leaseId, BlobTags tags, Context context) {
+        String requestId, String ifTags, String leaseId, OffsetDateTime ifModifiedSince,
+        OffsetDateTime ifUnmodifiedSince, String ifMatch, String ifNoneMatch, BlobTags tags, Context context) {
         try {
             final String comp = "tags";
             final String accept = "application/xml";
             String transactionalContentMD5Converted = Base64Util.encodeToString(transactionalContentMD5);
             String transactionalContentCrc64Converted = Base64Util.encodeToString(transactionalContentCrc64);
+            DateTimeRfc1123 ifModifiedSinceConverted
+                = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
+            DateTimeRfc1123 ifUnmodifiedSinceConverted
+                = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
             return service.setTagsSync(this.client.getUrl(), containerName, blob, comp, this.client.getVersion(),
                 timeout, versionId, transactionalContentMD5Converted, transactionalContentCrc64Converted, requestId,
-                ifTags, leaseId, tags, accept, context);
+                ifTags, leaseId, ifModifiedSinceConverted, ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, tags,
+                accept, context);
         } catch (BlobStorageExceptionInternal internalException) {
             throw ModelHelper.mapToBlobStorageException(internalException);
         }
@@ -11004,7 +11263,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -11014,6 +11273,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws BlobStorageExceptionInternal thrown if the request is rejected by server.
@@ -11022,9 +11287,10 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public void setTags(String containerName, String blob, Integer timeout, String versionId,
         byte[] transactionalContentMD5, byte[] transactionalContentCrc64, String requestId, String ifTags,
-        String leaseId, BlobTags tags) {
+        String leaseId, OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch,
+        String ifNoneMatch, BlobTags tags) {
         setTagsWithResponse(containerName, blob, timeout, versionId, transactionalContentMD5, transactionalContentCrc64,
-            requestId, ifTags, leaseId, tags, Context.NONE);
+            requestId, ifTags, leaseId, ifModifiedSince, ifUnmodifiedSince, ifMatch, ifNoneMatch, tags, Context.NONE);
     }
 
     /**
@@ -11033,7 +11299,7 @@ public final class BlobsImpl {
      * @param containerName The container name.
      * @param blob The blob name.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/setting-timeouts-for-blob-service-operations"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/setting-timeouts-for-blob-service-operations"&gt;Setting
      * Timeouts for Blob Service Operations.&lt;/a&gt;.
      * @param versionId The version id parameter is an opaque DateTime value that, when present, specifies the version
      * of the blob to operate on. It's for service version 2019-10-10 and newer.
@@ -11043,6 +11309,12 @@ public final class BlobsImpl {
      * analytics logs when storage analytics logging is enabled.
      * @param ifTags Specify a SQL where clause on blob tags to operate only on blobs with a matching value.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param ifModifiedSince Specify this header value to operate only on a blob if it has been modified since the
+     * specified date/time.
+     * @param ifUnmodifiedSince Specify this header value to operate only on a blob if it has not been modified since
+     * the specified date/time.
+     * @param ifMatch Specify an ETag value to operate only on blobs with a matching value.
+     * @param ifNoneMatch Specify an ETag value to operate only on blobs without a matching value.
      * @param tags Blob tags.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -11053,15 +11325,21 @@ public final class BlobsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<Void> setTagsNoCustomHeadersWithResponse(String containerName, String blob, Integer timeout,
         String versionId, byte[] transactionalContentMD5, byte[] transactionalContentCrc64, String requestId,
-        String ifTags, String leaseId, BlobTags tags, Context context) {
+        String ifTags, String leaseId, OffsetDateTime ifModifiedSince, OffsetDateTime ifUnmodifiedSince, String ifMatch,
+        String ifNoneMatch, BlobTags tags, Context context) {
         try {
             final String comp = "tags";
             final String accept = "application/xml";
             String transactionalContentMD5Converted = Base64Util.encodeToString(transactionalContentMD5);
             String transactionalContentCrc64Converted = Base64Util.encodeToString(transactionalContentCrc64);
+            DateTimeRfc1123 ifModifiedSinceConverted
+                = ifModifiedSince == null ? null : new DateTimeRfc1123(ifModifiedSince);
+            DateTimeRfc1123 ifUnmodifiedSinceConverted
+                = ifUnmodifiedSince == null ? null : new DateTimeRfc1123(ifUnmodifiedSince);
             return service.setTagsNoCustomHeadersSync(this.client.getUrl(), containerName, blob, comp,
                 this.client.getVersion(), timeout, versionId, transactionalContentMD5Converted,
-                transactionalContentCrc64Converted, requestId, ifTags, leaseId, tags, accept, context);
+                transactionalContentCrc64Converted, requestId, ifTags, leaseId, ifModifiedSinceConverted,
+                ifUnmodifiedSinceConverted, ifMatch, ifNoneMatch, tags, accept, context);
         } catch (BlobStorageExceptionInternal internalException) {
             throw ModelHelper.mapToBlobStorageException(internalException);
         }

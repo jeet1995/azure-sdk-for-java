@@ -1,14 +1,154 @@
 ## Release History
 
-### 4.73.0-beta.1 (Unreleased)
+### 4.80.0-beta.1 (Unreleased)
 
 #### Features Added
 
 #### Breaking Changes
 
 #### Bugs Fixed
+* Fixed an issue where change feed with `startFrom` point-in-time returned `400` on merged partitions by enabling the `CHANGE_FEED_WITH_START_TIME_POST_MERGE` SDK capability.
 
 #### Other Changes
+
+### 4.79.1 (2026-04-06)
+
+#### Bugs Fixed
+* Fixing an NPE caused due to boxed Boolean conversion. - See [PR 48656](https://github.com/Azure/azure-sdk-for-java/pull/48656/)
+
+### 4.79.0 (2026-03-27)
+
+#### Features Added
+* Added support for N-Region synchronous commit feature - See [PR 47757](https://github.com/Azure/azure-sdk-for-java/pull/47757)
+* Added support for Query Advisor feature - See [48160](https://github.com/Azure/azure-sdk-for-java/pull/48160)
+* Added `CosmosFullTextScoreScope` enum and `setFullTextScoreScope()` on `CosmosQueryRequestOptions` for controlling BM25 statistics scope in hybrid search queries. Supports `LOCAL` (scoped to target partitions) and `GLOBAL` (default, all partitions) scopes. See [PR 48431](https://github.com/Azure/azure-sdk-for-java/pull/48431)
+
+#### Bugs Fixed
+* Fixed Remote Code Execution (RCE) vulnerability (CWE-502) by replacing Java deserialization with JSON-based serialization in `CosmosClientMetadataCachesSnapshot`, `AsyncCache`, and `DocumentCollection`. The metadata cache snapshot now uses Jackson for serialization/deserialization, eliminating the entire class of Java deserialization attacks. - [PR 47971](https://github.com/Azure/azure-sdk-for-java/pull/47971)
+* Fixed `NullPointerException` in `DocumentQueryExecutionContextFactory.tryCacheQueryPlan` when executing hybrid search queries with a partition key filter. See [PR 48431](https://github.com/Azure/azure-sdk-for-java/pull/48431)
+* Fixed `ConcurrentModificationException` in hybrid search component query execution caused by concurrent access to shared mutable state. See [PR 48431](https://github.com/Azure/azure-sdk-for-java/pull/48431)
+* Fixed availability strategy for Gateway V2 (thin client) by ensuring `RegionalRoutingContext` identity is based only on the immutable gateway endpoint. - See [PR 48432](https://github.com/Azure/azure-sdk-for-java/pull/48432)
+* Fixed an issue where `replaceItem` bypassed the `customItemSerializer`, serialising POJOs with the SDK's internal `ObjectMapper` instead of the user-configured one. - See [PR 48529](https://github.com/Azure/azure-sdk-for-java/pull/48529)
+* Fixed `ClassCastException` (`ArrayNode cannot be cast to ObjectNode`) when executing `SELECT VALUE ... GROUP BY` queries. See - [PR 48507](https://github.com/Azure/azure-sdk-for-java/pull/48507)
+
+#### Other Changes
+* Promoted the following `@Beta` APIs to GA: `CosmosContainerProperties.getFullTextPolicy()`/`setFullTextPolicy()`, `IndexingPolicy.getCosmosFullTextIndexes()`/`setCosmosFullTextIndexes()`. - See [PR 48538](https://github.com/Azure/azure-sdk-for-java/pull/48538)
+* Added `appendUserAgentSuffix` method to `AsyncDocumentClient` to allow downstream libraries to append to the user agent after client construction. - See [PR 48505](https://github.com/Azure/azure-sdk-for-java/pull/48505)
+* Added aggressive HTTP timeout policies for document operations routed to Gateway V2. - [PR 47879](https://github.com/Azure/azure-sdk-for-java/pull/47879)
+* Added a default connect timeout of 5s for Gateway V2 (thin client) data-plane endpoints. - See [PR 48174](https://github.com/Azure/azure-sdk-for-java/pull/48174)
+* Added system property `COSMOS.CONNECTION_ACQUIRE_TIMEOUT_IN_MS` and environment variable `COSMOS_CONNECTION_ACQUIRE_TIMEOUT_IN_MS` to allow overriding the gateway connection acquire timeout in milliseconds (default 45000ms). Minimum accepted value is 500ms. Replaces the previous `_IN_SECONDS` variants. - See [PR 48580](https://github.com/Azure/azure-sdk-for-java/pull/48580)
+* Changed system property for thin client connection timeout from `COSMOS.THINCLIENT_CONNECTION_TIMEOUT_IN_SECONDS` to `COSMOS.THINCLIENT_CONNECTION_TIMEOUT_IN_MS` (default 5000ms, minimum 500ms). - See [PR 48580](https://github.com/Azure/azure-sdk-for-java/pull/48580)
+
+### 4.78.0 (2026-02-10)
+
+#### Features Added
+* Added shardKey support in `DedicatedGatewayRequestOptions` to allow specifying a shard key for dedicated gateway sharding support. - See [PR 47796](https://github.com/Azure/azure-sdk-for-java/pull/47796)
+
+#### Bugs Fixed
+* Fixed an issue where `query plan` failed with `400` or query return empty result when `CosmosQueryRequestOptions` has partition key filter and  partition key value contains non-ascii character. See [PR 47881](https://github.com/Azure/azure-sdk-for-java/pull/47881)
+* Fixed an issue where operation failed with `400` when configured with pre-trigger or post-trigger with non-ascii character. Only impact for gateway mode. See [PR 47881](https://github.com/Azure/azure-sdk-for-java/pull/47881)
+
+#### Other Changes
+* Added `x-ms-hub-region-processing-only` header to allow hub-region stickiness when 404 `READ SESSION NOT AVAILABLE` is hit for Single-Writer accounts. - [PR 47631](https://github.com/Azure/azure-sdk-for-java/pull/47631)
+
+### 4.77.0 (2026-01-26)
+
+#### Features Added
+* Added `ChangeFeedProcessorOptions#setMaxLeasesToAcquirePerCycle(int)` to allow faster acquisition of unused/expired leases during scale-out and rolling deployments (default `0` preserves legacy behavior). - [47606](https://github.com/Azure/azure-sdk-for-java/pull/47606)
+* Added the `QuantizerType` to the vectorIndexSpec: `product`/`spherical`. - [PR 47566](https://github.com/Azure/azure-sdk-for-java/pull/47566)
+
+#### Other Changes
+* Remaps sub-status to 1003 for requests to child resources against non-existent container. - [PR 47604](https://github.com/Azure/azure-sdk-for-java/pull/47604)
+
+### 4.76.0 (2025-12-09)
+
+#### Bugs Fixed
+* Fixed a possible memory leak (Netty buffers) in Gateway mode caused by a race condition when timeouts are happening. - [47228](https://github.com/Azure/azure-sdk-for-java/pull/47228) and [47251](https://github.com/Azure/azure-sdk-for-java/pull/47251)
+* Fixed `NullPointerException` in region-scoped session container when false positive regions are reported for session progress tracking. [PR 46758](https://github.com/Azure/azure-sdk-for-java/pull/46758)
+
+#### Other Changes
+* Enabled hostname validation for RNTBD connections to backend - [PR 47111](https://github.com/Azure/azure-sdk-for-java/pull/47111)
+* Changed to use incremental change feed to get partition key ranges. - [46810](https://github.com/Azure/azure-sdk-for-java/pull/46810)
+* Optimized 410 `Lease Not Found` handling for Strong Consistency account by avoiding unnecessary retries in the barrier attainment flow. - [PR 47232](https://github.com/Azure/azure-sdk-for-java/pull/47232)
+
+### 4.75.0 (2025-10-21)
+> [!IMPORTANT]
+> We strongly recommend our customers to use at least version 4.75.0 of `azure-cosmos`.
+
+#### Features Added
+* Enabled `Cosmos(Async)Client` to support per-partition automatic failover dynamically without the need to restart the application. - See [PR 46477](https://github.com/Azure/azure-sdk-for-java/pull/46477)
+* AAD Auth: Added a fallback mechanism for AAD audience scope. - [PR 46637](https://github.com/Azure/azure-sdk-for-java/pull/46637)
+
+#### Bugs Fixed
+* Fixed issue with change feed processor logs not showing exceptions. - [46918](https://github.com/Azure/azure-sdk-for-java/pull/46918)
+* Fixed an issue where Per-Partition Circuit Breaker was hitting `NullPointerException` transiently in e2e timeout scenarios. - [PR 46968](https://github.com/Azure/azure-sdk-for-java/pull/46968/files)
+* Allow lease in `ChangeFeedProcessor` to be rebalanced if changes for associated partition have not been processed for a while. - [PR 47038](https://github.com/Azure/azure-sdk-for-java/pull/47038)
+
+#### Other Changes
+* Changed to use `PartitionKeyRangeCache` to get partition key range during startup and split handling. - [46700](https://github.com/Azure/azure-sdk-for-java/pull/46700)
+* Changed to use lower casing http header names for gateway response. - [46736](https://github.com/Azure/azure-sdk-for-java/pull/46736)
+* Improved resilience around several completion events for an ssl handshake. - [PR 46734](https://github.com/Azure/azure-sdk-for-java/pull/46734)
+* Changed timestamp format to be consistent in leases for CFP. - [PR 46784](https://github.com/Azure/azure-sdk-for-java/pull/46784)
+* Added `MetadataThrottlingRetryPolicy` for `PartitionKeyRange` `RequestRateTooLargeException` handling. - [PR 46823](https://github.com/Azure/azure-sdk-for-java/pull/46823)
+* Ensure effective `DirectConnectionConfig#setNetworkRequestTimeout` is set to at least 5 seconds. - [PR 47024](https://github.com/Azure/azure-sdk-for-java/pull/47024)
+* Wrap JSON parsing exceptions as `CosmosException` to provide better context. - [PR 47040](https://github.com/Azure/azure-sdk-for-java/pull/47040)
+
+### 4.71.2-hotfix (2025-10-16)
+> [!IMPORTANT]
+> We strongly recommend our customers to use at least version 4.75.0 or 4.71.2-hotfix of `azure-cosmos`.
+
+#### Bugs Fixed
+* Fixed issue with change feed processor logs not showing exceptions. - [PR 46918](https://github.com/Azure/azure-sdk-for-java/pull/46918)
+* Fixed an issue where Per-Partition Circuit Breaker was hitting `NullPointerException` transiently in e2e timeout scenarios. - [PR 46968](https://github.com/Azure/azure-sdk-for-java/pull/46968/files)
+
+#### Other Changes
+* Added `MetadataThrottlingRetryPolicy` for `PartitionKeyRange` `RequestRateTooLargeException` handling. - [PR 46823](https://github.com/Azure/azure-sdk-for-java/pull/46823)
+* Changed to use `PartitionKeyRangeCache` to get partition key range during startup and split handling. - [PR 46700](https://github.com/Azure/azure-sdk-for-java/pull/46700)
+* Allow lease in `ChangeFeedProcessor` to be rebalanced if changes for associated partition have not been processed for a while. - [PR 25](https://github.com/jeet1995/azure-sdk-for-java/pull/25)
+* Ensure effective `DirectConnectionConfig#setNetworkRequestTimeout` is set to at least 5 seconds. - [PR 47024](https://github.com/Azure/azure-sdk-for-java/pull/47024)
+
+### 4.74.0 (2025-09-05)
+
+#### Features Added
+* Added `ThroughputBucket` support for throughput control. - [PR 46042](https://github.com/Azure/azure-sdk-for-java/pull/46042)
+* AAD Auth: Adds a fallback mechanism for AAD audience scope. - [PR 46637](https://github.com/Azure/azure-sdk-for-java/pull/46637)
+
+#### Bugs Fixed
+* Fixed 404/1002 for query when container recreated with same name. - [PR 45930](https://github.com/Azure/azure-sdk-for-java/pull/45930)
+* Fixed Null Pointer Exception for query when container recreated with same name. - [PR 45930](https://github.com/Azure/azure-sdk-for-java/pull/45930)
+* Fixed Null Pointer Exception for readMany when container recreated with same name. - [PR 45930](https://github.com/Azure/azure-sdk-for-java/pull/45930)
+* Fixed parameterized query failures for Hybrid Search queries. - [PR 46446](https://github.com/Azure/azure-sdk-for-java/pull/46446)
+* Fixed a rare race in parallel Hybrid Search queries by making internal SchedulingStopwatch start/stop atomic and idempotent. - [PR 46594](https://github.com/Azure/azure-sdk-for-java/pull/46594)
+* Fixed the Hybrid Search SchedulingStopWatch to use Cumulative Timing Across all parallel queries. - [PR 46591](https://github.com/Azure/azure-sdk-for-java/pull/46591)
+* Fixed Strong Consistency violation when a single replica in a partition returns a 410 `Lease Not Found`. - [PR 46433](https://github.com/Azure/azure-sdk-for-java/pull/46433)
+
+#### Other Changes
+* Added change to optimize lease checkpointing in `ChangeFeedProcessor` by conditionally executing checkpoint operations for 304 responses based on continuation token comparison, which helps to reduce RU consumption for unchanged feeds. See [PR 46521](https://github.com/Azure/azure-sdk-for-java/pull/46521)
+* Added change to route `LatestVersion` change feed to Gateway V2 when Gateway V2 has been opted into for document operations. See [PR 46223](https://github.com/Azure/azure-sdk-for-java/pull/46223)
+
+### 4.71.1-hotfix (2025-08-04)
+
+#### Bugs Fixed
+* Fixed an issue where child partition leases are being created with null continuation token when change feed processor restarts after split - See [PR 46236](https://github.com/Azure/azure-sdk-for-java/pull/46236)
+
+### 4.68.2-hotfix (2025-08-04)
+
+#### Bugs Fixed
+* Fixed an issue where child partition leases are being created with null continuation token when change feed processor restarts after split - See [PR 46235](https://github.com/Azure/azure-sdk-for-java/pull/46235)
+
+### 4.73.1 (2025-07-24)
+
+#### Bugs Fixed
+* Fixed an issue where child partition leases are being created with null continuation token when change feed processor restarts after split - See [PR 46075](https://github.com/Azure/azure-sdk-for-java/pull/46075)
+
+#### Other Changes
+* Added quicker cross region retry capability when a 410 `Lease Not Found` is returned by a partition in a Strong Consistency account. - See [PR 46071](https://github.com/Azure/azure-sdk-for-java/pull/46071)
+* Added an option to override AAD audience scope through environment variable. See [PR 46237](https://github.com/Azure/azure-sdk-for-java/pull/46237).
+
+### 4.73.0 (2025-07-18)
+
+#### Bugs Fixed
+* Fixed OpenTelemetry traces/spans to include the attributes defined in semantic convention for Azure Cosmos DB - [PR 45929](https://github.com/Azure/azure-sdk-for-java/pull/45929)
 
 ### 4.72.0 (2025-06-24)
 
@@ -44,8 +184,6 @@
 * Added a way to opt-in into Per-Partition Automatic Failover using enablement flag from the account metadata. - [PR 45317](https://github.com/Azure/azure-sdk-for-java/pull/45317)
 
 ### 4.68.1 (2025-05-16)
-> [!IMPORTANT]
-> We strongly recommend customers with an upgrade-intent to upgrade to version 4.70.0 or later to include this bug fix.
 
 #### Bugs Fixed
 * Fixed an issue where child partition is getting overridden with null continuation token if a split happens during the first request of a parent partition. - See [PR 45363](https://github.com/Azure/azure-sdk-for-java/pull/45363)
@@ -57,6 +195,7 @@
 * Added API to allow customers to wrap/extend `CosmosAsyncContainer` - [PR 43724](https://github.com/Azure/azure-sdk-for-java/pull/43724) and [PR 45087](https://github.com/Azure/azure-sdk-for-java/pull/45087) 
 * Added Per-Partition Automatic Failover which enables failover for writes at per-partition level for Single-Write Multi-Region accounts. - [PR 44099](https://github.com/Azure/azure-sdk-for-java/pull/44099)
 * Added Beta public API to allow defining the consistency behavior for read / query / change feed operations independent of the chosen account-level consistency level. **NOTE: This API is still in preview mode and can only be used when using DIRECT connection mode.** - See [PR 45161](https://github.com/Azure/azure-sdk-for-java/pull/45161)
+* Added Weighted RRF for Hybrid and Full Text Search queries - [PR 45328](https://github.com/Azure/azure-sdk-for-java/pull/45328)
 
 #### Bugs Fixed
 * Fixed the fail back flow where not all partitions were failing back to original first preferred region for Per-Partition Circuit Breaker. - [PR 44099](https://github.com/Azure/azure-sdk-for-java/pull/44099)
@@ -142,8 +281,7 @@
 * Fixed an issue where holding onto a `CosmosException` instance would hold a strong reference to a `RxDocumentClientImpl` instance preventing garbage collection of the `RxDocumentClientImpl` instance. - See [PR 42178](https://github.com/Azure/azure-sdk-for-java/pull/42178)
 
 ### 4.64.0 (2024-10-10)
-> [!IMPORTANT]
-> We strongly recommend our customers to use version 4.64.0 and above.
+
 #### Features Added
 * Added an API to retrieve diagnostics from the change feed processor context. - See [PR 41738](https://github.com/Azure/azure-sdk-for-java/pull/41738)
 * Added support to allow `queryChangeFeed` to complete when all changes available when the query starts have been fetched. - See [PR 42160](https://github.com/Azure/azure-sdk-for-java/pull/42160)
@@ -428,8 +566,7 @@
 * Reverted preserve ordering in bulk mode([PR 35892](https://github.com/Azure/azure-sdk-for-java/pull/35892)). See [PR 36638](https://github.com/Azure/azure-sdk-for-java/pull/36638)
 
 ### 4.45.2-hotfix (2023-09-18)
-> [!IMPORTANT]
-> We strongly recommend our customers to upgrade directly to at least 4.48.2 or above if they have been using the 4.45.2-hotfix version of `azure-cosmos`. Versions 4.46.0 - 4.48.1 will miss important fixes that have been backported to 4.45.2-hotfix.
+
 #### Bugs Fixed
 * Added capability to mark a region as unavailable when a request is cancelled due to end-to-end timeout and connection issues
   with the region in the direct connectivity mode. - See [PR 35586](https://github.com/Azure/azure-sdk-for-java/pull/35586)

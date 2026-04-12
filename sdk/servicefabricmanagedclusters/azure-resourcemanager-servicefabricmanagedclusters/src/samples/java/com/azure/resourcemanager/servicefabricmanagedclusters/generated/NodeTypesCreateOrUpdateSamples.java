@@ -37,7 +37,7 @@ import java.util.Map;
  */
 public final class NodeTypesCreateOrUpdateSamples {
     /*
-     * x-ms-original-file: 2025-03-01-preview/NodeTypePutOperationStateless_example.json
+     * x-ms-original-file: 2026-02-01/NodeTypePutOperationStateless_example.json
      */
     /**
      * Sample code: Put an stateless node type with temporary disk for service fabric.
@@ -72,7 +72,7 @@ public final class NodeTypesCreateOrUpdateSamples {
     }
 
     /*
-     * x-ms-original-file: 2025-03-01-preview/NodeTypePutOperation_example_max.json
+     * x-ms-original-file: 2026-02-01/NodeTypePutOperation_example_max.json
      */
     /**
      * Sample code: Put a node type with maximum parameters.
@@ -183,11 +183,13 @@ public final class NodeTypesCreateOrUpdateSamples {
                     "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/resRg/providers/Microsoft.Compute/galleries/myGallery/applications/myApplication/versions/1.0.0")
                 .withVmGalleryTags("{\"Tag1\":\"Value1\",\"Tag2\":\"Value2\"}")
                 .withTreatFailureAsDeploymentFailure(false)))
+            .withIsOutboundOnly(true)
+            .withEnableResilientEphemeralOsDisk(true)
             .create();
     }
 
     /*
-     * x-ms-original-file: 2025-03-01-preview/NodeTypePutOperationAutoScale_example.json
+     * x-ms-original-file: 2026-02-01/NodeTypePutOperationAutoScale_example.json
      */
     /**
      * Sample code: Put a node type with auto-scale parameters.
@@ -233,7 +235,7 @@ public final class NodeTypesCreateOrUpdateSamples {
     }
 
     /*
-     * x-ms-original-file: 2025-03-01-preview/NodeTypePutOperation_example_min.json
+     * x-ms-original-file: 2026-02-01/NodeTypePutOperation_example_min.json
      */
     /**
      * Sample code: Put a node type with minimum parameters.
@@ -257,7 +259,7 @@ public final class NodeTypesCreateOrUpdateSamples {
     }
 
     /*
-     * x-ms-original-file: 2025-03-01-preview/NodeTypePutOperationDedicatedHost_example.json
+     * x-ms-original-file: 2026-02-01/NodeTypePutOperationDedicatedHost_example.json
      */
     /**
      * Sample code: Put node type with dedicated hosts.
@@ -287,7 +289,7 @@ public final class NodeTypesCreateOrUpdateSamples {
     }
 
     /*
-     * x-ms-original-file: 2025-03-01-preview/NodeTypePutOperationVmImagePlan_example.json
+     * x-ms-original-file: 2026-02-01/NodeTypePutOperationVmImagePlan_example.json
      */
     /**
      * Sample code: Put node type with vm image plan.
@@ -314,7 +316,7 @@ public final class NodeTypesCreateOrUpdateSamples {
     }
 
     /*
-     * x-ms-original-file: 2025-03-01-preview/NodeTypePutOperationCustomSharedGalleriesImage_example.json
+     * x-ms-original-file: 2026-02-01/NodeTypePutOperationCustomSharedGalleriesImage_example.json
      */
     /**
      * Sample code: Put node type with shared galleries custom vm image.
@@ -336,7 +338,7 @@ public final class NodeTypesCreateOrUpdateSamples {
     }
 
     /*
-     * x-ms-original-file: 2025-03-01-preview/NodeTypePutOperationCustomImage_example.json
+     * x-ms-original-file: 2026-02-01/NodeTypePutOperationCustomImage_example.json
      */
     /**
      * Sample code: Put node type with custom vm image.

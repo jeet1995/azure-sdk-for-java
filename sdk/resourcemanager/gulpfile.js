@@ -112,9 +112,6 @@ function codegen(project, cb) {
         const sourcesToDelete = path.join(mappings[project].dir, "/src/main/java/", packagePath);
 
         deleteFolderRecursive(sourcesToDelete);
-
-        generatedSamplesTarget = path.join("azure-resourcemanager/src/samples/java/", packagePath, "generated");
-        deleteFolderRecursive(generatedSamplesTarget);
     }
 
     // path.join won't work if specRoot is a URL
@@ -163,13 +160,6 @@ function codegen(project, cb) {
     console.log("Command: " + cmd);
     autorest_result = execa.sync(cmd, [], { shell: true, stdio: "inherit" });
 
-    // move generated samples to azure-resourcemanager
-    generatedSamplesSource = path.join(mappings[project].dir, "/src/samples/java/", packagePath, "generated");
-    generatedSamplesTarget = path.join("azure-resourcemanager/src/samples/java/", packagePath);
-
-    copyFolderRecursiveSync(generatedSamplesSource, generatedSamplesTarget);
-    deleteFolderRecursive(generatedSamplesSource);
-
     return autorest_result;
 }
 
@@ -189,44 +179,6 @@ function deleteFolderRecursive(path) {
                 }
             }
         });
-    }
-}
-
-function copyFileSync(source, target) {
-    var targetFile = target;
-
-    // If target is a directory, a new file with the same name will be created
-    if (fs.existsSync(target)) {
-        if (fs.lstatSync(target).isDirectory()) {
-            targetFile = path.join(target, path.basename(source));
-        }
-    }
-
-    fs.writeFileSync(targetFile, fs.readFileSync(source));
-}
-
-function copyFolderRecursiveSync(source, target) {
-    if (fs.existsSync(source)) {
-        var files = [];
-
-        // Check if folder needs to be created or integrated
-        var targetFolder = path.join(target, path.basename(source));
-        if (!fs.existsSync(targetFolder)) {
-            fs.mkdirSync(targetFolder, { recursive: true });
-        }
-
-        // Copy
-        if (fs.lstatSync(source).isDirectory()) {
-            files = fs.readdirSync(source);
-            files.forEach(function (file) {
-                var curSource = path.join(source, file);
-                if (fs.lstatSync(curSource).isDirectory()) {
-                    copyFolderRecursiveSync(curSource, targetFolder);
-                } else {
-                    copyFileSync(curSource, targetFolder);
-                }
-            });
-        }
     }
 }
 

@@ -1458,17 +1458,55 @@ public final class NodeTypeInner extends ProxyResource {
     }
 
     /**
-     * Validates the instance.
+     * Get the isOutboundOnly property: Specifies the node type should be configured for only outbound traffic and not
+     * inbound traffic.
      * 
-     * @throws IllegalArgumentException thrown if the instance is not valid.
+     * @return the isOutboundOnly value.
      */
-    public void validate() {
-        if (innerProperties() != null) {
-            innerProperties().validate();
+    public Boolean isOutboundOnly() {
+        return this.innerProperties() == null ? null : this.innerProperties().isOutboundOnly();
+    }
+
+    /**
+     * Set the isOutboundOnly property: Specifies the node type should be configured for only outbound traffic and not
+     * inbound traffic.
+     * 
+     * @param isOutboundOnly the isOutboundOnly value to set.
+     * @return the NodeTypeInner object itself.
+     */
+    public NodeTypeInner withIsOutboundOnly(Boolean isOutboundOnly) {
+        if (this.innerProperties() == null) {
+            this.innerProperties = new NodeTypeProperties();
         }
-        if (sku() != null) {
-            sku().validate();
+        this.innerProperties().withIsOutboundOnly(isOutboundOnly);
+        return this;
+    }
+
+    /**
+     * Get the enableResilientEphemeralOsDisk property: Specifies whether the node type should use a resilient ephemeral
+     * OS disk when using a supported SKU size. A resilient ephemeral OS disk provides improved reliability for
+     * ephemeral OS disks by enabling full caching.
+     * 
+     * @return the enableResilientEphemeralOsDisk value.
+     */
+    public Boolean enableResilientEphemeralOsDisk() {
+        return this.innerProperties() == null ? null : this.innerProperties().enableResilientEphemeralOsDisk();
+    }
+
+    /**
+     * Set the enableResilientEphemeralOsDisk property: Specifies whether the node type should use a resilient ephemeral
+     * OS disk when using a supported SKU size. A resilient ephemeral OS disk provides improved reliability for
+     * ephemeral OS disks by enabling full caching.
+     * 
+     * @param enableResilientEphemeralOsDisk the enableResilientEphemeralOsDisk value to set.
+     * @return the NodeTypeInner object itself.
+     */
+    public NodeTypeInner withEnableResilientEphemeralOsDisk(Boolean enableResilientEphemeralOsDisk) {
+        if (this.innerProperties() == null) {
+            this.innerProperties = new NodeTypeProperties();
         }
+        this.innerProperties().withEnableResilientEphemeralOsDisk(enableResilientEphemeralOsDisk);
+        return this;
     }
 
     /**

@@ -31,8 +31,10 @@ import com.azure.cosmos.ReadConsistencyStrategy;
 import com.azure.cosmos.SessionRetryOptions;
 import com.azure.cosmos.ThroughputControlGroupConfig;
 import com.azure.cosmos.implementation.apachecommons.lang.tuple.Pair;
+
 import com.azure.cosmos.implementation.batch.ItemBatchOperation;
 import com.azure.cosmos.implementation.batch.PartitionScopeThresholds;
+import com.azure.cosmos.implementation.clienttelemetry.AttributeNamingScheme;
 import com.azure.cosmos.implementation.clienttelemetry.ClientTelemetry;
 import com.azure.cosmos.implementation.clienttelemetry.CosmosMeterOptions;
 import com.azure.cosmos.implementation.clienttelemetry.MetricCategory;
@@ -41,6 +43,7 @@ import com.azure.cosmos.implementation.directconnectivity.ContainerDirectConnect
 import com.azure.cosmos.implementation.directconnectivity.Uri;
 import com.azure.cosmos.implementation.directconnectivity.rntbd.RntbdChannelStatistics;
 import com.azure.cosmos.implementation.faultinjection.IFaultInjectorProvider;
+import com.azure.cosmos.implementation.interceptor.ITransportClientInterceptor;
 import com.azure.cosmos.implementation.patch.PatchOperation;
 import com.azure.cosmos.implementation.routing.PartitionKeyInternal;
 import com.azure.cosmos.implementation.routing.RegionalRoutingContext;
@@ -58,6 +61,7 @@ import com.azure.cosmos.models.CosmosClientTelemetryConfig;
 import com.azure.cosmos.models.CosmosContainerIdentity;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosItemIdentity;
+
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosMetricName;
@@ -101,7 +105,7 @@ import java.util.function.Function;
 public class ImplementationBridgeHelpers {
     private final static Logger logger = LoggerFactory.getLogger(ImplementationBridgeHelpers.class);
 
-    private static void  initializeAllAccessors() {
+    public static void initializeAllAccessors() {
         ModelBridgeInternal.initializeAllAccessors();
         UtilBridgeInternal.initializeAllAccessors();
         BridgeInternal.initializeAllAccessors();
@@ -310,6 +314,8 @@ public class ImplementationBridgeHelpers {
             void setCollectionRid(CosmosQueryRequestOptions options, String collectionRid);
 
             String getCollectionRid(CosmosQueryRequestOptions options);
+            Map<String, Object> getProperties(CosmosQueryRequestOptions options);
+            Map<String, String> getHeaders(CosmosQueryRequestOptions options);
         }
     }
 
@@ -378,7 +384,7 @@ public class ImplementationBridgeHelpers {
 
         public interface CosmosChangeFeedRequestOptionsAccessor {
             CosmosChangeFeedRequestOptions setHeader(CosmosChangeFeedRequestOptions changeFeedRequestOptions, String name, String value);
-            Map<String, String> getHeader(CosmosChangeFeedRequestOptions changeFeedRequestOptions);
+            Map<String, String> getHeaders(CosmosChangeFeedRequestOptions changeFeedRequestOptions);
             CosmosChangeFeedRequestOptionsImpl getImpl(CosmosChangeFeedRequestOptions changeFeedRequestOptions);
             CosmosChangeFeedRequestOptions setEndLSN(CosmosChangeFeedRequestOptions changeFeedRequestOptions, Long endLsn);
             Long getEndLSN(CosmosChangeFeedRequestOptions changeFeedRequestOptions);
@@ -396,6 +402,8 @@ public class ImplementationBridgeHelpers {
             PartitionKeyDefinition getPartitionKeyDefinition(CosmosChangeFeedRequestOptions changeFeedRequestOptions);
 
             void setPartitionKeyDefinition(CosmosChangeFeedRequestOptions changeFeedRequestOptions, PartitionKeyDefinition partitionKeyDefinition);
+            Map<String, Object> getProperties(CosmosChangeFeedRequestOptions changeFeedRequestOptions);
+            CosmosChangeFeedRequestOptions disableSplitHandling(CosmosChangeFeedRequestOptions changeFeedRequestOptions);
         }
     }
 
@@ -1161,6 +1169,20 @@ public class ImplementationBridgeHelpers {
             CosmosBatchRequestOptions setHeader(CosmosBatchRequestOptions cosmosItemRequestOptions, String name, String value);
             Map<String, String> getHeader(CosmosBatchRequestOptions cosmosItemRequestOptions);
             CosmosBatchRequestOptions clone(CosmosBatchRequestOptions toBeCloned);
+            CosmosBatchRequestOptions setThroughputControlGroupName(
+              CosmosBatchRequestOptions cosmosBatchRequestOptions,
+              String throughputControlGroupName);
+            CosmosBatchRequestOptions setEndToEndOperationLatencyPolicyConfig(
+              CosmosBatchRequestOptions cosmosBatchRequestOptions,
+              CosmosEndToEndOperationLatencyPolicyConfig e2ePolicy);
+            CosmosBatchRequestOptions setOperationContextAndListenerTuple(
+              CosmosBatchRequestOptions cosmosBatchRequestOptions,
+              OperationContextAndListenerTuple operationContextAndListenerTuple);
+            CosmosBatchRequestOptions setDisableRetryForThrottledBatchRequest(
+                CosmosBatchRequestOptions cosmosBatchRequestOptions,
+                boolean disableRetryForThrottledBatchRequest
+            );
+            boolean shouldDisableRetryForThrottledBatchRequest(CosmosBatchRequestOptions cosmosBatchRequestOptions);
         }
     }
 
@@ -1466,6 +1488,10 @@ public class ImplementationBridgeHelpers {
             CosmosItemSerializer getEffectiveItemSerializer(
                 CosmosAsyncClient client,
                 CosmosItemSerializer requestOptionsItemSerializer);
+
+            void registerTransportClientInterceptor(
+                CosmosAsyncClient cosmosAsyncClient,
+                ITransportClientInterceptor transportClientInterceptor);
         }
     }
 
@@ -1587,6 +1613,7 @@ public class ImplementationBridgeHelpers {
             List<String> getFaultInjectionEvaluationResults(CosmosException cosmosException);
             void setRequestUri(CosmosException cosmosException, Uri requestUri);
             Uri getRequestUri(CosmosException cosmosException);
+            void setSubStatusCode(CosmosException cosmosException, int subStatusCode);
         }
     }
 
@@ -1639,6 +1666,11 @@ public class ImplementationBridgeHelpers {
             Collection<CosmosDiagnosticsHandler> getDiagnosticHandlers(CosmosClientTelemetryConfig config);
             void setAccountName(CosmosClientTelemetryConfig config, String accountName);
             String getAccountName(CosmosClientTelemetryConfig config);
+            CosmosClientTelemetryConfig setOtelSpanAttributeNamingSchema(
+                CosmosClientTelemetryConfig config,
+                String attributeNamingScheme
+            );
+            EnumSet<AttributeNamingScheme> getOtelSpanAttributeNamingSchema(CosmosClientTelemetryConfig config);
             void setClientCorrelationTag(CosmosClientTelemetryConfig config, Tag clientCorrelationTag);
             Tag getClientCorrelationTag(CosmosClientTelemetryConfig config);
             void setClientTelemetry(CosmosClientTelemetryConfig config, ClientTelemetry clientTelemetry);

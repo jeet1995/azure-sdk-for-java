@@ -77,6 +77,7 @@ public class RxDocumentServiceRequest implements Cloneable {
     // so it means most likely the corresponding features are also missing from the main sdk
     // we need to wire this up.
     public boolean useGatewayMode;
+    public boolean useThinClientMode;
 
     private volatile boolean isDisposed = false;
     public volatile String entityId;
@@ -85,6 +86,7 @@ public class RxDocumentServiceRequest implements Cloneable {
     public volatile Map<String, Object> properties;
     public String throughputControlGroupName;
     public volatile boolean intendedCollectionRidPassedIntoSDK = false;
+    public volatile boolean isBarrierRequest = false;
     private volatile Duration responseTimeout;
 
     private volatile boolean nonIdempotentWriteRetriesEnabled = false;
@@ -954,6 +956,11 @@ public class RxDocumentServiceRequest implements Cloneable {
         return this.headers.containsKey(HttpConstants.HttpHeaders.A_IM);
     }
 
+    public boolean isAllVersionsAndDeletesChangeFeedMode() {
+        String aImHeader = this.headers.get(HttpConstants.HttpHeaders.A_IM);
+        return this.headers.containsKey(HttpConstants.HttpHeaders.A_IM) && HttpConstants.A_IMHeaderValues.FULL_FIDELITY_FEED.equals(aImHeader);
+    }
+
     public boolean isWritingToMaster() {
         return operationType.isWriteOperation() && resourceType.isMasterResource();
     }
@@ -1045,6 +1052,7 @@ public class RxDocumentServiceRequest implements Cloneable {
         rxDocumentServiceRequest.forceCollectionRoutingMapRefresh = this.forceCollectionRoutingMapRefresh;
         rxDocumentServiceRequest.forcePartitionKeyRangeRefresh = this.forcePartitionKeyRangeRefresh;
         rxDocumentServiceRequest.useGatewayMode = this.useGatewayMode;
+        rxDocumentServiceRequest.useThinClientMode = this.useThinClientMode;
         rxDocumentServiceRequest.requestContext = this.requestContext;
         rxDocumentServiceRequest.faultInjectionRequestContext = new FaultInjectionRequestContext(this.faultInjectionRequestContext);
         rxDocumentServiceRequest.nonIdempotentWriteRetriesEnabled = this.nonIdempotentWriteRetriesEnabled;
@@ -1056,6 +1064,7 @@ public class RxDocumentServiceRequest implements Cloneable {
         rxDocumentServiceRequest.resourceId = this.resourceId;
         rxDocumentServiceRequest.hasFeedRangeFilteringBeenApplied = this.hasFeedRangeFilteringBeenApplied;
         rxDocumentServiceRequest.isPerPartitionAutomaticFailoverEnabledAndWriteRequest = this.isPerPartitionAutomaticFailoverEnabledAndWriteRequest;
+        rxDocumentServiceRequest.partitionKeyDefinition = this.partitionKeyDefinition;
         return rxDocumentServiceRequest;
     }
 
@@ -1084,8 +1093,10 @@ public class RxDocumentServiceRequest implements Cloneable {
         } else if (options instanceof RequestOptions) {
             return ((RequestOptions) options).getProperties();
         } else if (options instanceof CosmosQueryRequestOptions) {
-            return ModelBridgeInternal.getPropertiesFromQueryRequestOptions(
-                (CosmosQueryRequestOptions) options);
+            return ImplementationBridgeHelpers
+                .CosmosQueryRequestOptionsHelper
+                .getCosmosQueryRequestOptionsAccessor()
+                .getProperties((CosmosQueryRequestOptions) options);
         } else if (options instanceof CosmosChangeFeedRequestOptions) {
             return ModelBridgeInternal.getPropertiesFromChangeFeedRequestOptions(
                 (CosmosChangeFeedRequestOptions) options);
@@ -1169,6 +1180,16 @@ public class RxDocumentServiceRequest implements Cloneable {
         if (priorityLevel != null) {
             this.headers.put(HttpConstants.HttpHeaders.PRIORITY_LEVEL, priorityLevel.toString());
         }
+    }
+
+    public void setThroughputBucket(Integer throughputBucket) {
+        if (throughputBucket != null) {
+            this.headers.put(HttpConstants.HttpHeaders.THROUGHPUT_BUCKET, throughputBucket.toString());
+        }
+    }
+
+    public void setHubRegionProcessingOnly(boolean hubRegionProcessingOnly) {
+        this.headers.put(HttpConstants.HttpHeaders.HUB_REGION_PROCESSING_ONLY, Boolean.toString(hubRegionProcessingOnly));
     }
 
     public Duration getResponseTimeout() {

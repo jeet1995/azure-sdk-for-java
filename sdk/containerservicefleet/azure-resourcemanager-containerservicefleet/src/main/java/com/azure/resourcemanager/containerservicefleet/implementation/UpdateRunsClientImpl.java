@@ -31,7 +31,6 @@ import com.azure.core.management.polling.PollResult;
 import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
 import com.azure.core.util.FluxUtil;
-import com.azure.core.util.logging.ClientLogger;
 import com.azure.core.util.polling.PollerFlux;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.resourcemanager.containerservicefleet.fluent.UpdateRunsClient;
@@ -114,7 +113,7 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
             @HeaderParam("Accept") String accept, @BodyParam("application/json") UpdateRunInner resource,
             Context context);
 
-        @Headers({ "Content-Type: application/json" })
+        @Headers({ "Accept: application/json;q=0.9", "Content-Type: application/json" })
         @Delete("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerService/fleets/{fleetName}/updateRuns/{updateRunName}")
         @ExpectedResponses({ 200, 202, 204 })
         @UnexpectedResponseExceptionType(ManagementException.class)
@@ -122,9 +121,9 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
             @QueryParam("api-version") String apiVersion, @PathParam("subscriptionId") String subscriptionId,
             @PathParam("resourceGroupName") String resourceGroupName, @HeaderParam("If-Match") String ifMatch,
             @PathParam("fleetName") String fleetName, @PathParam("updateRunName") String updateRunName,
-            @HeaderParam("Accept") String accept, Context context);
+            Context context);
 
-        @Headers({ "Content-Type: application/json" })
+        @Headers({ "Accept: application/json;q=0.9", "Content-Type: application/json" })
         @Delete("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerService/fleets/{fleetName}/updateRuns/{updateRunName}")
         @ExpectedResponses({ 200, 202, 204 })
         @UnexpectedResponseExceptionType(ManagementException.class)
@@ -132,7 +131,7 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
             @QueryParam("api-version") String apiVersion, @PathParam("subscriptionId") String subscriptionId,
             @PathParam("resourceGroupName") String resourceGroupName, @HeaderParam("If-Match") String ifMatch,
             @PathParam("fleetName") String fleetName, @PathParam("updateRunName") String updateRunName,
-            @HeaderParam("Accept") String accept, Context context);
+            Context context);
 
         @Headers({ "Content-Type: application/json" })
         @Get("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerService/fleets/{fleetName}/updateRuns")
@@ -141,6 +140,7 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
         Mono<Response<UpdateRunListResult>> listByFleet(@HostParam("endpoint") String endpoint,
             @QueryParam("api-version") String apiVersion, @PathParam("subscriptionId") String subscriptionId,
             @PathParam("resourceGroupName") String resourceGroupName, @PathParam("fleetName") String fleetName,
+            @QueryParam("$top") Integer top, @QueryParam("$skipToken") String skipToken,
             @HeaderParam("Accept") String accept, Context context);
 
         @Headers({ "Content-Type: application/json" })
@@ -150,6 +150,7 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
         Response<UpdateRunListResult> listByFleetSync(@HostParam("endpoint") String endpoint,
             @QueryParam("api-version") String apiVersion, @PathParam("subscriptionId") String subscriptionId,
             @PathParam("resourceGroupName") String resourceGroupName, @PathParam("fleetName") String fleetName,
+            @QueryParam("$top") Integer top, @QueryParam("$skipToken") String skipToken,
             @HeaderParam("Accept") String accept, Context context);
 
         @Headers({ "Content-Type: application/json" })
@@ -243,24 +244,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Mono<Response<UpdateRunInner>> getWithResponseAsync(String resourceGroupName, String fleetName,
         String updateRunName) {
-        if (this.client.getEndpoint() == null) {
-            return Mono.error(
-                new IllegalArgumentException("Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            return Mono.error(new IllegalArgumentException(
-                "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            return Mono
-                .error(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
         final String accept = "application/json";
         return FluxUtil
             .withContext(context -> service.get(this.client.getEndpoint(), this.client.getApiVersion(),
@@ -300,28 +283,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<UpdateRunInner> getWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         Context context) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
         final String accept = "application/json";
         return service.getSync(this.client.getEndpoint(), this.client.getApiVersion(), this.client.getSubscriptionId(),
             resourceGroupName, fleetName, updateRunName, accept, context);
@@ -361,29 +322,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Mono<Response<Flux<ByteBuffer>>> createOrUpdateWithResponseAsync(String resourceGroupName, String fleetName,
         String updateRunName, UpdateRunInner resource, String ifMatch, String ifNoneMatch) {
-        if (this.client.getEndpoint() == null) {
-            return Mono.error(
-                new IllegalArgumentException("Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            return Mono.error(new IllegalArgumentException(
-                "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            return Mono
-                .error(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        if (resource == null) {
-            return Mono.error(new IllegalArgumentException("Parameter resource is required and cannot be null."));
-        } else {
-            resource.validate();
-        }
         final String contentType = "application/json";
         final String accept = "application/json";
         return FluxUtil
@@ -410,34 +348,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> createOrUpdateWithResponse(String resourceGroupName, String fleetName,
         String updateRunName, UpdateRunInner resource, String ifMatch, String ifNoneMatch) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        if (resource == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resource is required and cannot be null."));
-        } else {
-            resource.validate();
-        }
         final String contentType = "application/json";
         final String accept = "application/json";
         return service.createOrUpdateSync(this.client.getEndpoint(), this.client.getApiVersion(),
@@ -463,34 +373,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> createOrUpdateWithResponse(String resourceGroupName, String fleetName,
         String updateRunName, UpdateRunInner resource, String ifMatch, String ifNoneMatch, Context context) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        if (resource == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resource is required and cannot be null."));
-        } else {
-            resource.validate();
-        }
         final String contentType = "application/json";
         final String accept = "application/json";
         return service.createOrUpdateSync(this.client.getEndpoint(), this.client.getApiVersion(),
@@ -724,28 +606,9 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Mono<Response<Flux<ByteBuffer>>> deleteWithResponseAsync(String resourceGroupName, String fleetName,
         String updateRunName, String ifMatch) {
-        if (this.client.getEndpoint() == null) {
-            return Mono.error(
-                new IllegalArgumentException("Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            return Mono.error(new IllegalArgumentException(
-                "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            return Mono
-                .error(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        final String accept = "application/json";
         return FluxUtil
             .withContext(context -> service.delete(this.client.getEndpoint(), this.client.getApiVersion(),
-                this.client.getSubscriptionId(), resourceGroupName, ifMatch, fleetName, updateRunName, accept, context))
+                this.client.getSubscriptionId(), resourceGroupName, ifMatch, fleetName, updateRunName, context))
             .contextWrite(context -> context.putAll(FluxUtil.toReactorContext(this.client.getContext()).readOnly()));
     }
 
@@ -764,32 +627,8 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> deleteWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         String ifMatch) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        final String accept = "application/json";
         return service.deleteSync(this.client.getEndpoint(), this.client.getApiVersion(),
-            this.client.getSubscriptionId(), resourceGroupName, ifMatch, fleetName, updateRunName, accept,
-            Context.NONE);
+            this.client.getSubscriptionId(), resourceGroupName, ifMatch, fleetName, updateRunName, Context.NONE);
     }
 
     /**
@@ -808,31 +647,8 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> deleteWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         String ifMatch, Context context) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        final String accept = "application/json";
         return service.deleteSync(this.client.getEndpoint(), this.client.getApiVersion(),
-            this.client.getSubscriptionId(), resourceGroupName, ifMatch, fleetName, updateRunName, accept, context);
+            this.client.getSubscriptionId(), resourceGroupName, ifMatch, fleetName, updateRunName, context);
     }
 
     /**
@@ -1011,6 +827,8 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      * 
      * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param fleetName The name of the Fleet resource.
+     * @param top The number of result items to return.
+     * @param skipToken The page-continuation token to use with a paged version of this API.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws ManagementException thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
@@ -1018,29 +836,34 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      * {@link Mono}.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    private Mono<PagedResponse<UpdateRunInner>> listByFleetSinglePageAsync(String resourceGroupName, String fleetName) {
-        if (this.client.getEndpoint() == null) {
-            return Mono.error(
-                new IllegalArgumentException("Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            return Mono.error(new IllegalArgumentException(
-                "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            return Mono
-                .error(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
+    private Mono<PagedResponse<UpdateRunInner>> listByFleetSinglePageAsync(String resourceGroupName, String fleetName,
+        Integer top, String skipToken) {
         final String accept = "application/json";
         return FluxUtil
             .withContext(context -> service.listByFleet(this.client.getEndpoint(), this.client.getApiVersion(),
-                this.client.getSubscriptionId(), resourceGroupName, fleetName, accept, context))
+                this.client.getSubscriptionId(), resourceGroupName, fleetName, top, skipToken, accept, context))
             .<PagedResponse<UpdateRunInner>>map(res -> new PagedResponseBase<>(res.getRequest(), res.getStatusCode(),
                 res.getHeaders(), res.getValue().value(), res.getValue().nextLink(), null))
             .contextWrite(context -> context.putAll(FluxUtil.toReactorContext(this.client.getContext()).readOnly()));
+    }
+
+    /**
+     * List UpdateRun resources by Fleet.
+     * 
+     * @param resourceGroupName The name of the resource group. The name is case insensitive.
+     * @param fleetName The name of the Fleet resource.
+     * @param top The number of result items to return.
+     * @param skipToken The page-continuation token to use with a paged version of this API.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws ManagementException thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return the response of a UpdateRun list operation as paginated response with {@link PagedFlux}.
+     */
+    @ServiceMethod(returns = ReturnType.COLLECTION)
+    private PagedFlux<UpdateRunInner> listByFleetAsync(String resourceGroupName, String fleetName, Integer top,
+        String skipToken) {
+        return new PagedFlux<>(() -> listByFleetSinglePageAsync(resourceGroupName, fleetName, top, skipToken),
+            nextLink -> listByFleetNextSinglePageAsync(nextLink));
     }
 
     /**
@@ -1055,7 +878,9 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
     private PagedFlux<UpdateRunInner> listByFleetAsync(String resourceGroupName, String fleetName) {
-        return new PagedFlux<>(() -> listByFleetSinglePageAsync(resourceGroupName, fleetName),
+        final Integer top = null;
+        final String skipToken = null;
+        return new PagedFlux<>(() -> listByFleetSinglePageAsync(resourceGroupName, fleetName, top, skipToken),
             nextLink -> listByFleetNextSinglePageAsync(nextLink));
     }
 
@@ -1064,35 +889,20 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      * 
      * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param fleetName The name of the Fleet resource.
+     * @param top The number of result items to return.
+     * @param skipToken The page-continuation token to use with a paged version of this API.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws ManagementException thrown if the request is rejected by server.
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
      * @return the response of a UpdateRun list operation along with {@link PagedResponse}.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    private PagedResponse<UpdateRunInner> listByFleetSinglePage(String resourceGroupName, String fleetName) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
+    private PagedResponse<UpdateRunInner> listByFleetSinglePage(String resourceGroupName, String fleetName, Integer top,
+        String skipToken) {
         final String accept = "application/json";
         Response<UpdateRunListResult> res
             = service.listByFleetSync(this.client.getEndpoint(), this.client.getApiVersion(),
-                this.client.getSubscriptionId(), resourceGroupName, fleetName, accept, Context.NONE);
+                this.client.getSubscriptionId(), resourceGroupName, fleetName, top, skipToken, accept, Context.NONE);
         return new PagedResponseBase<>(res.getRequest(), res.getStatusCode(), res.getHeaders(), res.getValue().value(),
             res.getValue().nextLink(), null);
     }
@@ -1102,6 +912,8 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      * 
      * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param fleetName The name of the Fleet resource.
+     * @param top The number of result items to return.
+     * @param skipToken The page-continuation token to use with a paged version of this API.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws ManagementException thrown if the request is rejected by server.
@@ -1109,30 +921,12 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      * @return the response of a UpdateRun list operation along with {@link PagedResponse}.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    private PagedResponse<UpdateRunInner> listByFleetSinglePage(String resourceGroupName, String fleetName,
-        Context context) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
+    private PagedResponse<UpdateRunInner> listByFleetSinglePage(String resourceGroupName, String fleetName, Integer top,
+        String skipToken, Context context) {
         final String accept = "application/json";
         Response<UpdateRunListResult> res
             = service.listByFleetSync(this.client.getEndpoint(), this.client.getApiVersion(),
-                this.client.getSubscriptionId(), resourceGroupName, fleetName, accept, context);
+                this.client.getSubscriptionId(), resourceGroupName, fleetName, top, skipToken, accept, context);
         return new PagedResponseBase<>(res.getRequest(), res.getStatusCode(), res.getHeaders(), res.getValue().value(),
             res.getValue().nextLink(), null);
     }
@@ -1149,7 +943,9 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
     public PagedIterable<UpdateRunInner> listByFleet(String resourceGroupName, String fleetName) {
-        return new PagedIterable<>(() -> listByFleetSinglePage(resourceGroupName, fleetName),
+        final Integer top = null;
+        final String skipToken = null;
+        return new PagedIterable<>(() -> listByFleetSinglePage(resourceGroupName, fleetName, top, skipToken),
             nextLink -> listByFleetNextSinglePage(nextLink));
     }
 
@@ -1158,6 +954,8 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      * 
      * @param resourceGroupName The name of the resource group. The name is case insensitive.
      * @param fleetName The name of the Fleet resource.
+     * @param top The number of result items to return.
+     * @param skipToken The page-continuation token to use with a paged version of this API.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws ManagementException thrown if the request is rejected by server.
@@ -1165,8 +963,9 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      * @return the response of a UpdateRun list operation as paginated response with {@link PagedIterable}.
      */
     @ServiceMethod(returns = ReturnType.COLLECTION)
-    public PagedIterable<UpdateRunInner> listByFleet(String resourceGroupName, String fleetName, Context context) {
-        return new PagedIterable<>(() -> listByFleetSinglePage(resourceGroupName, fleetName, context),
+    public PagedIterable<UpdateRunInner> listByFleet(String resourceGroupName, String fleetName, Integer top,
+        String skipToken, Context context) {
+        return new PagedIterable<>(() -> listByFleetSinglePage(resourceGroupName, fleetName, top, skipToken, context),
             nextLink -> listByFleetNextSinglePage(nextLink, context));
     }
 
@@ -1185,24 +984,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Mono<Response<Flux<ByteBuffer>>> startWithResponseAsync(String resourceGroupName, String fleetName,
         String updateRunName, String ifMatch) {
-        if (this.client.getEndpoint() == null) {
-            return Mono.error(
-                new IllegalArgumentException("Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            return Mono.error(new IllegalArgumentException(
-                "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            return Mono
-                .error(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
         final String accept = "application/json";
         return FluxUtil
             .withContext(context -> service.start(this.client.getEndpoint(), this.client.getApiVersion(),
@@ -1225,28 +1006,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> startWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         String ifMatch) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
         final String accept = "application/json";
         return service.startSync(this.client.getEndpoint(), this.client.getApiVersion(),
             this.client.getSubscriptionId(), resourceGroupName, ifMatch, fleetName, updateRunName, accept,
@@ -1269,28 +1028,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> startWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         String ifMatch, Context context) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
         final String accept = "application/json";
         return service.startSync(this.client.getEndpoint(), this.client.getApiVersion(),
             this.client.getSubscriptionId(), resourceGroupName, ifMatch, fleetName, updateRunName, accept, context);
@@ -1488,24 +1225,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Mono<Response<Flux<ByteBuffer>>> stopWithResponseAsync(String resourceGroupName, String fleetName,
         String updateRunName, String ifMatch) {
-        if (this.client.getEndpoint() == null) {
-            return Mono.error(
-                new IllegalArgumentException("Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            return Mono.error(new IllegalArgumentException(
-                "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            return Mono
-                .error(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
         final String accept = "application/json";
         return FluxUtil
             .withContext(context -> service.stop(this.client.getEndpoint(), this.client.getApiVersion(),
@@ -1528,28 +1247,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> stopWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         String ifMatch) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
         final String accept = "application/json";
         return service.stopSync(this.client.getEndpoint(), this.client.getApiVersion(), this.client.getSubscriptionId(),
             resourceGroupName, ifMatch, fleetName, updateRunName, accept, Context.NONE);
@@ -1571,28 +1268,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> stopWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         String ifMatch, Context context) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
         final String accept = "application/json";
         return service.stopSync(this.client.getEndpoint(), this.client.getApiVersion(), this.client.getSubscriptionId(),
             resourceGroupName, ifMatch, fleetName, updateRunName, accept, context);
@@ -1790,29 +1465,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Mono<Response<Flux<ByteBuffer>>> skipWithResponseAsync(String resourceGroupName, String fleetName,
         String updateRunName, SkipProperties body, String ifMatch) {
-        if (this.client.getEndpoint() == null) {
-            return Mono.error(
-                new IllegalArgumentException("Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            return Mono.error(new IllegalArgumentException(
-                "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            return Mono
-                .error(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            return Mono.error(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        if (body == null) {
-            return Mono.error(new IllegalArgumentException("Parameter body is required and cannot be null."));
-        } else {
-            body.validate();
-        }
         final String contentType = "application/json";
         final String accept = "application/json";
         return FluxUtil
@@ -1838,33 +1490,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> skipWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         SkipProperties body, String ifMatch) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        if (body == null) {
-            throw LOGGER.atError().log(new IllegalArgumentException("Parameter body is required and cannot be null."));
-        } else {
-            body.validate();
-        }
         final String contentType = "application/json";
         final String accept = "application/json";
         return service.skipSync(this.client.getEndpoint(), this.client.getApiVersion(), this.client.getSubscriptionId(),
@@ -1888,33 +1513,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Response<BinaryData> skipWithResponse(String resourceGroupName, String fleetName, String updateRunName,
         SkipProperties body, String ifMatch, Context context) {
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
-        if (this.client.getSubscriptionId() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getSubscriptionId() is required and cannot be null."));
-        }
-        if (resourceGroupName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter resourceGroupName is required and cannot be null."));
-        }
-        if (fleetName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter fleetName is required and cannot be null."));
-        }
-        if (updateRunName == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter updateRunName is required and cannot be null."));
-        }
-        if (body == null) {
-            throw LOGGER.atError().log(new IllegalArgumentException("Parameter body is required and cannot be null."));
-        } else {
-            body.validate();
-        }
         final String contentType = "application/json";
         final String accept = "application/json";
         return service.skipSync(this.client.getEndpoint(), this.client.getApiVersion(), this.client.getSubscriptionId(),
@@ -2120,13 +1718,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     private Mono<PagedResponse<UpdateRunInner>> listByFleetNextSinglePageAsync(String nextLink) {
-        if (nextLink == null) {
-            return Mono.error(new IllegalArgumentException("Parameter nextLink is required and cannot be null."));
-        }
-        if (this.client.getEndpoint() == null) {
-            return Mono.error(
-                new IllegalArgumentException("Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
         final String accept = "application/json";
         return FluxUtil
             .withContext(context -> service.listByFleetNext(nextLink, this.client.getEndpoint(), accept, context))
@@ -2146,15 +1737,6 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     private PagedResponse<UpdateRunInner> listByFleetNextSinglePage(String nextLink) {
-        if (nextLink == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter nextLink is required and cannot be null."));
-        }
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
         final String accept = "application/json";
         Response<UpdateRunListResult> res
             = service.listByFleetNextSync(nextLink, this.client.getEndpoint(), accept, Context.NONE);
@@ -2174,21 +1756,10 @@ public final class UpdateRunsClientImpl implements UpdateRunsClient {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     private PagedResponse<UpdateRunInner> listByFleetNextSinglePage(String nextLink, Context context) {
-        if (nextLink == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException("Parameter nextLink is required and cannot be null."));
-        }
-        if (this.client.getEndpoint() == null) {
-            throw LOGGER.atError()
-                .log(new IllegalArgumentException(
-                    "Parameter this.client.getEndpoint() is required and cannot be null."));
-        }
         final String accept = "application/json";
         Response<UpdateRunListResult> res
             = service.listByFleetNextSync(nextLink, this.client.getEndpoint(), accept, context);
         return new PagedResponseBase<>(res.getRequest(), res.getStatusCode(), res.getHeaders(), res.getValue().value(),
             res.getValue().nextLink(), null);
     }
-
-    private static final ClientLogger LOGGER = new ClientLogger(UpdateRunsClientImpl.class);
 }

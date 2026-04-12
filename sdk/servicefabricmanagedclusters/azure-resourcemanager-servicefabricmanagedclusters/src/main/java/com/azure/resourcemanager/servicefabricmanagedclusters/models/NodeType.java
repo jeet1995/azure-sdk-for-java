@@ -4,8 +4,6 @@
 
 package com.azure.resourcemanager.servicefabricmanagedclusters.models;
 
-import com.azure.core.http.rest.PagedIterable;
-import com.azure.core.http.rest.Response;
 import com.azure.core.management.SystemData;
 import com.azure.core.util.Context;
 import com.azure.resourcemanager.servicefabricmanagedclusters.fluent.models.NodeTypeInner;
@@ -476,6 +474,23 @@ public interface NodeType {
     Boolean zoneBalance();
 
     /**
+     * Gets the isOutboundOnly property: Specifies the node type should be configured for only outbound traffic and not
+     * inbound traffic.
+     * 
+     * @return the isOutboundOnly value.
+     */
+    Boolean isOutboundOnly();
+
+    /**
+     * Gets the enableResilientEphemeralOsDisk property: Specifies whether the node type should use a resilient
+     * ephemeral OS disk when using a supported SKU size. A resilient ephemeral OS disk provides improved reliability
+     * for ephemeral OS disks by enabling full caching.
+     * 
+     * @return the enableResilientEphemeralOsDisk value.
+     */
+    Boolean enableResilientEphemeralOsDisk();
+
+    /**
      * Gets the name of the resource group.
      * 
      * @return the name of the resource group.
@@ -546,7 +561,8 @@ public interface NodeType {
             DefinitionStages.WithNatGatewayId, DefinitionStages.WithNatConfigurations, DefinitionStages.WithVmImagePlan,
             DefinitionStages.WithServiceArtifactReferenceId, DefinitionStages.WithDscpConfigurationId,
             DefinitionStages.WithAdditionalNetworkInterfaceConfigurations, DefinitionStages.WithComputerNamePrefix,
-            DefinitionStages.WithVmApplications, DefinitionStages.WithZoneBalance {
+            DefinitionStages.WithVmApplications, DefinitionStages.WithZoneBalance, DefinitionStages.WithIsOutboundOnly,
+            DefinitionStages.WithEnableResilientEphemeralOsDisk {
             /**
              * Executes the create request.
              * 
@@ -1368,6 +1384,38 @@ public interface NodeType {
              */
             WithCreate withZoneBalance(Boolean zoneBalance);
         }
+
+        /**
+         * The stage of the NodeType definition allowing to specify isOutboundOnly.
+         */
+        interface WithIsOutboundOnly {
+            /**
+             * Specifies the isOutboundOnly property: Specifies the node type should be configured for only outbound
+             * traffic and not inbound traffic..
+             * 
+             * @param isOutboundOnly Specifies the node type should be configured for only outbound traffic and not
+             * inbound traffic.
+             * @return the next definition stage.
+             */
+            WithCreate withIsOutboundOnly(Boolean isOutboundOnly);
+        }
+
+        /**
+         * The stage of the NodeType definition allowing to specify enableResilientEphemeralOsDisk.
+         */
+        interface WithEnableResilientEphemeralOsDisk {
+            /**
+             * Specifies the enableResilientEphemeralOsDisk property: Specifies whether the node type should use a
+             * resilient ephemeral OS disk when using a supported SKU size. A resilient ephemeral OS disk provides
+             * improved reliability for ephemeral OS disks by enabling full caching..
+             * 
+             * @param enableResilientEphemeralOsDisk Specifies whether the node type should use a resilient ephemeral OS
+             * disk when using a supported SKU size. A resilient ephemeral OS disk provides improved reliability for
+             * ephemeral OS disks by enabling full caching.
+             * @return the next definition stage.
+             */
+            WithCreate withEnableResilientEphemeralOsDisk(Boolean enableResilientEphemeralOsDisk);
+        }
     }
 
     /**
@@ -1580,89 +1628,4 @@ public interface NodeType {
      * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
      */
     void start(NodeTypeActionParameters parameters, Context context);
-
-    /**
-     * Starts a fault simulation on the node type.
-     * 
-     * @param parameters parameters describing the fault simulation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     */
-    void startFaultSimulation(FaultSimulationContentWrapper parameters);
-
-    /**
-     * Starts a fault simulation on the node type.
-     * 
-     * @param parameters parameters describing the fault simulation.
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     */
-    void startFaultSimulation(FaultSimulationContentWrapper parameters, Context context);
-
-    /**
-     * Stops a fault simulation on the node type.
-     * 
-     * @param parameters parameter with fault simulation id.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     */
-    void stopFaultSimulation(FaultSimulationIdContent parameters);
-
-    /**
-     * Stops a fault simulation on the node type.
-     * 
-     * @param parameters parameter with fault simulation id.
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     */
-    void stopFaultSimulation(FaultSimulationIdContent parameters, Context context);
-
-    /**
-     * Gets a fault simulation by the simulationId.
-     * 
-     * @param parameters parameter with fault simulation id.
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return a fault simulation by the simulationId along with {@link Response}.
-     */
-    Response<FaultSimulation> getFaultSimulationWithResponse(FaultSimulationIdContent parameters, Context context);
-
-    /**
-     * Gets a fault simulation by the simulationId.
-     * 
-     * @param parameters parameter with fault simulation id.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return a fault simulation by the simulationId.
-     */
-    FaultSimulation getFaultSimulation(FaultSimulationIdContent parameters);
-
-    /**
-     * Gets the list of recent fault simulations for the node type.
-     * 
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return the list of recent fault simulations for the node type as paginated response with {@link PagedIterable}.
-     */
-    PagedIterable<FaultSimulation> listFaultSimulation();
-
-    /**
-     * Gets the list of recent fault simulations for the node type.
-     * 
-     * @param context The context to associate with this operation.
-     * @throws IllegalArgumentException thrown if parameters fail the validation.
-     * @throws com.azure.core.management.exception.ManagementException thrown if the request is rejected by server.
-     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
-     * @return the list of recent fault simulations for the node type as paginated response with {@link PagedIterable}.
-     */
-    PagedIterable<FaultSimulation> listFaultSimulation(Context context);
 }

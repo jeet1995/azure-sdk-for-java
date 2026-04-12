@@ -22,7 +22,7 @@ public final class ScriptExecutionsListMockTests {
     @Test
     public void testList() throws Exception {
         String responseStr
-            = "{\"value\":[{\"properties\":{\"scriptCmdletId\":\"u\",\"parameters\":[{\"type\":\"ScriptExecutionParameter\",\"name\":\"hgookrtalvnbwgpb\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"meluclvdjj\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"kyrdnqodx\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"hhxhq\"}],\"hiddenParameters\":[{\"type\":\"ScriptExecutionParameter\",\"name\":\"nvzoqgyipemch\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"avsczuejdtxp\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"lghwzhome\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"jjstliuhqawmo\"}],\"failureReason\":\"ancz\",\"timeout\":\"vodrrslblxydkxr\",\"retention\":\"vbxiwkgfbqlj\",\"submittedAt\":\"2021-02-07T18:35:08Z\",\"startedAt\":\"2021-10-16T05:32:11Z\",\"finishedAt\":\"2021-04-24T16:03:56Z\",\"provisioningState\":\"Succeeded\",\"output\":[\"ulehurqlr\",\"ffaweyur\",\"phyjdxravj\"],\"namedOutputs\":{\"apx\":\"databrxmrgch\",\"uusioycblev\":\"dataiyfjjkbajbuscg\"},\"information\":[\"lujyxkyxl\",\"gsjgkzzlta\"],\"warnings\":[\"zffovwmbjl\"],\"errors\":[\"czpgvdwnapfdq\",\"owftptnuwjtks\",\"h\",\"cgqyhleseyq\"]},\"id\":\"vyeldot\",\"name\":\"v\",\"type\":\"kwiswskukjtas\"}]}";
+            = "{\"value\":[{\"properties\":{\"scriptCmdletId\":\"ijkgqxnhm\",\"parameters\":[{\"type\":\"ScriptExecutionParameter\",\"name\":\"znj\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"ujvaannggi\"}],\"hiddenParameters\":[{\"type\":\"ScriptExecutionParameter\",\"name\":\"kdtaaw\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"wfekaumrrqmb\"},{\"type\":\"ScriptExecutionParameter\",\"name\":\"mqkra\"}],\"failureReason\":\"nxwbjsidbirkfp\",\"timeout\":\"sokdgoge\",\"retention\":\"jymrhbg\",\"submittedAt\":\"2021-09-10T17:22:19Z\",\"startedAt\":\"2021-06-13T01:32:21Z\",\"finishedAt\":\"2021-08-10T16:12:14Z\",\"provisioningState\":\"Pending\",\"output\":[\"zhhh\",\"o\"],\"namedOutputs\":{\"g\":\"datafjkutycyarnroo\",\"ocnhzqrottjzcfyj\":\"dataabzoghktdpyczhco\",\"rl\":\"datapt\",\"pqinf\":\"datah\"},\"information\":[\"yglqdhmrjzral\",\"xpjb\",\"ypsjoq\",\"jenkyh\"],\"warnings\":[\"vsqxfxjelgcmpzqj\"],\"errors\":[\"qxuwyvca\"]},\"id\":\"yv\",\"name\":\"vbsizusjszlbscm\",\"type\":\"lzijiufehgmvflnw\"}]}";
 
         HttpClient httpClient
             = response -> Mono.just(new MockHttpResponse(response, 200, responseStr.getBytes(StandardCharsets.UTF_8)));
@@ -32,14 +32,14 @@ public final class ScriptExecutionsListMockTests {
                 new AzureProfile("", "", AzureCloud.AZURE_PUBLIC_CLOUD));
 
         PagedIterable<ScriptExecution> response
-            = manager.scriptExecutions().list("dwwnl", "a", com.azure.core.util.Context.NONE);
+            = manager.scriptExecutions().list("iv", "inbmh", com.azure.core.util.Context.NONE);
 
-        Assertions.assertEquals("u", response.iterator().next().scriptCmdletId());
-        Assertions.assertEquals("hgookrtalvnbwgpb", response.iterator().next().parameters().get(0).name());
-        Assertions.assertEquals("nvzoqgyipemch", response.iterator().next().hiddenParameters().get(0).name());
-        Assertions.assertEquals("ancz", response.iterator().next().failureReason());
-        Assertions.assertEquals("vodrrslblxydkxr", response.iterator().next().timeout());
-        Assertions.assertEquals("vbxiwkgfbqlj", response.iterator().next().retention());
-        Assertions.assertEquals("ulehurqlr", response.iterator().next().output().get(0));
+        Assertions.assertEquals("ijkgqxnhm", response.iterator().next().scriptCmdletId());
+        Assertions.assertEquals("znj", response.iterator().next().parameters().get(0).name());
+        Assertions.assertEquals("kdtaaw", response.iterator().next().hiddenParameters().get(0).name());
+        Assertions.assertEquals("nxwbjsidbirkfp", response.iterator().next().failureReason());
+        Assertions.assertEquals("sokdgoge", response.iterator().next().timeout());
+        Assertions.assertEquals("jymrhbg", response.iterator().next().retention());
+        Assertions.assertEquals("zhhh", response.iterator().next().output().get(0));
     }
 }

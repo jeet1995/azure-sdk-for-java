@@ -2,7 +2,7 @@
 
 Azure Resource Manager ProviderHub client library for Java.
 
-This package contains Microsoft Azure SDK for ProviderHub Management SDK. Microsoft ProviderHub. Package tag package-2020-11-20. For documentation on how to use this package, please see [Azure Management Libraries for Java](https://aka.ms/azsdk/java/mgmt).
+This package contains Microsoft Azure SDK for ProviderHub Management SDK. Provider Hub. Package api-version 2024-09-01. For documentation on how to use this package, please see [Azure Management Libraries for Java](https://aka.ms/azsdk/java/mgmt).
 
 ## We'd love to hear your feedback
 
@@ -32,7 +32,7 @@ Various documentation is available to help you get started
 <dependency>
     <groupId>com.azure.resourcemanager</groupId>
     <artifactId>azure-resourcemanager-providerhub</artifactId>
-    <version>1.2.0-beta.1</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 [//]: # ({x-version-update-end})
@@ -52,7 +52,7 @@ Azure subscription ID can be configured via `AZURE_SUBSCRIPTION_ID` environment 
 Assuming the use of the `DefaultAzureCredential` credential class, the client can be authenticated using the following code:
 
 ```java
-AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);
+AzureProfile profile = new AzureProfile(AzureCloud.AZURE_PUBLIC_CLOUD);
 TokenCredential credential = new DefaultAzureCredentialBuilder()
     .authorityHost(profile.getEnvironment().getActiveDirectoryEndpoint())
     .build();
@@ -60,7 +60,7 @@ ProviderHubManager manager = ProviderHubManager
     .authenticate(credential, profile);
 ```
 
-The sample code assumes global Azure. Please change `AzureEnvironment.AZURE` variable if otherwise.
+The sample code assumes global Azure. Please change the `AzureCloud.AZURE_PUBLIC_CLOUD` variable if otherwise.
 
 See [Authentication][authenticate] for more options.
 
@@ -73,12 +73,13 @@ See [API design][design] for general introduction on design and key concepts on 
 ```java
 operationsContent = providerHubManager.operations()
     .createOrUpdate(spaceName,
-        new OperationsPutContent()
-            .withContents(Arrays.asList(new OperationsDefinitionInner().withName(opeartionName)
-                .withDisplay(new OperationsDefinitionDisplay().withProvider(spaceName)
-                    .withResource("Employees")
-                    .withOperation("Gets/List employee resources")
-                    .withDescription("Read employees")))));
+        new OperationsPutContentInner().withProperties(new OperationsPutContentProperties()
+            .withContents(Arrays.asList(new LocalizedOperationDefinition().withName(opeartionName)
+                .withDisplay(new LocalizedOperationDefinitionDisplay().withDefaultProperty(
+                    new LocalizedOperationDisplayDefinitionDefault().withProvider(spaceName)
+                        .withResource("Employees")
+                        .withOperation("Gets/List employee resources")
+                        .withDescription("Read employees")))))));
 ```
 [Code snippets and samples](https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/providerhub/azure-resourcemanager-providerhub/SAMPLE.md)
 
@@ -110,5 +111,3 @@ This project has adopted the [Microsoft Open Source Code of Conduct][coc]. For m
 [cg]: https://github.com/Azure/azure-sdk-for-java/blob/main/CONTRIBUTING.md
 [coc]: https://opensource.microsoft.com/codeofconduct/
 [coc_faq]: https://opensource.microsoft.com/codeofconduct/faq/
-
-

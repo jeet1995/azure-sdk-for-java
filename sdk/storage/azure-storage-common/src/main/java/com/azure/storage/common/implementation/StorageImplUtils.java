@@ -73,6 +73,9 @@ public class StorageImplUtils {
         Constants.STORAGE_LOG_STRING_TO_SIGN, Constants.STORAGE_LOG_STRING_TO_SIGN,
         Constants.STORAGE_LOG_STRING_TO_SIGN);
 
+    public static final String INVALID_VERSION_HEADER_MESSAGE
+        = "The provided service version is not enabled on this storage account.  Please see https://learn.microsoft.com/rest/api/storageservices/versioning-for-the-azure-storage-services for additional information.\n";
+
     private static final String INVALID_BASE64_KEY
         = "'base64Key' was not a valid Base64 scheme. Ensure the Storage account key or SAS key is properly formatted.";
 
@@ -267,6 +270,58 @@ public class StorageImplUtils {
         return accountName;
     }
 
+    public static String getAccountName(URL url, String serviceSubDomain) {
+        String host = url.getHost();
+        return getAccountNameFromHost(host, serviceSubDomain);
+    }
+
+    /**
+     * Gets the account name from a host string, stripping IPv6, dualstack, and secondary suffixes.
+     * <p>
+     * For IPv6/dualstack endpoints, hosts look like {@code accountname-ipv6.blob.core.windows.net} or
+     * {@code accountname-secondary-dualstack.blob.core.windows.net}. This method extracts the base account name
+     * by verifying the service subdomain is present, then stripping known suffixes.
+     * <p>
+     * Suffixes are stripped in order: first {@code -ipv6} or {@code -dualstack}, then {@code -secondary},
+     * to handle compound cases like {@code accountname-secondary-ipv6}.
+     *
+     * @param host The host string from a URL.
+     * @param serviceSubDomain The service subdomain (e.g., "blob", "file", "queue", "dfs").
+     * @return The account name, or {@code null} if it cannot be parsed.
+     */
+    public static String getAccountNameFromHost(String host, String serviceSubDomain) {
+        if (CoreUtils.isNullOrEmpty(host)) {
+            return null;
+        }
+
+        int accountEndIndex = host.indexOf('.');
+        if (accountEndIndex >= 0) {
+            int serviceStartIndex = host.indexOf(serviceSubDomain, accountEndIndex);
+            if (serviceStartIndex > -1) {
+                String accountName = host.substring(0, accountEndIndex);
+
+                // Note: The suffixes are specifically checked/trimmed in this order to
+                // take into account of cases with both "-secondary" and "-ipv6"/"-dualstack"
+                // ie. "accountname-secondary-ipv6"
+
+                // Remove "-ipv6" or "-dualstack" from end if present
+                if (accountName.endsWith("-ipv6")) {
+                    accountName = accountName.substring(0, accountName.length() - "-ipv6".length());
+                } else if (accountName.endsWith("-dualstack")) {
+                    accountName = accountName.substring(0, accountName.length() - "-dualstack".length());
+                }
+
+                // Remove "-secondary" from end if present
+                if (accountName.endsWith("-secondary")) {
+                    accountName = accountName.substring(0, accountName.length() - "-secondary".length());
+                }
+
+                return accountName;
+            }
+        }
+        return null;
+    }
+
     /** Returns an empty string if value is {@code null}, otherwise returns value
      * @param value The value to check and return.
      * @return The value or empty string.
@@ -298,10 +353,27 @@ public class StorageImplUtils {
      * @return The converted storage exception message.
      */
     public static String convertStorageExceptionMessage(String message, HttpResponse response) {
+        return convertStorageExceptionMessage(message, response, null, null);
+    }
+
+    /**
+     * Converts the storage exception message.
+     *
+     * @param message The storage exception message
+     * @param response The storage service response.
+     * @param errorCode The error code from the response.
+     * @param headerName The header name from the response.
+     * @return The converted storage exception message.
+     */
+    public static String convertStorageExceptionMessage(String message, HttpResponse response, String errorCode,
+        String headerName) {
         if (response != null) {
+            // Handle 403 Forbidden responses by appending detailed logging instructions for signature mismatches.
             if (response.getStatusCode() == 403) {
                 return STORAGE_EXCEPTION_LOG_STRING_TO_SIGN_MESSAGE + message;
             }
+
+            // Handle HEAD requests specifically by inserting the error code into the message if the body is empty.
             if (response.getRequest() != null
                 && response.getRequest().getHttpMethod() != null
                 && response.getRequest().getHttpMethod().equals(HttpMethod.HEAD)
@@ -312,6 +384,14 @@ public class StorageImplUtils {
                         + response.getHeaders().getValue(ERROR_CODE_HEADER_NAME)
                         + message.substring(indexOfEmptyBody + 12);
                 }
+            }
+
+            /*
+             * Provide meaningful error message for x-ms-version mismatch issues.
+             */
+            if (Constants.HeaderConstants.INVALID_HEADER_VALUE.equals(errorCode)
+                && Constants.HeaderConstants.VERSION.equalsIgnoreCase(headerName)) {
+                return INVALID_VERSION_HEADER_MESSAGE;
             }
         }
         return message;
@@ -508,7 +588,7 @@ public class StorageImplUtils {
                 throw (Error) cause;
             } else {
                 // Wrap in RuntimeException if it's neither Error nor RuntimeException
-                throw LOGGER.logExceptionAsError(new RuntimeException(cause));
+                throw LOGGER.logExceptionAsError(new RuntimeException(cause != null ? cause : e));
             }
         }
     }

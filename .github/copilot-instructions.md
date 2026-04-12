@@ -22,6 +22,53 @@ The Azure SDK for Java repository contains client libraries for Azure services, 
 - **Management Libraries**: Libraries with Maven group `com.azure.resourcemanager`
 - **Spring Libraries**: Libraries with Maven group `com.azure.spring`
 
+### Prerequisites
+
+- To use Azure MCP tool calls, users must have PowerShell installed. Provide [PowerShell installation instructions](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) if not installed, and recommend restarting the IDE to start the MCP server.
+- See the next section for how to set up the Azure SDK MCP server in your IDE for advanced Copilot features.
+- When using Copilot from IntelliJ, Visual Studio, VS Code (not applicable when using Coding Agent on Github.com):
+  - **Always run** the [`azsdk_verify_setup`](../eng/common/instructions/azsdk-tools/verify-setup.instructions.md) tool first to validate the user's development environment for SDK MCP tools.
+  - **Do not proceed** with any other tool execution until this step is complete.
+  - **Skip this check only** for queries that do not require tool execution.
+
+## Azure SDK MCP Server: Quick Start
+
+The Azure SDK MCP server enables advanced Copilot-powered automation, validation, and Azure-specific guidance in your IDE.
+
+| IDE      | Config File Location               | What to Do                |
+|----------|------------------------------------|---------------------------|
+| IntelliJ | `github-copilot/intellij/mcp.json` | Add the JSON config below |
+
+### Configuration Example
+
+#### IntelliJ (`github-copilot/intellij/mcp.json`)
+```json
+{
+  "servers": {
+    "azure-sdk-mcp": {
+      "type": "stdio",
+      "command": "pwsh",
+      "args": [
+        "<Path to azure-sdk-for-java repo>/eng/common/mcp/azure-sdk-mcp.ps1",
+        "-Run"
+      ]
+    }
+  }
+}
+```
+
+- Make sure PowerShell is installed and available in your system PATH.
+- Replace `<Path to azure-sdk-for-java repo>` with the absolute path to your local clone of the Azure SDK for Java repository.
+
+### Troubleshooting
+
+- If IntelliJ does not detect the MCP server, double-check the path and file name.
+- Start the server manually with:
+  ```powershell
+  eng/common/mcp/azure-sdk-mcp.ps1 -Run
+  ```
+- For more help, see [eng/common/mcp/README.md](../eng/common/mcp/README.md) or open an issue.
+
 ## Behavior
 
 - Always ensure your solutions prioritize clarity, maintainability, and testability.
@@ -64,7 +111,7 @@ Always cite the specific sections of documentation you've referenced in your res
 ### Java Version Compatibility
 
 - Code should be compatible with Java 8 as the baseline
-- Testing and forward support should work up to the latest Java LTS release (currently Java 21)
+- Testing and forward support should work up to the latest Java LTS release
 
 ### Documentation Requirements
 
@@ -113,11 +160,11 @@ When possible, refer to the Azure SDK for Java Design Guidelines for specific ex
 - Include tests that cover your changes
 - Update CHANGELOG.md with your changes
 - Provide a proper description of the pull request to document the changes in the PR. The description should include:
-  - A summary of the changes made.
-  - The reason for the changes.
-  - Any relevant issue numbers.
-  - Instructions on how to verify the changes.
-  - Any additional context or information that reviewers should be aware of.
+    - A summary of the changes made.
+    - The reason for the changes.
+    - Any relevant issue numbers.
+    - Instructions on how to verify the changes.
+    - Any additional context or information that reviewers should be aware of.
 
 ## Release Process
 
@@ -144,3 +191,19 @@ When facing issues, direct users to:
 - [Support for Azure SDK for Java](https://github.com/Azure/azure-sdk-for-java/blob/main/SUPPORT.md)
 - [GitHub Issues](https://github.com/Azure/azure-sdk-for-java/issues/new/choose)
 - [Stack Overflow with azure-java-sdk tag](https://stackoverflow.com/questions/tagged/azure-java-sdk)
+
+## Local SDK Generation and Package Lifecycle (TypeSpec)
+
+### AUTHORITATIVE REFERENCE
+For all TypeSpec-based SDK workflows (generation, building, validation, testing, versioning, and release preparation), follow #file:../eng/common/instructions/azsdk-tools/local-sdk-workflow.instructions.md
+
+### DEFAULT BEHAVIORS
+- **Repository:** Use the current workspace as the local SDK repository unless the user specifies a different path.
+- **Configuration:** Identify `tsp-location.yaml` from files open in the editor. If unclear, ask the user.
+
+### REQUIRED CONFIRMATIONS
+Ask the user for clarification if repository path or configuration file is ambiguous.
+
+## SDK release
+
+For detailed workflow instructions, see [SDK Release](../eng/common/instructions/copilot/sdk-release.instructions.md).

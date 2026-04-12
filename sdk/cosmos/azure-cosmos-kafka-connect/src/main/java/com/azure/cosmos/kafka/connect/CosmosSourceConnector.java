@@ -14,6 +14,7 @@ import com.azure.cosmos.kafka.connect.implementation.CosmosClientCache;
 import com.azure.cosmos.kafka.connect.implementation.CosmosClientCacheItem;
 import com.azure.cosmos.kafka.connect.implementation.CosmosMasterKeyAuthConfig;
 import com.azure.cosmos.kafka.connect.implementation.CosmosThroughputControlConfig;
+import com.azure.cosmos.kafka.connect.implementation.CosmosSDKThroughputControlConfig;
 import com.azure.cosmos.kafka.connect.implementation.KafkaCosmosConstants;
 import com.azure.cosmos.kafka.connect.implementation.KafkaCosmosExceptionsHelper;
 import com.azure.cosmos.kafka.connect.implementation.KafkaCosmosUtils;
@@ -80,6 +81,11 @@ public final class CosmosSourceConnector extends SourceConnector implements Auto
     private IMetadataReader metadataReader;
     private String connectorName;
 
+    static {
+        //initialize all accessors from different threads can cause deadlock issues, so here we force loading ahead of time
+        ImplementationBridgeHelpers.initializeAllAccessors();
+    }
+
     @Override
     public ExactlyOnceSupport exactlyOnceSupport(Map<String, String> connectorConfig) {
         return ExactlyOnceSupport.SUPPORTED;
@@ -93,10 +99,13 @@ public final class CosmosSourceConnector extends SourceConnector implements Auto
             this.connectorName = props.containsKey(CONNECTOR_NAME) ? props.get(CONNECTOR_NAME).toString() : "EMPTY";
             this.cosmosClientItem = CosmosClientCache.getCosmosClient(this.config.getAccountConfig(), connectorName);
             CosmosSourceContainersConfig containersConfig = this.config.getContainersConfig();
-            validateDatabaseAndContainers(
-                containersConfig.getIncludedContainers(),
+
+            List<String> containersExistedInDatabase = validateDatabaseAndContainers(
+                containersConfig.isIncludeAllContainers() ? new ArrayList<>() : containersConfig.getIncludedContainers(),
                 this.cosmosClientItem.getClient(),
                 containersConfig.getDatabaseName());
+
+            validateContainersInTopicMap(containersExistedInDatabase, new ArrayList<>(containersConfig.getContainerToTopicMap().keySet()));
 
             // IMPORTANT: sequence matters
             this.kafkaOffsetStorageReader = new MetadataKafkaStorageManager(this.context().offsetStorageReader());
@@ -119,6 +128,16 @@ public final class CosmosSourceConnector extends SourceConnector implements Auto
             throw e;
         }
 
+    }
+
+    private void validateContainersInTopicMap(
+        List<String> containersExistedInDatabase,
+        List<String> containersInTopicMap) {
+        if (containersInTopicMap != null
+            && !containersInTopicMap.isEmpty()
+            && !containersExistedInDatabase.containsAll(containersInTopicMap)) {
+            throw new IllegalStateException("Containers specified in the topic map do not exist in the CosmosDB account.");
+        }
     }
 
     @Override
@@ -529,13 +548,7 @@ public final class CosmosSourceConnector extends SourceConnector implements Auto
 
     private Map<String, String> getContainersTopicMap(List<CosmosContainerProperties> allContainers) {
         Map<String, String> topicMapFromConfig =
-            this.config.getContainersConfig().getContainersTopicMap()
-                .stream()
-                .map(containerTopicMapString -> containerTopicMapString.split("#"))
-                .collect(
-                    Collectors.toMap(
-                        containerTopicMapArray -> containerTopicMapArray[1],
-                        containerTopicMapArray -> containerTopicMapArray[0]));
+            this.config.getContainersConfig().getContainerToTopicMap();
 
         Map<String, String> effectiveContainersTopicMap = new HashMap<>();
         allContainers.forEach(containerProperties -> {
@@ -579,13 +592,15 @@ public final class CosmosSourceConnector extends SourceConnector implements Auto
 
         // read a random item from throughput control container if it is enabled and use the same account config as the cosmos client
         CosmosThroughputControlConfig cosmosThroughputControlConfig = this.config.getThroughputControlConfig();
-        if (cosmosThroughputControlConfig.isThroughputControlEnabled()) {
-            if (cosmosThroughputControlConfig.getThroughputControlAccountConfig() == null) {
+        if (cosmosThroughputControlConfig.isThroughputControlEnabled()
+            && cosmosThroughputControlConfig instanceof CosmosSDKThroughputControlConfig) {
+            CosmosSDKThroughputControlConfig sdkConfig = (CosmosSDKThroughputControlConfig) cosmosThroughputControlConfig;
+            if (sdkConfig.getThroughputControlAccountConfig() == null) {
                 CosmosAsyncContainer throughputControlContainer =
                     this.cosmosClientItem
                         .getClient()
-                        .getDatabase(cosmosThroughputControlConfig.getGlobalThroughputControlDatabaseName())
-                        .getContainer(cosmosThroughputControlConfig.getGlobalThroughputControlContainerName());
+                        .getDatabase(sdkConfig.getGlobalThroughputControlDatabaseName())
+                        .getContainer(sdkConfig.getGlobalThroughputControlContainerName());
                 readRandomItemFromContainer(throughputControlContainer);
             }
         }
@@ -603,21 +618,24 @@ public final class CosmosSourceConnector extends SourceConnector implements Auto
         try {
             CosmosThroughputControlConfig throughputControlConfig = this.config.getThroughputControlConfig();
             if (throughputControlConfig.isThroughputControlEnabled()
-                && throughputControlConfig.getThroughputControlAccountConfig() != null) {
-                throughputControlClientItem = CosmosClientCache.getCosmosClient(
-                    this.config.getThroughputControlConfig().getThroughputControlAccountConfig(),
-                    this.connectorName
-                );
-            }
+                && throughputControlConfig instanceof CosmosSDKThroughputControlConfig) {
+                CosmosSDKThroughputControlConfig sdkConfig = (CosmosSDKThroughputControlConfig) throughputControlConfig;
+                if (sdkConfig.getThroughputControlAccountConfig() != null) {
+                    throughputControlClientItem = CosmosClientCache.getCosmosClient(
+                        sdkConfig.getThroughputControlAccountConfig(),
+                        this.connectorName
+                    );
+                }
 
-            if (throughputControlClientItem != null) {
-                this.readRandomItemFromContainer(
-                    throughputControlClientItem
-                        .getClient()
-                        .getDatabase(throughputControlConfig.getGlobalThroughputControlDatabaseName())
-                        .getContainer(throughputControlConfig.getGlobalThroughputControlContainerName())
-                );
-                return KafkaCosmosUtils.convertClientMetadataCacheSnapshotToString(throughputControlClientItem.getClient());
+                if (throughputControlClientItem != null) {
+                    this.readRandomItemFromContainer(
+                        throughputControlClientItem
+                            .getClient()
+                            .getDatabase(sdkConfig.getGlobalThroughputControlDatabaseName())
+                            .getContainer(sdkConfig.getGlobalThroughputControlContainerName())
+                    );
+                    return KafkaCosmosUtils.convertClientMetadataCacheSnapshotToString(throughputControlClientItem.getClient());
+                }
             }
 
             return null;

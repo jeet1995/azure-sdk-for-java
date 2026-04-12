@@ -12,9 +12,9 @@ public final class FleetUpdateStrategyListResultTests {
     @org.junit.jupiter.api.Test
     public void testDeserialize() throws Exception {
         FleetUpdateStrategyListResult model = BinaryData.fromString(
-            "{\"value\":[{\"properties\":{\"provisioningState\":\"Failed\",\"strategy\":{\"stages\":[{\"name\":\"vsovmyokac\"}]}},\"eTag\":\"kwlhzdo\",\"id\":\"xjmflbvv\",\"name\":\"chrkcciwwzjuqk\",\"type\":\"rsa\"},{\"properties\":{\"provisioningState\":\"Failed\",\"strategy\":{\"stages\":[{\"name\":\"ofoskghs\"}]}},\"eTag\":\"uimjmvx\",\"id\":\"duugidyjr\",\"name\":\"f\",\"type\":\"y\"},{\"properties\":{\"provisioningState\":\"Succeeded\",\"strategy\":{\"stages\":[{\"name\":\"xc\"}]}},\"eTag\":\"npc\",\"id\":\"ocohslkevleg\",\"name\":\"zfbuhf\",\"type\":\"vfaxkffeiith\"}],\"nextLink\":\"m\"}")
+            "{\"value\":[{\"properties\":{\"provisioningState\":\"Canceled\",\"strategy\":{\"stages\":[{\"name\":\"hzv\"},{\"name\":\"ytdw\"},{\"name\":\"qbrqubpaxhexiili\"},{\"name\":\"pdtii\"}]}},\"eTag\":\"tdqoaxoruzfgsq\",\"id\":\"fxrxxle\",\"name\":\"tramxjez\",\"type\":\"lwnwxuqlcvydyp\"}],\"nextLink\":\"dooaojkniodko\"}")
             .toObject(FleetUpdateStrategyListResult.class);
-        Assertions.assertEquals("vsovmyokac", model.value().get(0).strategy().stages().get(0).name());
-        Assertions.assertEquals("m", model.nextLink());
+        Assertions.assertEquals("hzv", model.value().get(0).strategy().stages().get(0).name());
+        Assertions.assertEquals("dooaojkniodko", model.nextLink());
     }
 }

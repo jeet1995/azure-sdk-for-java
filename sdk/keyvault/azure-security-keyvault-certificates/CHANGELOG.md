@@ -1,6 +1,6 @@
 # Release History
 
-## 4.9.0-beta.1 (Unreleased)
+## 4.9.0-beta.2 (Unreleased)
 
 ### Features Added
 
@@ -9,6 +9,73 @@
 ### Bugs Fixed
 
 ### Other Changes
+
+## 4.9.0-beta.1 (2026-04-08)
+
+### Features Added
+
+#### `models.SubjectAlternativeNames` was modified
+
+* `setUniformResourceIdentifiers(java.util.List)` was added
+* `setIpAddresses(java.util.List)` was added
+* `getUniformResourceIdentifiers()` was added
+* `getIpAddresses()` was added
+
+#### `CertificateServiceVersion` was modified
+
+* `V2025_07_01` was added
+
+## 4.8.6 (2026-03-23)
+
+### Bugs Fixed
+
+- Fixed an issue where certain `HttpResponseException.getResponse()` calls could cause a `NullPointerException`. ([#47801](https://github.com/Azure/azure-sdk-for-java/issues/47801))
+
+## 4.8.5 (2026-01-29)
+
+### Other Changes
+
+#### Dependency Updates
+
+- Upgraded `azure-core-http-netty` from `1.16.2` to version `1.16.3`.
+- Upgraded `azure-json` from `1.5.0` to version `1.5.1`.
+- Upgraded `azure-core` from `1.57.0` to version `1.57.1`.
+
+## 4.8.4 (2025-10-27)
+
+### Other Changes
+
+#### Dependency Updates
+
+- Upgraded `azure-core` from `1.56.1` to version `1.57.0`.
+- Upgraded `azure-core-http-netty` from `1.16.1` to version `1.16.2`.
+
+## 4.8.3 (2025-09-25)
+
+### Other Changes
+
+#### Dependency Updates
+
+- Upgraded `azure-core-http-netty` from `1.16.0` to version `1.16.1`.
+- Upgraded `azure-core` from `1.56.0` to version `1.56.1`.
+
+## 4.8.2 (2025-08-21)
+
+### Other Changes
+
+#### Dependency Updates
+
+- Upgraded `azure-core` from `1.55.5` to version `1.56.0`.
+- Upgraded `azure-core-http-netty` from `1.15.13` to version `1.16.0`.
+
+## 4.8.1 (2025-07-29)
+
+### Other Changes
+
+#### Dependency Updates
+
+- Upgraded `azure-core` from `1.55.4` to version `1.55.5`.
+- Upgraded `azure-core-http-netty` from `1.15.12` to version `1.15.13`.
 
 ## 4.8.0 (2025-06-13)
 
@@ -54,7 +121,6 @@
 - Upgraded `azure-json` from `1.4.0` to version `1.5.0`.
 - Upgraded `azure-core-http-netty` from `1.15.10` to version `1.15.11`.
 - Upgraded `azure-core` from `1.55.2` to version `1.55.3`.
-
 
 ## 4.7.3 (2025-03-04)
 
@@ -102,7 +168,6 @@
 - Upgraded `azure-core-http-netty` from `1.15.3` to version `1.15.4`.
 - Upgraded `azure-core` from `1.51.0` to version `1.52.0`.
 
-
 ## 4.6.6 (2024-08-24)
 
 ### Other Changes
@@ -111,7 +176,6 @@
 
 - Upgraded `azure-core` from `1.50.0` to version `1.51.0`.
 - Upgraded `azure-core-http-netty` from `1.15.2` to version `1.15.3`.
-
 
 ## 4.6.5 (2024-07-29)
 
@@ -439,8 +503,6 @@ Changes when compared to the last stable release (`4.5.9`) include:
 - Upgraded `azure-core` dependency to `1.22.0`
 - Upgraded `azure-core-http-netty` dependency to `1.11.2`
 
-
-
 ## 4.3.0-beta.2 (2021-10-07)
 
 ### Bugs Fixed
@@ -489,7 +551,6 @@ Changes when compared to the last stable release (`4.5.9`) include:
 #### Dependency Updates
 - Upgraded `azure-core` dependency to `1.19.0`
 - Upgraded `azure-core-http-netty` dependency to `1.10.2`
-
 
 ## 4.2.1 (2021-07-08)
 
@@ -685,14 +746,12 @@ Changes when compared to the last stable release (`4.5.9`) include:
 - `CertificateMergeOptions` has been renamed to `MergeCertificateOptions`.
 - `CertificatePolicy.DEFAULT` has been removed.
 
-
 ### Major changes
 
 - The `SubjectAlternativeNames` class now allows you to set multiple types of subject alternative names using any of the `DnsNames`, `Emails`, and `UserPrincipalNames` collection properties.
 - A new `CertificatePolicy` constructor allows you to both pass in both the `subject` and `subjectAlternativeNames` parameters.
 - `CertificateIssuer.provider` was added.
 - `CertificatePolicy.getDefault()` was added and allows you to get the default policy.
-
 
 ## 4.0.0-preview.5 (2019-11-01)
 
@@ -712,7 +771,6 @@ Changes when compared to the last stable release (`4.5.9`) include:
 ### Major changes
 - CertificateClient.vaultUrl has been added with the original value pass to CertificateClient.
 - KeyVaultCertificateWithPolicy has been added and is returned by getCertificate method in `CertificateClient` and `CertificateAsyncClient`
-
 
 ## 4.0.0-preview.4 (2019-10-08)
 For details on the Azure SDK for Java (September 2019 Preview) release refer to the [release announcement](https://aka.ms/azure-sdk-preview4-java).
@@ -747,7 +805,6 @@ This package's
 and
 [samples](https://github.com/Azure/azure-sdk-for-java/tree/main/sdk/keyvault/azure-security-keyvault-certificates/src/samples/java)
 demonstrate the new API.
-
 
 ### Features Added
 - Packages scoped by functionality

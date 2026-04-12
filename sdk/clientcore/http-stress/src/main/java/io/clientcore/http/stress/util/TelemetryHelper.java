@@ -73,6 +73,11 @@ public class TelemetryHelper {
     private final DoubleHistogram runDuration;
 
     static {
+        enableMetrics();
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void enableMetrics() {
         // enables micrometer metrics from Reactor schedulers allowing to monitor thread pool usage and starvation
         Schedulers.enableMetrics();
     }
@@ -132,7 +137,7 @@ public class TelemetryHelper {
         Cpu.registerObservers(otel);
         MemoryPools.registerObservers(otel);
         Threads.registerObservers(otel);
-        GarbageCollector.registerObservers(otel);
+        GarbageCollector.registerObservers(otel, false); // false disables the capture of the GC cause
         OpenTelemetryAppender.install(otel);
     }
 

@@ -327,6 +327,17 @@ public final class NodeTypeProperties implements JsonSerializable<NodeTypeProper
      */
     private Boolean zoneBalance;
 
+    /*
+     * Specifies the node type should be configured for only outbound traffic and not inbound traffic.
+     */
+    private Boolean isOutboundOnly;
+
+    /*
+     * Specifies whether the node type should use a resilient ephemeral OS disk when using a supported SKU size. A
+     * resilient ephemeral OS disk provides improved reliability for ephemeral OS disks by enabling full caching.
+     */
+    private Boolean enableResilientEphemeralOsDisk;
+
     /**
      * Creates an instance of NodeTypeProperties class.
      */
@@ -1470,47 +1481,49 @@ public final class NodeTypeProperties implements JsonSerializable<NodeTypeProper
     }
 
     /**
-     * Validates the instance.
+     * Get the isOutboundOnly property: Specifies the node type should be configured for only outbound traffic and not
+     * inbound traffic.
      * 
-     * @throws IllegalArgumentException thrown if the instance is not valid.
+     * @return the isOutboundOnly value.
      */
-    public void validate() {
-        if (applicationPorts() != null) {
-            applicationPorts().validate();
-        }
-        if (ephemeralPorts() != null) {
-            ephemeralPorts().validate();
-        }
-        if (vmSecrets() != null) {
-            vmSecrets().forEach(e -> e.validate());
-        }
-        if (vmExtensions() != null) {
-            vmExtensions().forEach(e -> e.validate());
-        }
-        if (vmManagedIdentity() != null) {
-            vmManagedIdentity().validate();
-        }
-        if (frontendConfigurations() != null) {
-            frontendConfigurations().forEach(e -> e.validate());
-        }
-        if (networkSecurityRules() != null) {
-            networkSecurityRules().forEach(e -> e.validate());
-        }
-        if (additionalDataDisks() != null) {
-            additionalDataDisks().forEach(e -> e.validate());
-        }
-        if (natConfigurations() != null) {
-            natConfigurations().forEach(e -> e.validate());
-        }
-        if (vmImagePlan() != null) {
-            vmImagePlan().validate();
-        }
-        if (additionalNetworkInterfaceConfigurations() != null) {
-            additionalNetworkInterfaceConfigurations().forEach(e -> e.validate());
-        }
-        if (vmApplications() != null) {
-            vmApplications().forEach(e -> e.validate());
-        }
+    public Boolean isOutboundOnly() {
+        return this.isOutboundOnly;
+    }
+
+    /**
+     * Set the isOutboundOnly property: Specifies the node type should be configured for only outbound traffic and not
+     * inbound traffic.
+     * 
+     * @param isOutboundOnly the isOutboundOnly value to set.
+     * @return the NodeTypeProperties object itself.
+     */
+    public NodeTypeProperties withIsOutboundOnly(Boolean isOutboundOnly) {
+        this.isOutboundOnly = isOutboundOnly;
+        return this;
+    }
+
+    /**
+     * Get the enableResilientEphemeralOsDisk property: Specifies whether the node type should use a resilient ephemeral
+     * OS disk when using a supported SKU size. A resilient ephemeral OS disk provides improved reliability for
+     * ephemeral OS disks by enabling full caching.
+     * 
+     * @return the enableResilientEphemeralOsDisk value.
+     */
+    public Boolean enableResilientEphemeralOsDisk() {
+        return this.enableResilientEphemeralOsDisk;
+    }
+
+    /**
+     * Set the enableResilientEphemeralOsDisk property: Specifies whether the node type should use a resilient ephemeral
+     * OS disk when using a supported SKU size. A resilient ephemeral OS disk provides improved reliability for
+     * ephemeral OS disks by enabling full caching.
+     * 
+     * @param enableResilientEphemeralOsDisk the enableResilientEphemeralOsDisk value to set.
+     * @return the NodeTypeProperties object itself.
+     */
+    public NodeTypeProperties withEnableResilientEphemeralOsDisk(Boolean enableResilientEphemeralOsDisk) {
+        this.enableResilientEphemeralOsDisk = enableResilientEphemeralOsDisk;
+        return this;
     }
 
     /**
@@ -1580,6 +1593,8 @@ public final class NodeTypeProperties implements JsonSerializable<NodeTypeProper
         jsonWriter.writeArrayField("vmApplications", this.vmApplications,
             (writer, element) -> writer.writeJson(element));
         jsonWriter.writeBooleanField("zoneBalance", this.zoneBalance);
+        jsonWriter.writeBooleanField("isOutboundOnly", this.isOutboundOnly);
+        jsonWriter.writeBooleanField("enableResilientEphemeralOsDisk", this.enableResilientEphemeralOsDisk);
         return jsonWriter.writeEndObject();
     }
 
@@ -1726,6 +1741,11 @@ public final class NodeTypeProperties implements JsonSerializable<NodeTypeProper
                     deserializedNodeTypeProperties.vmApplications = vmApplications;
                 } else if ("zoneBalance".equals(fieldName)) {
                     deserializedNodeTypeProperties.zoneBalance = reader.getNullable(JsonReader::getBoolean);
+                } else if ("isOutboundOnly".equals(fieldName)) {
+                    deserializedNodeTypeProperties.isOutboundOnly = reader.getNullable(JsonReader::getBoolean);
+                } else if ("enableResilientEphemeralOsDisk".equals(fieldName)) {
+                    deserializedNodeTypeProperties.enableResilientEphemeralOsDisk
+                        = reader.getNullable(JsonReader::getBoolean);
                 } else {
                     reader.skipChildren();
                 }

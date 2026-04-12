@@ -15,7 +15,7 @@ import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.RequestOptions;
 import com.azure.cosmos.implementation.Resource;
 import com.azure.cosmos.implementation.ResourceResponse;
-import com.azure.cosmos.implementation.TestSuiteBase;
+// Uses rx.TestSuiteBase (local package)
 import com.azure.cosmos.implementation.TestUtils;
 import com.azure.cosmos.implementation.Utils;
 import com.azure.cosmos.implementation.feedranges.FeedRangeEpkImpl;
@@ -93,7 +93,7 @@ public class ChangeFeedTest extends TestSuiteBase {
     }
 
     public ChangeFeedTest() {
-        super(createGatewayRxDocumentClient());
+        super(createInternalGatewayRxDocumentClient());
         subscriberValidationTimeout = TIMEOUT;
     }
 
@@ -117,7 +117,7 @@ public class ChangeFeedTest extends TestSuiteBase {
         changeFeedOption.setMaxItemCount(3);
 
         List<FeedResponse<Document>> changeFeedResultList = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class, null)
             .collectList().block();
 
         int count = 0;
@@ -152,7 +152,7 @@ public class ChangeFeedTest extends TestSuiteBase {
             CosmosChangeFeedRequestOptions.createForProcessingFromBeginning(feedRange);
         changeFeedOption.setMaxItemCount(3);
         List<FeedResponse<Document>> changeFeedResultList = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class, null)
             .collectList().block();
 
         int count = 0;
@@ -189,7 +189,7 @@ public class ChangeFeedTest extends TestSuiteBase {
             CosmosChangeFeedRequestOptions.createForProcessingFromNow(feedRange);
 
         List<FeedResponse<Document>> changeFeedResultsList = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class, null)
             .collectList()
             .block();
 
@@ -212,7 +212,7 @@ public class ChangeFeedTest extends TestSuiteBase {
                 CosmosChangeFeedRequestOptions.createForProcessingFromNow(feedRange);
 
         List<FeedResponse<Document>> changeFeedResultsList = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class, null)
             .collectList()
             .block();
 
@@ -243,7 +243,7 @@ public class ChangeFeedTest extends TestSuiteBase {
         }
 
         List<FeedResponse<Document>> changeFeedResultsList = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class, null)
             .collectList()
             .block();
 
@@ -268,7 +268,7 @@ public class ChangeFeedTest extends TestSuiteBase {
                 .createForProcessingFromContinuation(continuationToken);
 
         List<FeedResponse<Document>> changeFeedResultsListAfterDeletes = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOptionForContinuationAfterDeletes, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOptionForContinuationAfterDeletes, Document.class, null)
             .collectList()
             .block();
 
@@ -295,7 +295,7 @@ public class ChangeFeedTest extends TestSuiteBase {
                 .createForProcessingFromContinuation(continuationToken);
 
         List<FeedResponse<Document>> changeFeedResultsListAfterUpdates = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOptionForContinuationAfterUpdates, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOptionForContinuationAfterUpdates, Document.class, null)
             .collectList()
             .block();
 
@@ -363,8 +363,15 @@ public class ChangeFeedTest extends TestSuiteBase {
                 true)
             .block();
 
-        List<FeedResponse<Document>> changeFeedResultList = client.queryDocumentChangeFeed(createdCollection,
-                changeFeedOption, Document.class).collectList().block();
+        List<FeedResponse<Document>> changeFeedResultList =
+            client
+                .queryDocumentChangeFeed(
+                    createdCollection,
+                    changeFeedOption,
+                    Document.class,
+                    null)
+                .collectList()
+                .block();
 
         int count = 0;
         for(int i = 0; i < changeFeedResultList.size(); i++) {
@@ -387,7 +394,7 @@ public class ChangeFeedTest extends TestSuiteBase {
         changeFeedOption.setMaxItemCount(3);
 
         List<FeedResponse<Document>> changeFeedResultsList = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class, null)
             .collectList()
             .block();
 
@@ -420,7 +427,7 @@ public class ChangeFeedTest extends TestSuiteBase {
         changeFeedOption = CosmosChangeFeedRequestOptions.createForProcessingFromContinuation(changeFeedContinuation);
 
         FeedResponse<Document> changeFeedResults2 = client
-            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class)
+            .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class, null)
             .blockFirst();
 
         assertThat(changeFeedResults2.getResults())
@@ -458,7 +465,7 @@ public class ChangeFeedTest extends TestSuiteBase {
                 CosmosChangeFeedRequestOptions.createForProcessingFromBeginning(feedRange);
 
             List<FeedResponse<Document>> changeFeedResultListForEPK = client
-                .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class)
+                .queryDocumentChangeFeed(createdCollection, changeFeedOption, Document.class, null)
                 .collectList()
                 .block();
 
@@ -520,11 +527,15 @@ public class ChangeFeedTest extends TestSuiteBase {
     @AfterMethod(groups = { "query", "emulator" }, timeOut = SETUP_TIMEOUT)
     public void removeCollection() {
         if (createdCollection != null) {
-            deleteCollection(client, getCollectionLink());
+            try {
+                deleteCollection(client, getCollectionLink());
+            } catch (Exception e) {
+                logger.warn("Failed to delete collection during cleanup", e);
+            }
         }
     }
 
-    @BeforeMethod(groups = { "query", "emulator" }, timeOut = SETUP_TIMEOUT)
+    @BeforeMethod(groups = { "query", "emulator" }, timeOut = 2 * SETUP_TIMEOUT)
     public void populateDocuments(Method method) {
 
         checkNotNull(method, "Argument method must not be null.");
@@ -568,7 +579,7 @@ public class ChangeFeedTest extends TestSuiteBase {
     public void before_ChangeFeedTest() {
         // set up the client
         client = clientBuilder().build();
-        createdDatabase = SHARED_DATABASE;
+        createdDatabase = SHARED_DATABASE_INTERNAL;
     }
 
     @AfterClass(groups = { "query", "emulator" }, timeOut = SHUTDOWN_TIMEOUT, alwaysRun = true)

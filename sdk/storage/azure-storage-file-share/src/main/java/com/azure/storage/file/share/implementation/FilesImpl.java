@@ -56,6 +56,7 @@ import com.azure.storage.file.share.implementation.models.SourceLeaseAccessCondi
 import com.azure.storage.file.share.implementation.util.ModelHelper;
 import com.azure.storage.file.share.models.FileLastWrittenMode;
 import com.azure.storage.file.share.models.FilePermissionFormat;
+import com.azure.storage.file.share.models.FilePropertySemantics;
 import com.azure.storage.file.share.models.ModeCopyMode;
 import com.azure.storage.file.share.models.NfsFileType;
 import com.azure.storage.file.share.models.OwnerCopyMode;
@@ -126,7 +127,13 @@ public final class FilesImpl {
             @HeaderParam("x-ms-file-request-intent") ShareTokenIntent fileRequestIntent,
             @HeaderParam("x-ms-owner") String owner, @HeaderParam("x-ms-group") String group,
             @HeaderParam("x-ms-mode") String fileMode, @HeaderParam("x-ms-file-file-type") NfsFileType nfsFileType,
-            @HeaderParam("Accept") String accept, Context context);
+            @HeaderParam("Content-MD5") String contentMD5,
+            @HeaderParam("x-ms-file-property-semantics") FilePropertySemantics filePropertySemantics,
+            @HeaderParam("Content-Length") Long contentLength,
+            @HeaderParam("x-ms-structured-body") String structuredBodyType,
+            @HeaderParam("x-ms-structured-content-length") Long structuredContentLength,
+            @BodyParam("application/octet-stream") Flux<ByteBuffer> optionalbody, @HeaderParam("Accept") String accept,
+            Context context);
 
         @Put("/{shareName}/{fileName}")
         @ExpectedResponses({ 201 })
@@ -151,7 +158,75 @@ public final class FilesImpl {
             @HeaderParam("x-ms-file-request-intent") ShareTokenIntent fileRequestIntent,
             @HeaderParam("x-ms-owner") String owner, @HeaderParam("x-ms-group") String group,
             @HeaderParam("x-ms-mode") String fileMode, @HeaderParam("x-ms-file-file-type") NfsFileType nfsFileType,
-            @HeaderParam("Accept") String accept, Context context);
+            @HeaderParam("Content-MD5") String contentMD5,
+            @HeaderParam("x-ms-file-property-semantics") FilePropertySemantics filePropertySemantics,
+            @HeaderParam("Content-Length") Long contentLength,
+            @HeaderParam("x-ms-structured-body") String structuredBodyType,
+            @HeaderParam("x-ms-structured-content-length") Long structuredContentLength,
+            @BodyParam("application/octet-stream") Flux<ByteBuffer> optionalbody, @HeaderParam("Accept") String accept,
+            Context context);
+
+        @Put("/{shareName}/{fileName}")
+        @ExpectedResponses({ 201 })
+        @UnexpectedResponseExceptionType(ShareStorageExceptionInternal.class)
+        Mono<ResponseBase<FilesCreateHeaders, Void>> create(@HostParam("url") String url,
+            @PathParam("shareName") String shareName, @PathParam("fileName") String fileName,
+            @HeaderParam("x-ms-allow-trailing-dot") Boolean allowTrailingDot, @QueryParam("timeout") Integer timeout,
+            @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-content-length") long fileContentLength,
+            @HeaderParam("x-ms-type") String fileTypeConstant, @HeaderParam("x-ms-content-type") String contentType,
+            @HeaderParam("x-ms-content-encoding") String contentEncoding,
+            @HeaderParam("x-ms-content-language") String contentLanguage,
+            @HeaderParam("x-ms-cache-control") String cacheControl, @HeaderParam("x-ms-content-md5") String contentMd5,
+            @HeaderParam("x-ms-content-disposition") String contentDisposition,
+            @HeaderParam("x-ms-meta-") Map<String, String> metadata,
+            @HeaderParam("x-ms-file-permission") String filePermission,
+            @HeaderParam("x-ms-file-permission-format") FilePermissionFormat filePermissionFormat,
+            @HeaderParam("x-ms-file-permission-key") String filePermissionKey,
+            @HeaderParam("x-ms-file-attributes") String fileAttributes,
+            @HeaderParam("x-ms-file-creation-time") String fileCreationTime,
+            @HeaderParam("x-ms-file-last-write-time") String fileLastWriteTime,
+            @HeaderParam("x-ms-file-change-time") String fileChangeTime, @HeaderParam("x-ms-lease-id") String leaseId,
+            @HeaderParam("x-ms-file-request-intent") ShareTokenIntent fileRequestIntent,
+            @HeaderParam("x-ms-owner") String owner, @HeaderParam("x-ms-group") String group,
+            @HeaderParam("x-ms-mode") String fileMode, @HeaderParam("x-ms-file-file-type") NfsFileType nfsFileType,
+            @HeaderParam("Content-MD5") String contentMD5,
+            @HeaderParam("x-ms-file-property-semantics") FilePropertySemantics filePropertySemantics,
+            @HeaderParam("Content-Length") Long contentLength,
+            @HeaderParam("x-ms-structured-body") String structuredBodyType,
+            @HeaderParam("x-ms-structured-content-length") Long structuredContentLength,
+            @BodyParam("application/octet-stream") BinaryData optionalbody, @HeaderParam("Accept") String accept,
+            Context context);
+
+        @Put("/{shareName}/{fileName}")
+        @ExpectedResponses({ 201 })
+        @UnexpectedResponseExceptionType(ShareStorageExceptionInternal.class)
+        Mono<Response<Void>> createNoCustomHeaders(@HostParam("url") String url,
+            @PathParam("shareName") String shareName, @PathParam("fileName") String fileName,
+            @HeaderParam("x-ms-allow-trailing-dot") Boolean allowTrailingDot, @QueryParam("timeout") Integer timeout,
+            @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-content-length") long fileContentLength,
+            @HeaderParam("x-ms-type") String fileTypeConstant, @HeaderParam("x-ms-content-type") String contentType,
+            @HeaderParam("x-ms-content-encoding") String contentEncoding,
+            @HeaderParam("x-ms-content-language") String contentLanguage,
+            @HeaderParam("x-ms-cache-control") String cacheControl, @HeaderParam("x-ms-content-md5") String contentMd5,
+            @HeaderParam("x-ms-content-disposition") String contentDisposition,
+            @HeaderParam("x-ms-meta-") Map<String, String> metadata,
+            @HeaderParam("x-ms-file-permission") String filePermission,
+            @HeaderParam("x-ms-file-permission-format") FilePermissionFormat filePermissionFormat,
+            @HeaderParam("x-ms-file-permission-key") String filePermissionKey,
+            @HeaderParam("x-ms-file-attributes") String fileAttributes,
+            @HeaderParam("x-ms-file-creation-time") String fileCreationTime,
+            @HeaderParam("x-ms-file-last-write-time") String fileLastWriteTime,
+            @HeaderParam("x-ms-file-change-time") String fileChangeTime, @HeaderParam("x-ms-lease-id") String leaseId,
+            @HeaderParam("x-ms-file-request-intent") ShareTokenIntent fileRequestIntent,
+            @HeaderParam("x-ms-owner") String owner, @HeaderParam("x-ms-group") String group,
+            @HeaderParam("x-ms-mode") String fileMode, @HeaderParam("x-ms-file-file-type") NfsFileType nfsFileType,
+            @HeaderParam("Content-MD5") String contentMD5,
+            @HeaderParam("x-ms-file-property-semantics") FilePropertySemantics filePropertySemantics,
+            @HeaderParam("Content-Length") Long contentLength,
+            @HeaderParam("x-ms-structured-body") String structuredBodyType,
+            @HeaderParam("x-ms-structured-content-length") Long structuredContentLength,
+            @BodyParam("application/octet-stream") BinaryData optionalbody, @HeaderParam("Accept") String accept,
+            Context context);
 
         @Put("/{shareName}/{fileName}")
         @ExpectedResponses({ 201 })
@@ -176,7 +251,13 @@ public final class FilesImpl {
             @HeaderParam("x-ms-file-request-intent") ShareTokenIntent fileRequestIntent,
             @HeaderParam("x-ms-owner") String owner, @HeaderParam("x-ms-group") String group,
             @HeaderParam("x-ms-mode") String fileMode, @HeaderParam("x-ms-file-file-type") NfsFileType nfsFileType,
-            @HeaderParam("Accept") String accept, Context context);
+            @HeaderParam("Content-MD5") String contentMD5,
+            @HeaderParam("x-ms-file-property-semantics") FilePropertySemantics filePropertySemantics,
+            @HeaderParam("Content-Length") Long contentLength,
+            @HeaderParam("x-ms-structured-body") String structuredBodyType,
+            @HeaderParam("x-ms-structured-content-length") Long structuredContentLength,
+            @BodyParam("application/octet-stream") BinaryData optionalbody, @HeaderParam("Accept") String accept,
+            Context context);
 
         @Put("/{shareName}/{fileName}")
         @ExpectedResponses({ 201 })
@@ -201,7 +282,13 @@ public final class FilesImpl {
             @HeaderParam("x-ms-file-request-intent") ShareTokenIntent fileRequestIntent,
             @HeaderParam("x-ms-owner") String owner, @HeaderParam("x-ms-group") String group,
             @HeaderParam("x-ms-mode") String fileMode, @HeaderParam("x-ms-file-file-type") NfsFileType nfsFileType,
-            @HeaderParam("Accept") String accept, Context context);
+            @HeaderParam("Content-MD5") String contentMD5,
+            @HeaderParam("x-ms-file-property-semantics") FilePropertySemantics filePropertySemantics,
+            @HeaderParam("Content-Length") Long contentLength,
+            @HeaderParam("x-ms-structured-body") String structuredBodyType,
+            @HeaderParam("x-ms-structured-content-length") Long structuredContentLength,
+            @BodyParam("application/octet-stream") BinaryData optionalbody, @HeaderParam("Accept") String accept,
+            Context context);
 
         @Get("/{shareName}/{fileName}")
         @ExpectedResponses({ 200, 206 })
@@ -1427,13 +1514,13 @@ public final class FilesImpl {
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1457,6 +1544,20 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
@@ -1468,21 +1569,26 @@ public final class FilesImpl {
         long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
         FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
         String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
-        String group, String fileMode, NfsFileType nfsFileType, ShareFileHttpHeaders shareFileHttpHeaders) {
-        return FluxUtil.withContext(context -> createWithResponseAsync(shareName, fileName, fileContentLength, timeout,
-            metadata, filePermission, filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime,
-            fileLastWriteTime, fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, shareFileHttpHeaders,
-            context)).onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, Flux<ByteBuffer> optionalbody, ShareFileHttpHeaders shareFileHttpHeaders) {
+        return FluxUtil
+            .withContext(context -> createWithResponseAsync(shareName, fileName, fileContentLength, timeout, metadata,
+                filePermission, filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime,
+                fileLastWriteTime, fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, contentMD5,
+                filePropertySemantics, contentLength, structuredBodyType, structuredContentLength, optionalbody,
+                shareFileHttpHeaders, context))
+            .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1506,6 +1612,20 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -1518,7 +1638,9 @@ public final class FilesImpl {
         long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
         FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
         String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
-        String group, String fileMode, NfsFileType nfsFileType, ShareFileHttpHeaders shareFileHttpHeaders,
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, Flux<ByteBuffer> optionalbody, ShareFileHttpHeaders shareFileHttpHeaders,
         Context context) {
         final String fileTypeConstant = "file";
         final String accept = "application/xml";
@@ -1553,24 +1675,26 @@ public final class FilesImpl {
         }
         String contentDisposition = contentDispositionInternal;
         String contentMd5Converted = Base64Util.encodeToString(contentMd5);
+        String contentMD5Converted = Base64Util.encodeToString(contentMD5);
         return service
             .create(this.client.getUrl(), shareName, fileName, this.client.isAllowTrailingDot(), timeout,
                 this.client.getVersion(), fileContentLength, fileTypeConstant, contentType, contentEncoding,
                 contentLanguage, cacheControl, contentMd5Converted, contentDisposition, metadata, filePermission,
                 filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
                 fileChangeTime, leaseId, this.client.getFileRequestIntent(), owner, group, fileMode, nfsFileType,
-                accept, context)
+                contentMD5Converted, filePropertySemantics, contentLength, structuredBodyType, structuredContentLength,
+                optionalbody, accept, context)
             .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1594,6 +1718,20 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
@@ -1605,22 +1743,24 @@ public final class FilesImpl {
         Map<String, String> metadata, String filePermission, FilePermissionFormat filePermissionFormat,
         String filePermissionKey, String fileAttributes, String fileCreationTime, String fileLastWriteTime,
         String fileChangeTime, String leaseId, String owner, String group, String fileMode, NfsFileType nfsFileType,
-        ShareFileHttpHeaders shareFileHttpHeaders) {
+        byte[] contentMD5, FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, Flux<ByteBuffer> optionalbody, ShareFileHttpHeaders shareFileHttpHeaders) {
         return createWithResponseAsync(shareName, fileName, fileContentLength, timeout, metadata, filePermission,
             filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
-            fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, shareFileHttpHeaders)
+            fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, contentMD5, filePropertySemantics,
+            contentLength, structuredBodyType, structuredContentLength, optionalbody, shareFileHttpHeaders)
                 .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException)
                 .flatMap(ignored -> Mono.empty());
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1644,6 +1784,20 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -1656,22 +1810,25 @@ public final class FilesImpl {
         Map<String, String> metadata, String filePermission, FilePermissionFormat filePermissionFormat,
         String filePermissionKey, String fileAttributes, String fileCreationTime, String fileLastWriteTime,
         String fileChangeTime, String leaseId, String owner, String group, String fileMode, NfsFileType nfsFileType,
-        ShareFileHttpHeaders shareFileHttpHeaders, Context context) {
+        byte[] contentMD5, FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, Flux<ByteBuffer> optionalbody, ShareFileHttpHeaders shareFileHttpHeaders,
+        Context context) {
         return createWithResponseAsync(shareName, fileName, fileContentLength, timeout, metadata, filePermission,
             filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
-            fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, shareFileHttpHeaders, context)
+            fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, contentMD5, filePropertySemantics,
+            contentLength, structuredBodyType, structuredContentLength, optionalbody, shareFileHttpHeaders, context)
                 .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException)
                 .flatMap(ignored -> Mono.empty());
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1695,6 +1852,20 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
@@ -1706,23 +1877,26 @@ public final class FilesImpl {
         long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
         FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
         String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
-        String group, String fileMode, NfsFileType nfsFileType, ShareFileHttpHeaders shareFileHttpHeaders) {
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, Flux<ByteBuffer> optionalbody, ShareFileHttpHeaders shareFileHttpHeaders) {
         return FluxUtil
             .withContext(context -> createNoCustomHeadersWithResponseAsync(shareName, fileName, fileContentLength,
                 timeout, metadata, filePermission, filePermissionFormat, filePermissionKey, fileAttributes,
                 fileCreationTime, fileLastWriteTime, fileChangeTime, leaseId, owner, group, fileMode, nfsFileType,
-                shareFileHttpHeaders, context))
+                contentMD5, filePropertySemantics, contentLength, structuredBodyType, structuredContentLength,
+                optionalbody, shareFileHttpHeaders, context))
             .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1746,6 +1920,20 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -1758,7 +1946,9 @@ public final class FilesImpl {
         long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
         FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
         String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
-        String group, String fileMode, NfsFileType nfsFileType, ShareFileHttpHeaders shareFileHttpHeaders,
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, Flux<ByteBuffer> optionalbody, ShareFileHttpHeaders shareFileHttpHeaders,
         Context context) {
         final String fileTypeConstant = "file";
         final String accept = "application/xml";
@@ -1793,24 +1983,26 @@ public final class FilesImpl {
         }
         String contentDisposition = contentDispositionInternal;
         String contentMd5Converted = Base64Util.encodeToString(contentMd5);
+        String contentMD5Converted = Base64Util.encodeToString(contentMD5);
         return service
             .createNoCustomHeaders(this.client.getUrl(), shareName, fileName, this.client.isAllowTrailingDot(), timeout,
                 this.client.getVersion(), fileContentLength, fileTypeConstant, contentType, contentEncoding,
                 contentLanguage, cacheControl, contentMd5Converted, contentDisposition, metadata, filePermission,
                 filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
                 fileChangeTime, leaseId, this.client.getFileRequestIntent(), owner, group, fileMode, nfsFileType,
-                accept, context)
+                contentMD5Converted, filePropertySemantics, contentLength, structuredBodyType, structuredContentLength,
+                optionalbody, accept, context)
             .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1834,6 +2026,502 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
+     * @param shareFileHttpHeaders Parameter group.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return the {@link ResponseBase} on successful completion of {@link Mono}.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<ResponseBase<FilesCreateHeaders, Void>> createWithResponseAsync(String shareName, String fileName,
+        long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
+        FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
+        String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders) {
+        return FluxUtil
+            .withContext(context -> createWithResponseAsync(shareName, fileName, fileContentLength, timeout, metadata,
+                filePermission, filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime,
+                fileLastWriteTime, fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, contentMD5,
+                filePropertySemantics, contentLength, structuredBodyType, structuredContentLength, optionalbody,
+                shareFileHttpHeaders, context))
+            .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
+    }
+
+    /**
+     * Creates a new file or replaces a file. Can also initialize the file with content.
+     *
+     * @param shareName The name of the target share.
+     * @param fileName The path of the target file.
+     * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
+     * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
+     * Timeouts for File Service Operations.&lt;/a&gt;.
+     * @param metadata A name-value pair to associate with a file storage object.
+     * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
+     * header can be used if Permission size is &lt;= 8KB, else x-ms-file-permission-key header shall be used. Default
+     * value: Inherit. If SDDL is specified as input, it must have owner, group and dacl. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param filePermissionFormat Optional. Available for version 2023-06-01 and later. Specifies the format in which
+     * the permission is returned. Acceptable values are SDDL or binary. If x-ms-file-permission-format is unspecified
+     * or explicitly set to SDDL, the permission is returned in SDDL format. If x-ms-file-permission-format is
+     * explicitly set to binary, the permission is returned as a base64 string representing the binary encoding of the
+     * permission.
+     * @param filePermissionKey Key of the permission to be set for the directory/file. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param fileAttributes If specified, the provided file attributes shall be set. Default value: ‘Archive’ for file
+     * and ‘Directory’ for directory. ‘None’ can also be specified as default.
+     * @param fileCreationTime Creation time for the file/directory. Default value: Now.
+     * @param fileLastWriteTime Last write time for the file/directory. Default value: Now.
+     * @param fileChangeTime Change time for the file/directory. Default value: Now.
+     * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param owner Optional, NFS only. The owner of the file or directory.
+     * @param group Optional, NFS only. The owning group of the file or directory.
+     * @param fileMode Optional, NFS only. The file mode of the file or directory.
+     * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
+     * @param shareFileHttpHeaders Parameter group.
+     * @param context The context to associate with this operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return the {@link ResponseBase} on successful completion of {@link Mono}.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<ResponseBase<FilesCreateHeaders, Void>> createWithResponseAsync(String shareName, String fileName,
+        long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
+        FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
+        String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders,
+        Context context) {
+        final String fileTypeConstant = "file";
+        final String accept = "application/xml";
+        String contentTypeInternal = null;
+        if (shareFileHttpHeaders != null) {
+            contentTypeInternal = shareFileHttpHeaders.getContentType();
+        }
+        String contentType = contentTypeInternal;
+        String contentEncodingInternal = null;
+        if (shareFileHttpHeaders != null) {
+            contentEncodingInternal = shareFileHttpHeaders.getContentEncoding();
+        }
+        String contentEncoding = contentEncodingInternal;
+        String contentLanguageInternal = null;
+        if (shareFileHttpHeaders != null) {
+            contentLanguageInternal = shareFileHttpHeaders.getContentLanguage();
+        }
+        String contentLanguage = contentLanguageInternal;
+        String cacheControlInternal = null;
+        if (shareFileHttpHeaders != null) {
+            cacheControlInternal = shareFileHttpHeaders.getCacheControl();
+        }
+        String cacheControl = cacheControlInternal;
+        byte[] contentMd5Internal = null;
+        if (shareFileHttpHeaders != null) {
+            contentMd5Internal = shareFileHttpHeaders.getContentMd5();
+        }
+        byte[] contentMd5 = contentMd5Internal;
+        String contentDispositionInternal = null;
+        if (shareFileHttpHeaders != null) {
+            contentDispositionInternal = shareFileHttpHeaders.getContentDisposition();
+        }
+        String contentDisposition = contentDispositionInternal;
+        String contentMd5Converted = Base64Util.encodeToString(contentMd5);
+        String contentMD5Converted = Base64Util.encodeToString(contentMD5);
+        return service
+            .create(this.client.getUrl(), shareName, fileName, this.client.isAllowTrailingDot(), timeout,
+                this.client.getVersion(), fileContentLength, fileTypeConstant, contentType, contentEncoding,
+                contentLanguage, cacheControl, contentMd5Converted, contentDisposition, metadata, filePermission,
+                filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
+                fileChangeTime, leaseId, this.client.getFileRequestIntent(), owner, group, fileMode, nfsFileType,
+                contentMD5Converted, filePropertySemantics, contentLength, structuredBodyType, structuredContentLength,
+                optionalbody, accept, context)
+            .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
+    }
+
+    /**
+     * Creates a new file or replaces a file. Can also initialize the file with content.
+     *
+     * @param shareName The name of the target share.
+     * @param fileName The path of the target file.
+     * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
+     * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
+     * Timeouts for File Service Operations.&lt;/a&gt;.
+     * @param metadata A name-value pair to associate with a file storage object.
+     * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
+     * header can be used if Permission size is &lt;= 8KB, else x-ms-file-permission-key header shall be used. Default
+     * value: Inherit. If SDDL is specified as input, it must have owner, group and dacl. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param filePermissionFormat Optional. Available for version 2023-06-01 and later. Specifies the format in which
+     * the permission is returned. Acceptable values are SDDL or binary. If x-ms-file-permission-format is unspecified
+     * or explicitly set to SDDL, the permission is returned in SDDL format. If x-ms-file-permission-format is
+     * explicitly set to binary, the permission is returned as a base64 string representing the binary encoding of the
+     * permission.
+     * @param filePermissionKey Key of the permission to be set for the directory/file. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param fileAttributes If specified, the provided file attributes shall be set. Default value: ‘Archive’ for file
+     * and ‘Directory’ for directory. ‘None’ can also be specified as default.
+     * @param fileCreationTime Creation time for the file/directory. Default value: Now.
+     * @param fileLastWriteTime Last write time for the file/directory. Default value: Now.
+     * @param fileChangeTime Change time for the file/directory. Default value: Now.
+     * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param owner Optional, NFS only. The owner of the file or directory.
+     * @param group Optional, NFS only. The owning group of the file or directory.
+     * @param fileMode Optional, NFS only. The file mode of the file or directory.
+     * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
+     * @param shareFileHttpHeaders Parameter group.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return A {@link Mono} that completes when a successful response is received.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<Void> createAsync(String shareName, String fileName, long fileContentLength, Integer timeout,
+        Map<String, String> metadata, String filePermission, FilePermissionFormat filePermissionFormat,
+        String filePermissionKey, String fileAttributes, String fileCreationTime, String fileLastWriteTime,
+        String fileChangeTime, String leaseId, String owner, String group, String fileMode, NfsFileType nfsFileType,
+        byte[] contentMD5, FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders) {
+        return createWithResponseAsync(shareName, fileName, fileContentLength, timeout, metadata, filePermission,
+            filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
+            fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, contentMD5, filePropertySemantics,
+            contentLength, structuredBodyType, structuredContentLength, optionalbody, shareFileHttpHeaders)
+                .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException)
+                .flatMap(ignored -> Mono.empty());
+    }
+
+    /**
+     * Creates a new file or replaces a file. Can also initialize the file with content.
+     *
+     * @param shareName The name of the target share.
+     * @param fileName The path of the target file.
+     * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
+     * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
+     * Timeouts for File Service Operations.&lt;/a&gt;.
+     * @param metadata A name-value pair to associate with a file storage object.
+     * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
+     * header can be used if Permission size is &lt;= 8KB, else x-ms-file-permission-key header shall be used. Default
+     * value: Inherit. If SDDL is specified as input, it must have owner, group and dacl. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param filePermissionFormat Optional. Available for version 2023-06-01 and later. Specifies the format in which
+     * the permission is returned. Acceptable values are SDDL or binary. If x-ms-file-permission-format is unspecified
+     * or explicitly set to SDDL, the permission is returned in SDDL format. If x-ms-file-permission-format is
+     * explicitly set to binary, the permission is returned as a base64 string representing the binary encoding of the
+     * permission.
+     * @param filePermissionKey Key of the permission to be set for the directory/file. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param fileAttributes If specified, the provided file attributes shall be set. Default value: ‘Archive’ for file
+     * and ‘Directory’ for directory. ‘None’ can also be specified as default.
+     * @param fileCreationTime Creation time for the file/directory. Default value: Now.
+     * @param fileLastWriteTime Last write time for the file/directory. Default value: Now.
+     * @param fileChangeTime Change time for the file/directory. Default value: Now.
+     * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param owner Optional, NFS only. The owner of the file or directory.
+     * @param group Optional, NFS only. The owning group of the file or directory.
+     * @param fileMode Optional, NFS only. The file mode of the file or directory.
+     * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
+     * @param shareFileHttpHeaders Parameter group.
+     * @param context The context to associate with this operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return A {@link Mono} that completes when a successful response is received.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<Void> createAsync(String shareName, String fileName, long fileContentLength, Integer timeout,
+        Map<String, String> metadata, String filePermission, FilePermissionFormat filePermissionFormat,
+        String filePermissionKey, String fileAttributes, String fileCreationTime, String fileLastWriteTime,
+        String fileChangeTime, String leaseId, String owner, String group, String fileMode, NfsFileType nfsFileType,
+        byte[] contentMD5, FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders,
+        Context context) {
+        return createWithResponseAsync(shareName, fileName, fileContentLength, timeout, metadata, filePermission,
+            filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
+            fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, contentMD5, filePropertySemantics,
+            contentLength, structuredBodyType, structuredContentLength, optionalbody, shareFileHttpHeaders, context)
+                .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException)
+                .flatMap(ignored -> Mono.empty());
+    }
+
+    /**
+     * Creates a new file or replaces a file. Can also initialize the file with content.
+     *
+     * @param shareName The name of the target share.
+     * @param fileName The path of the target file.
+     * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
+     * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
+     * Timeouts for File Service Operations.&lt;/a&gt;.
+     * @param metadata A name-value pair to associate with a file storage object.
+     * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
+     * header can be used if Permission size is &lt;= 8KB, else x-ms-file-permission-key header shall be used. Default
+     * value: Inherit. If SDDL is specified as input, it must have owner, group and dacl. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param filePermissionFormat Optional. Available for version 2023-06-01 and later. Specifies the format in which
+     * the permission is returned. Acceptable values are SDDL or binary. If x-ms-file-permission-format is unspecified
+     * or explicitly set to SDDL, the permission is returned in SDDL format. If x-ms-file-permission-format is
+     * explicitly set to binary, the permission is returned as a base64 string representing the binary encoding of the
+     * permission.
+     * @param filePermissionKey Key of the permission to be set for the directory/file. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param fileAttributes If specified, the provided file attributes shall be set. Default value: ‘Archive’ for file
+     * and ‘Directory’ for directory. ‘None’ can also be specified as default.
+     * @param fileCreationTime Creation time for the file/directory. Default value: Now.
+     * @param fileLastWriteTime Last write time for the file/directory. Default value: Now.
+     * @param fileChangeTime Change time for the file/directory. Default value: Now.
+     * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param owner Optional, NFS only. The owner of the file or directory.
+     * @param group Optional, NFS only. The owning group of the file or directory.
+     * @param fileMode Optional, NFS only. The file mode of the file or directory.
+     * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
+     * @param shareFileHttpHeaders Parameter group.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return the {@link Response} on successful completion of {@link Mono}.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<Response<Void>> createNoCustomHeadersWithResponseAsync(String shareName, String fileName,
+        long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
+        FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
+        String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders) {
+        return FluxUtil
+            .withContext(context -> createNoCustomHeadersWithResponseAsync(shareName, fileName, fileContentLength,
+                timeout, metadata, filePermission, filePermissionFormat, filePermissionKey, fileAttributes,
+                fileCreationTime, fileLastWriteTime, fileChangeTime, leaseId, owner, group, fileMode, nfsFileType,
+                contentMD5, filePropertySemantics, contentLength, structuredBodyType, structuredContentLength,
+                optionalbody, shareFileHttpHeaders, context))
+            .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
+    }
+
+    /**
+     * Creates a new file or replaces a file. Can also initialize the file with content.
+     *
+     * @param shareName The name of the target share.
+     * @param fileName The path of the target file.
+     * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
+     * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
+     * Timeouts for File Service Operations.&lt;/a&gt;.
+     * @param metadata A name-value pair to associate with a file storage object.
+     * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
+     * header can be used if Permission size is &lt;= 8KB, else x-ms-file-permission-key header shall be used. Default
+     * value: Inherit. If SDDL is specified as input, it must have owner, group and dacl. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param filePermissionFormat Optional. Available for version 2023-06-01 and later. Specifies the format in which
+     * the permission is returned. Acceptable values are SDDL or binary. If x-ms-file-permission-format is unspecified
+     * or explicitly set to SDDL, the permission is returned in SDDL format. If x-ms-file-permission-format is
+     * explicitly set to binary, the permission is returned as a base64 string representing the binary encoding of the
+     * permission.
+     * @param filePermissionKey Key of the permission to be set for the directory/file. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param fileAttributes If specified, the provided file attributes shall be set. Default value: ‘Archive’ for file
+     * and ‘Directory’ for directory. ‘None’ can also be specified as default.
+     * @param fileCreationTime Creation time for the file/directory. Default value: Now.
+     * @param fileLastWriteTime Last write time for the file/directory. Default value: Now.
+     * @param fileChangeTime Change time for the file/directory. Default value: Now.
+     * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param owner Optional, NFS only. The owner of the file or directory.
+     * @param group Optional, NFS only. The owning group of the file or directory.
+     * @param fileMode Optional, NFS only. The file mode of the file or directory.
+     * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
+     * @param shareFileHttpHeaders Parameter group.
+     * @param context The context to associate with this operation.
+     * @throws IllegalArgumentException thrown if parameters fail the validation.
+     * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
+     * @throws RuntimeException all other wrapped checked exceptions if the request fails to be sent.
+     * @return the {@link Response} on successful completion of {@link Mono}.
+     */
+    @ServiceMethod(returns = ReturnType.SINGLE)
+    public Mono<Response<Void>> createNoCustomHeadersWithResponseAsync(String shareName, String fileName,
+        long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
+        FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
+        String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders,
+        Context context) {
+        final String fileTypeConstant = "file";
+        final String accept = "application/xml";
+        String contentTypeInternal = null;
+        if (shareFileHttpHeaders != null) {
+            contentTypeInternal = shareFileHttpHeaders.getContentType();
+        }
+        String contentType = contentTypeInternal;
+        String contentEncodingInternal = null;
+        if (shareFileHttpHeaders != null) {
+            contentEncodingInternal = shareFileHttpHeaders.getContentEncoding();
+        }
+        String contentEncoding = contentEncodingInternal;
+        String contentLanguageInternal = null;
+        if (shareFileHttpHeaders != null) {
+            contentLanguageInternal = shareFileHttpHeaders.getContentLanguage();
+        }
+        String contentLanguage = contentLanguageInternal;
+        String cacheControlInternal = null;
+        if (shareFileHttpHeaders != null) {
+            cacheControlInternal = shareFileHttpHeaders.getCacheControl();
+        }
+        String cacheControl = cacheControlInternal;
+        byte[] contentMd5Internal = null;
+        if (shareFileHttpHeaders != null) {
+            contentMd5Internal = shareFileHttpHeaders.getContentMd5();
+        }
+        byte[] contentMd5 = contentMd5Internal;
+        String contentDispositionInternal = null;
+        if (shareFileHttpHeaders != null) {
+            contentDispositionInternal = shareFileHttpHeaders.getContentDisposition();
+        }
+        String contentDisposition = contentDispositionInternal;
+        String contentMd5Converted = Base64Util.encodeToString(contentMd5);
+        String contentMD5Converted = Base64Util.encodeToString(contentMD5);
+        return service
+            .createNoCustomHeaders(this.client.getUrl(), shareName, fileName, this.client.isAllowTrailingDot(), timeout,
+                this.client.getVersion(), fileContentLength, fileTypeConstant, contentType, contentEncoding,
+                contentLanguage, cacheControl, contentMd5Converted, contentDisposition, metadata, filePermission,
+                filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
+                fileChangeTime, leaseId, this.client.getFileRequestIntent(), owner, group, fileMode, nfsFileType,
+                contentMD5Converted, filePropertySemantics, contentLength, structuredBodyType, structuredContentLength,
+                optionalbody, accept, context)
+            .onErrorMap(ShareStorageExceptionInternal.class, ModelHelper::mapToShareStorageException);
+    }
+
+    /**
+     * Creates a new file or replaces a file. Can also initialize the file with content.
+     *
+     * @param shareName The name of the target share.
+     * @param fileName The path of the target file.
+     * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
+     * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
+     * Timeouts for File Service Operations.&lt;/a&gt;.
+     * @param metadata A name-value pair to associate with a file storage object.
+     * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
+     * header can be used if Permission size is &lt;= 8KB, else x-ms-file-permission-key header shall be used. Default
+     * value: Inherit. If SDDL is specified as input, it must have owner, group and dacl. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param filePermissionFormat Optional. Available for version 2023-06-01 and later. Specifies the format in which
+     * the permission is returned. Acceptable values are SDDL or binary. If x-ms-file-permission-format is unspecified
+     * or explicitly set to SDDL, the permission is returned in SDDL format. If x-ms-file-permission-format is
+     * explicitly set to binary, the permission is returned as a base64 string representing the binary encoding of the
+     * permission.
+     * @param filePermissionKey Key of the permission to be set for the directory/file. Note: Only one of the
+     * x-ms-file-permission or x-ms-file-permission-key should be specified.
+     * @param fileAttributes If specified, the provided file attributes shall be set. Default value: ‘Archive’ for file
+     * and ‘Directory’ for directory. ‘None’ can also be specified as default.
+     * @param fileCreationTime Creation time for the file/directory. Default value: Now.
+     * @param fileLastWriteTime Last write time for the file/directory. Default value: Now.
+     * @param fileChangeTime Change time for the file/directory. Default value: Now.
+     * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
+     * @param owner Optional, NFS only. The owner of the file or directory.
+     * @param group Optional, NFS only. The owning group of the file or directory.
+     * @param fileMode Optional, NFS only. The file mode of the file or directory.
+     * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -1846,7 +2534,9 @@ public final class FilesImpl {
         long fileContentLength, Integer timeout, Map<String, String> metadata, String filePermission,
         FilePermissionFormat filePermissionFormat, String filePermissionKey, String fileAttributes,
         String fileCreationTime, String fileLastWriteTime, String fileChangeTime, String leaseId, String owner,
-        String group, String fileMode, NfsFileType nfsFileType, ShareFileHttpHeaders shareFileHttpHeaders,
+        String group, String fileMode, NfsFileType nfsFileType, byte[] contentMD5,
+        FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders,
         Context context) {
         try {
             final String fileTypeConstant = "file";
@@ -1882,25 +2572,27 @@ public final class FilesImpl {
             }
             String contentDisposition = contentDispositionInternal;
             String contentMd5Converted = Base64Util.encodeToString(contentMd5);
+            String contentMD5Converted = Base64Util.encodeToString(contentMD5);
             return service.createSync(this.client.getUrl(), shareName, fileName, this.client.isAllowTrailingDot(),
                 timeout, this.client.getVersion(), fileContentLength, fileTypeConstant, contentType, contentEncoding,
                 contentLanguage, cacheControl, contentMd5Converted, contentDisposition, metadata, filePermission,
                 filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
                 fileChangeTime, leaseId, this.client.getFileRequestIntent(), owner, group, fileMode, nfsFileType,
-                accept, context);
+                contentMD5Converted, filePropertySemantics, contentLength, structuredBodyType, structuredContentLength,
+                optionalbody, accept, context);
         } catch (ShareStorageExceptionInternal internalException) {
             throw ModelHelper.mapToShareStorageException(internalException);
         }
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1924,6 +2616,20 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @throws ShareStorageExceptionInternal thrown if the request is rejected by server.
@@ -1934,20 +2640,23 @@ public final class FilesImpl {
         Map<String, String> metadata, String filePermission, FilePermissionFormat filePermissionFormat,
         String filePermissionKey, String fileAttributes, String fileCreationTime, String fileLastWriteTime,
         String fileChangeTime, String leaseId, String owner, String group, String fileMode, NfsFileType nfsFileType,
-        ShareFileHttpHeaders shareFileHttpHeaders) {
+        byte[] contentMD5, FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders) {
         createWithResponse(shareName, fileName, fileContentLength, timeout, metadata, filePermission,
             filePermissionFormat, filePermissionKey, fileAttributes, fileCreationTime, fileLastWriteTime,
-            fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, shareFileHttpHeaders, Context.NONE);
+            fileChangeTime, leaseId, owner, group, fileMode, nfsFileType, contentMD5, filePropertySemantics,
+            contentLength, structuredBodyType, structuredContentLength, optionalbody, shareFileHttpHeaders,
+            Context.NONE);
     }
 
     /**
-     * Creates a new file or replaces a file. Note it only initializes the file with no content.
+     * Creates a new file or replaces a file. Can also initialize the file with content.
      *
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param fileContentLength Specifies the maximum size for the file, up to 4 TB.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -1971,6 +2680,20 @@ public final class FilesImpl {
      * @param group Optional, NFS only. The owning group of the file or directory.
      * @param fileMode Optional, NFS only. The file mode of the file or directory.
      * @param nfsFileType Optional, NFS only. Type of the file or directory.
+     * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
+     * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
+     * arrived with the header value that was sent. If the two hashes do not match, the operation will fail with error
+     * code 400 (Bad Request).
+     * @param filePropertySemantics SMB only, default value is New. New will forcefully add the ARCHIVE attribute flag
+     * and alter the permissions specified in x-ms-file-permission to inherit missing permissions from the parent.
+     * Restore will apply changes without further modification.
+     * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
+     * header is set to clear, the value of this header must be set to zero.
+     * @param structuredBodyType Required if the request body is a structured message. Specifies the message schema
+     * version and properties.
+     * @param structuredContentLength Required if the request body is a structured message. Specifies the length of the
+     * blob/file content inside the message body. Will always be smaller than Content-Length.
+     * @param optionalbody Initial data.
      * @param shareFileHttpHeaders Parameter group.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -1983,7 +2706,9 @@ public final class FilesImpl {
         Integer timeout, Map<String, String> metadata, String filePermission, FilePermissionFormat filePermissionFormat,
         String filePermissionKey, String fileAttributes, String fileCreationTime, String fileLastWriteTime,
         String fileChangeTime, String leaseId, String owner, String group, String fileMode, NfsFileType nfsFileType,
-        ShareFileHttpHeaders shareFileHttpHeaders, Context context) {
+        byte[] contentMD5, FilePropertySemantics filePropertySemantics, Long contentLength, String structuredBodyType,
+        Long structuredContentLength, BinaryData optionalbody, ShareFileHttpHeaders shareFileHttpHeaders,
+        Context context) {
         try {
             final String fileTypeConstant = "file";
             final String accept = "application/xml";
@@ -2018,12 +2743,14 @@ public final class FilesImpl {
             }
             String contentDisposition = contentDispositionInternal;
             String contentMd5Converted = Base64Util.encodeToString(contentMd5);
+            String contentMD5Converted = Base64Util.encodeToString(contentMD5);
             return service.createNoCustomHeadersSync(this.client.getUrl(), shareName, fileName,
                 this.client.isAllowTrailingDot(), timeout, this.client.getVersion(), fileContentLength,
                 fileTypeConstant, contentType, contentEncoding, contentLanguage, cacheControl, contentMd5Converted,
                 contentDisposition, metadata, filePermission, filePermissionFormat, filePermissionKey, fileAttributes,
                 fileCreationTime, fileLastWriteTime, fileChangeTime, leaseId, this.client.getFileRequestIntent(), owner,
-                group, fileMode, nfsFileType, accept, context);
+                group, fileMode, nfsFileType, contentMD5Converted, filePropertySemantics, contentLength,
+                structuredBodyType, structuredContentLength, optionalbody, accept, context);
         } catch (ShareStorageExceptionInternal internalException) {
             throw ModelHelper.mapToShareStorageException(internalException);
         }
@@ -2035,7 +2762,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2064,7 +2791,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2096,7 +2823,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2123,7 +2850,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2151,7 +2878,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2179,7 +2906,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2211,7 +2938,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2245,7 +2972,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2275,7 +3002,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Return file data only from the specified byte range.
      * @param rangeGetContentMD5 When this header is set to true and specified together with the Range header, the
@@ -2311,7 +3038,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -2336,7 +3063,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2364,7 +3091,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -2389,7 +3116,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2415,7 +3142,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -2441,7 +3168,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2470,7 +3197,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2501,7 +3228,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -2523,7 +3250,7 @@ public final class FilesImpl {
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2551,7 +3278,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -2572,7 +3299,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2597,7 +3324,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -2618,7 +3345,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2640,7 +3367,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -2663,7 +3390,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2688,7 +3415,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2715,7 +3442,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -2733,7 +3460,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -2761,7 +3488,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -2810,7 +3537,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -2895,7 +3622,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -2943,7 +3670,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -2992,7 +3719,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -3042,7 +3769,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -3128,7 +3855,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -3216,7 +3943,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -3261,7 +3988,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param fileContentLength Resizes a file to the specified size. If the specified byte value is less than the
      * current size of the file, then all ranges above the specified byte value are cleared.
@@ -3360,7 +4087,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3407,7 +4134,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3459,7 +4186,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3505,7 +4232,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3552,7 +4279,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3599,7 +4326,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3651,7 +4378,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3698,7 +4425,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3750,7 +4477,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3796,7 +4523,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3843,7 +4570,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3890,7 +4617,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3942,7 +4669,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -3996,7 +4723,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -4038,7 +4765,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param contentMD5 An MD5 hash of the content. This hash is used to verify the integrity of the data during
      * transport. When the Content-MD5 header is specified, the File service compares the hash of the content that has
@@ -4081,7 +4808,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4105,7 +4832,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4132,7 +4859,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4155,7 +4882,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4179,7 +4906,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4203,7 +4930,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4231,7 +4958,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4261,7 +4988,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4281,7 +5008,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -4311,7 +5038,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4341,7 +5068,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4376,7 +5103,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4405,7 +5132,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4435,7 +5162,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4465,7 +5192,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4500,7 +5227,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4537,7 +5264,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4563,7 +5290,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param duration Specifies the duration of the lease, in seconds, or negative one (-1) for a lease that never
      * expires. A non-infinite lease can be between 15 and 60 seconds. A lease duration cannot be changed using renew or
@@ -4601,7 +5328,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4626,7 +5353,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4656,7 +5383,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4680,7 +5407,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4705,7 +5432,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4730,7 +5457,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4760,7 +5487,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4792,7 +5519,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4812,7 +5539,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -4844,7 +5571,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -4872,7 +5599,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -4905,7 +5632,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -4932,7 +5659,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -4960,7 +5687,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -4988,7 +5715,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -5021,7 +5748,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -5056,7 +5783,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -5080,7 +5807,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param leaseId Specifies the current lease ID on the resource.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param proposedLeaseId Proposed lease ID, in a GUID string format. The File service returns 400 (Invalid request)
      * if the proposed lease ID is not in the correct format. See Guid Constructor (String) for a list of valid GUID
@@ -5114,7 +5841,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5139,7 +5866,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5169,7 +5896,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5193,7 +5920,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5218,7 +5945,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5243,7 +5970,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5273,7 +6000,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5305,7 +6032,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5325,7 +6052,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
@@ -5366,7 +6093,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5408,7 +6135,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5470,7 +6197,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5512,7 +6239,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5555,7 +6282,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5597,7 +6324,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5659,7 +6386,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5723,7 +6450,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5762,7 +6489,7 @@ public final class FilesImpl {
      * @param contentLength Specifies the number of bytes being transmitted in the request body. When the x-ms-write
      * header is set to clear, the value of this header must be set to zero.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sourceRange Bytes of source data in the specified range.
      * @param sourceContentCrc64 Specify the crc64 calculated for the range of bytes that must be read from the copy
@@ -5821,7 +6548,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -5855,7 +6582,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -5893,7 +6620,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -5926,7 +6653,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -5961,7 +6688,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -5995,7 +6722,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -6033,7 +6760,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -6073,7 +6800,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -6108,7 +6835,7 @@ public final class FilesImpl {
      * @param prevsharesnapshot The previous snapshot parameter is an opaque DateTime value that, when present,
      * specifies the previous snapshot.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param range Specifies the range of bytes over which to list ranges, inclusively.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
@@ -6150,7 +6877,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6206,7 +6933,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6302,7 +7029,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6357,7 +7084,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6414,7 +7141,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6470,7 +7197,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6566,7 +7293,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6664,7 +7391,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6716,7 +7443,7 @@ public final class FilesImpl {
      * source is a public blob, no authentication is required to perform the copy operation. A file in a share snapshot
      * can also be specified as a copy source.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param filePermission If specified the permission (security descriptor) shall be set for the directory/file. This
@@ -6809,7 +7536,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -6832,7 +7559,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -6861,7 +7588,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -6884,7 +7611,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -6908,7 +7635,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -6932,7 +7659,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -6961,7 +7688,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -6992,7 +7719,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
@@ -7011,7 +7738,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param copyId The copy identifier provided in the x-ms-copy-id header of the original Copy File operation.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param leaseId If specified, the operation only succeeds if the resource's lease is active and matches this ID.
      * @param context The context to associate with this operation.
@@ -7047,7 +7774,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7077,7 +7804,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7112,7 +7839,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7141,7 +7868,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7171,7 +7898,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7201,7 +7928,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7235,7 +7962,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7271,7 +7998,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7303,7 +8030,7 @@ public final class FilesImpl {
      * @param maxresults Specifies the maximum number of entries to return. If the request does not specify maxresults,
      * or specifies a value greater than 5,000, the server will return up to 5,000 items.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -7335,7 +8062,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7365,7 +8092,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7399,7 +8126,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7428,7 +8155,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7458,7 +8185,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7488,7 +8215,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7522,7 +8249,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7558,7 +8285,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7584,7 +8311,7 @@ public final class FilesImpl {
      * @param handleId Specifies handle ID opened on the file or directory to be closed. Asterisk (‘*’) is a wildcard
      * that specifies all handles.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param marker A string value that identifies the portion of the list to be returned with the next list operation.
      * The operation returns a marker value within the response body if the list returned was not complete. The marker
@@ -7619,7 +8346,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -7670,7 +8397,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -7762,7 +8489,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -7814,7 +8541,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -7867,7 +8594,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -7918,7 +8645,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -8010,7 +8737,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -8104,7 +8831,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -8152,7 +8879,7 @@ public final class FilesImpl {
      * @param fileName The path of the target file.
      * @param renameSource Required. Specifies the URI-style path of the source file, up to 2 KB in length.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param replaceIfExists Optional. A boolean value for if the destination file already exists, whether this request
      * will overwrite the file or not. If true, the rename will succeed and will overwrite the destination file. If not
@@ -8248,7 +8975,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8283,7 +9010,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8322,7 +9049,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8356,7 +9083,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8391,7 +9118,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8425,7 +9152,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8463,7 +9190,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8503,7 +9230,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8534,7 +9261,7 @@ public final class FilesImpl {
      * of type string which is not resolved and is stored as is. The path can be absolute path or the relative path
      * depending on the content stored in the symbolic link file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param fileCreationTime Creation time for the file/directory. Default value: Now.
@@ -8571,7 +9298,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8597,7 +9324,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8626,7 +9353,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8651,7 +9378,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8677,7 +9404,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8703,7 +9430,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8732,7 +9459,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8764,7 +9491,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8786,7 +9513,7 @@ public final class FilesImpl {
      * @param shareName The name of the target share.
      * @param fileName The path of the target file.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param sharesnapshot The snapshot parameter is an opaque DateTime value that, when present, specifies the share
      * snapshot to query.
@@ -8821,7 +9548,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -8849,7 +9576,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -8881,7 +9608,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -8908,7 +9635,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -8936,7 +9663,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -8964,7 +9691,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -8997,7 +9724,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9032,7 +9759,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.
@@ -9056,7 +9783,7 @@ public final class FilesImpl {
      * to 2 KiB in length. It should be full path of the target from the root.The target file must be in the same share
      * and hence the same storage account.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a
-     * href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting
+     * href="https://learn.microsoft.com/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations"&gt;Setting
      * Timeouts for File Service Operations.&lt;/a&gt;.
      * @param requestId Provides a client-generated, opaque value with a 1 KB character limit that is recorded in the
      * analytics logs when storage analytics logging is enabled.

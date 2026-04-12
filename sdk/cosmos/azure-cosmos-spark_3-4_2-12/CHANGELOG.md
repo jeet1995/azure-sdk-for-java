@@ -1,6 +1,6 @@
 ## Release History
 
-### 4.38.0-beta.1 (Unreleased)
+### 4.47.0-beta.1 (Unreleased)
 
 #### Features Added
 
@@ -9,6 +9,87 @@
 #### Bugs Fixed
 
 #### Other Changes
+
+### 4.46.0 (2026-03-27)
+
+#### Bugs Fixed
+* Fixed an issue where creating containers with hierarchical partition keys (multi-hash) through the Spark catalog on the AAD path would fail. - See [PR 48548](https://github.com/Azure/azure-sdk-for-java/pull/48548)
+
+### 4.45.0 (2026-03-13)
+
+#### Features Added
+* Added `vectorEmbeddingPolicy` support in Spark catalog `TBLPROPERTIES` for creating vector-search-enabled containers. - See [PR 48349](https://github.com/Azure/azure-sdk-for-java/pull/48349)
+
+### 4.44.2 (2026-03-05)
+
+#### Other Changes
+* Changed azure-resourcemanager-cosmos usage to a pinned version which is deployed across all public and non-public clouds - [PR 48268](https://github.com/Azure/azure-sdk-for-java/pull/48268)
+
+### 4.44.1 (2026-03-03)
+
+#### Other Changes
+* Reduced noisy warning logs in Gateway mode - [PR 48189](https://github.com/Azure/azure-sdk-for-java/pull/48189)
+
+### 4.44.0 (2026-02-27)
+
+#### Features Added
+* Added config entry `spark.cosmos.account.azureEnvironment.management.scope` to allow specifying the Entra ID scope/audience to be used when retrieving tokens to authenticate against the ARM/management endpoint of non-public clouds. - See [PR 48137](https://github.com/Azure/azure-sdk-for-java/pull/48137)
+
+### 4.43.1 (2026-02-25)
+
+#### Bugs Fixed
+* Fixed an issue where `TransientIOErrorsRetryingIterator` would trigger extra query during retries and on close. - See [PR 47996](https://github.com/Azure/azure-sdk-for-java/pull/47996)
+
+#### Other Changes
+* Added status code history in `BulkWriterNoProgressException` error message. - See [PR 48022](https://github.com/Azure/azure-sdk-for-java/pull/48022)
+* Reduced the log noise level for frequent transient errors - for example throttling - in Gateway mode - [PR 48112](https://github.com/Azure/azure-sdk-for-java/pull/48112)
+
+### 4.43.0 (2026-02-10)
+
+#### Features Added
+* Added support for throughput bucket. - See [47856](https://github.com/Azure/azure-sdk-for-java/pull/47856)
+
+#### Bugs Fixed
+* Fixed an issue for micro batch stream query where feed range starts with null or incorrect initial offset. **NOTE:** This issue only happens when a partition split happened during initial offset calculation stage. - See [47742](https://github.com/Azure/azure-sdk-for-java/pull/47742)
+* Fixed `java.lang.ClassCastException` during bulk write operations for write strategy `ItemPatch` or `ItemPatchIfExists`. - See [47748](https://github.com/Azure/azure-sdk-for-java/pull/47748)
+
+### 4.42.0 (2025-12-09)
+
+#### Other Changes
+* Enabled hostname validation for RNTBD connections to backend - [PR 47111](https://github.com/Azure/azure-sdk-for-java/pull/47111)
+
+### 4.41.0 (2025-10-21)
+
+#### Features Added
+* Added support `spark.cosmos.write.strategy` value `ItemPatchIfExists` which allows gracefully ignoring documents/patch-instructions when the document does not exist (anymore). - See [47034](https://github.com/Azure/azure-sdk-for-java/pull/47034)
+* Added support to optionally omit info about spark environment and/or machine-info for driver/executors from `UserAgent` header via new config `spark.cosmos.userAgent.format` (allowed values are `SparkEnvAndWorkers` (default value), `OnlySparkEnv` and `NoSparkEnv`.  - See [47047](https://github.com/Azure/azure-sdk-for-java/pull/47047)
+
+### 4.40.0 (2025-09-27)
+
+#### Features Added
+* Added support for feed range cache refresh interval config. - See [46759](https://github.com/Azure/azure-sdk-for-java/pull/46759)
+
+#### Other Changes
+* Added improvement to reduce partition planning time for large containers. - See [46727](https://github.com/Azure/azure-sdk-for-java/pull/46727)
+
+### 4.39.0 (2025-09-05)
+
+#### Bugs Fixed
+* Reverted known issue due to shading log4j (which was introduced in 4.38.1). - See [PR 46546](https://github.com/Azure/azure-sdk-for-java/pull/46546) and [PR 46608](https://github.com/Azure/azure-sdk-for-java/pull/46608)
+* Added change feed performance monitoring which is used to improve end lsn calculation in `CosmosPartitionPlanner`. - See [PR 46320](https://github.com/Azure/azure-sdk-for-java/pull/46320)
+* Added `spark.cosmos.auth.aad.audience` as a valid configuration option to allow using AAD tokens with custom audiences. - See [PR 46554](https://github.com/Azure/azure-sdk-for-java/pull/46554)
+
+### 4.38.1 (2025-08-22)
+
+**NOTE: This version has a known issue due to shading log4j - Please use more recent versions >= 4.38.2 or 4.38.0 instead**
+
+#### Other Changes
+* Added log4j-core to the list of shaded packages to avoid conflicts when customers use log4j in a different version. **NOTE: This change caused known issue - Please use a more recent version instead** - See [PR 45924](https://github.com/Azure/azure-sdk-for-java/pull/46451)
+
+### 4.38.0 (2025-07-31)
+
+#### Features Added
+* Added telemetry support by adding OTEL span attribute naming schemes, introducing Azure Monitor integration, and sampled diagnostics. - See [PR 45924](https://github.com/Azure/azure-sdk-for-java/pull/45924)
 
 ### 4.37.2 (2025-05-14)
 
@@ -35,6 +116,8 @@
 * Fixed an issue in change feed where under certain rare race conditions records could be skipped and excessive requests are prefetched. - See [PR 43788](https://github.com/Azure/azure-sdk-for-java/pull/43788)
 
 ### 4.36.0 (2025-01-14)
+> [!IMPORTANT]
+> We strongly recommend our customers to use version 4.36.0 and above especially if using all versions and deletes change feed.
 
 #### Features Added
 * Added the udfs `GetFeedRangesForContainer` and `GetOverlappingFeedRange` to ease mapping of cosmos partition key to databricks table partition key. - See [PR 43092](https://github.com/Azure/azure-sdk-for-java/pull/43092)
@@ -51,8 +134,6 @@
 * Fixed an issue when using `ChangeFeed` causing some cosmos partitions to not be fully processed in some cases. - See [PR 42553](https://github.com/Azure/azure-sdk-for-java/pull/42553)
 
 ### 4.34.0 (2024-10-10)
-> [!IMPORTANT]
-> We strongly recommend our customers to use version 4.34.0 and above.
 #### Bugs Fixed
 * Fixed an issue to avoid transient `IllegalArgumentException` due to duplicate json properties for the `uniqueKeyPolicy` property in `DocumentCollection`. - See [PR 41608](https://github.com/Azure/azure-sdk-for-java/pull/41608) and [PR 42244](https://github.com/Azure/azure-sdk-for-java/pull/42244)
 

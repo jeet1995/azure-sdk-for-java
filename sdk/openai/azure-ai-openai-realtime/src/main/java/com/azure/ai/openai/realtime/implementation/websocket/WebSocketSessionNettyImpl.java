@@ -5,6 +5,7 @@ package com.azure.ai.openai.realtime.implementation.websocket;
 
 import com.azure.ai.openai.realtime.models.ConnectFailedException;
 import com.azure.ai.openai.realtime.models.RealtimeClientEvent;
+import com.azure.core.util.Configuration;
 import com.azure.core.util.logging.ClientLogger;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -29,7 +30,6 @@ import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketClientCompressionHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
 
 import javax.net.ssl.SSLException;
@@ -43,7 +43,7 @@ import java.util.function.Supplier;
 
 final class WebSocketSessionNettyImpl implements WebSocketSession {
 
-    private static final int MAX_FRAME_SIZE = 65536;
+    private static final int MAX_FRAME_SIZE = Configuration.getGlobalConfiguration().get("AZURE_MAX_FRAME_SIZE", 65536);
 
     private static final ClientLogger LOGGER = new ClientLogger(WebSocketSessionNettyImpl.class);
     private final MessageEncoder messageEncoder;
@@ -126,7 +126,7 @@ final class WebSocketSessionNettyImpl implements WebSocketSession {
         final boolean ssl = "wss".equalsIgnoreCase(scheme);
         final SslContext sslCtx;
         if (ssl) {
-            sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            sslCtx = SslContextBuilder.forClient().endpointIdentificationAlgorithm("HTTPS").build();
         } else {
             sslCtx = null;
         }

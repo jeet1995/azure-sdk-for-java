@@ -49,6 +49,7 @@ import com.azure.storage.common.test.shared.TestHttpClientType;
 import com.azure.storage.common.test.shared.extensions.LiveOnly;
 import com.azure.storage.common.test.shared.extensions.PlaybackOnly;
 import com.azure.storage.common.test.shared.extensions.RequiredServiceVersion;
+import com.azure.storage.common.test.shared.policy.InvalidServiceVersionPipelinePolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.azure.storage.common.implementation.StorageImplUtils.INVALID_VERSION_HEADER_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -908,6 +910,41 @@ public class ContainerApiTests extends BlobTestBase {
 
         assertEquals(normalName, blobs.next().getName());
         assertFalse(blobs.hasNext()); // Normal
+    }
+
+    @Test
+    public void listBlobsFlatOptionsStartsFrom() {
+        String blob1 = "a" + generateBlobName();
+        String blob2 = "b" + generateBlobName();
+        String blob3 = "c" + generateBlobName();
+        cc.getBlobClient(blob1).getBlockBlobClient().upload(DATA.getDefaultInputStream(), 7);
+        cc.getBlobClient(blob2).getBlockBlobClient().upload(DATA.getDefaultInputStream(), 7);
+        cc.getBlobClient(blob3).getBlockBlobClient().upload(DATA.getDefaultInputStream(), 7);
+
+        ListBlobsOptions options = new ListBlobsOptions().setStartFrom(blob2);
+        Iterator<BlobItem> blobs = cc.listBlobs(options, null).iterator();
+
+        assertEquals(blob2, blobs.next().getName());
+        assertEquals(blob3, blobs.next().getName());
+        assertFalse(blobs.hasNext());
+    }
+
+    @Test
+    public void listBlobsByHierarchyOptionsStartsFrom() {
+        String blob1 = "a" + generateBlobName();
+        String blob2 = "b" + generateBlobName();
+        String blob3 = "c" + generateBlobName();
+
+        cc.getBlobClient(blob1).getBlockBlobClient().upload(DATA.getDefaultInputStream(), 7);
+        cc.getBlobClient(blob2).getBlockBlobClient().upload(DATA.getDefaultInputStream(), 7);
+        cc.getBlobClient(blob3).getBlockBlobClient().upload(DATA.getDefaultInputStream(), 7);
+
+        ListBlobsOptions options = new ListBlobsOptions().setStartFrom(blob2);
+        Iterator<BlobItem> blobs = cc.listBlobsByHierarchy("/", options, null).iterator();
+
+        assertEquals(blob2, blobs.next().getName());
+        assertEquals(blob3, blobs.next().getName());
+        assertFalse(blobs.hasNext());
     }
 
     @Test
@@ -1951,6 +1988,31 @@ public class ContainerApiTests extends BlobTestBase {
         }
         cc = serviceClient.getBlobContainerClient(containerName);
         assertDoesNotThrow(() -> cc.getAccountInfo(null));
+    }
+
+    @Test
+    public void invalidServiceVersion() {
+        BlobServiceClient serviceClient
+            = instrument(new BlobServiceClientBuilder().endpoint(ENVIRONMENT.getPrimaryAccount().getBlobEndpoint())
+                .credential(ENVIRONMENT.getPrimaryAccount().getCredential())
+                .addPolicy(new InvalidServiceVersionPipelinePolicy())).buildClient();
+
+        BlobContainerClient containerClient = serviceClient.getBlobContainerClient(generateContainerName());
+
+        BlobStorageException exception = assertThrows(BlobStorageException.class, containerClient::createIfNotExists);
+
+        assertEquals(400, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains(INVALID_VERSION_HEADER_MESSAGE));
+    }
+
+    // Tests that the container name is URL encoded. Container names with special characters are not supported
+    // by the service, however, the names should still be encoded.
+    @Test
+    public void getBlobContainerUrlEncodesContainerName() {
+        String containerName = "my container";
+        BlobContainerClient containerClient = primaryBlobServiceClient.getBlobContainerClient(containerName);
+
+        assertTrue(containerClient.getBlobContainerUrl().contains("my%20container"));
     }
 
     // TODO: Reintroduce these tests once service starts supporting it.

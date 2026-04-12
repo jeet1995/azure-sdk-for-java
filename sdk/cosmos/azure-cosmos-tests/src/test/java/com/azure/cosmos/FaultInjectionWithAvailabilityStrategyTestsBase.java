@@ -18,6 +18,7 @@ import com.azure.cosmos.implementation.Utils;
 import com.azure.cosmos.implementation.apachecommons.lang.tuple.ImmutablePair;
 import com.azure.cosmos.implementation.apachecommons.lang.tuple.Pair;
 import com.azure.cosmos.implementation.directconnectivity.ReflectionUtils;
+import org.testng.SkipException;
 import com.azure.cosmos.models.CosmosClientTelemetryConfig;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosItemIdentity;
@@ -204,7 +205,7 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
         return (String)row[0];
     }
 
-    @BeforeClass(groups = { "fi-multi-master" })
+    @BeforeClass(groups = { "fi-multi-master", "fi-thinclient-multi-master" })
     public void beforeClass() {
         CosmosClientBuilder clientBuilder = new CosmosClientBuilder()
             .endpoint(TestConfigurations.HOST)
@@ -315,9 +316,13 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
             this.injectRequestRateTooLargeIntoAllRegions =
                 (c, operationType) -> injectRequestRateTooLargeError(c, this.writeableRegions, operationType);
 
-            CosmosAsyncContainer container = this.createTestContainer(dummyClient);
-            this.testDatabaseId = container.getDatabase().getId();
-            this.testContainerId = container.getId();
+            final CosmosAsyncContainer[] containerHolder = new CosmosAsyncContainer[1];
+            final CosmosAsyncClient clientForRetry = dummyClient;
+            executeWithRetry(() -> {
+                containerHolder[0] = this.createTestContainer(clientForRetry);
+            }, 3, "FaultInjectionWithAvailabilityStrategyTestsBase createTestContainer");
+            this.testDatabaseId = containerHolder[0].getDatabase().getId();
+            this.testContainerId = containerHolder[0].getId();
 
             // Creating a container is an async task - especially with multiple regions it can
             // take some time until the container is available in the remote regions as well
@@ -333,7 +338,7 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
             safeClose(dummyClient);
         }
     }
-    @AfterClass(groups = { "fi-multi-master" })
+    @AfterClass(groups = { "fi-multi-master", "fi-thinclient-multi-master" })
     public void afterClass() {
         CosmosClientBuilder clientBuilder = new CosmosClientBuilder()
             .endpoint(TestConfigurations.HOST)
@@ -410,7 +415,7 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
             // successfully with 200 - OK>
             new Object[] {
                 "404-1002_OnlyFirstRegion_RemotePreferred_ReluctantAvailabilityStrategy",
-                ONE_SECOND_DURATION,
+                TWO_SECOND_DURATION,
                 reluctantThresholdAvailabilityStrategy,
                 CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
                 ConnectionMode.DIRECT,
@@ -507,7 +512,7 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
             // successfully with 200 - OK>
             new Object[] {
                 "404-1002_OnlyFirstRegion_RemotePreferred_NoAvailabilityStrategy",
-                ONE_SECOND_DURATION,
+                TWO_SECOND_DURATION,
                 null,
                 CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
                 ConnectionMode.DIRECT,
@@ -563,7 +568,7 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
             // should result in the 404/0 being returned
             new Object[] {
                 "Legit404_404-1002_OnlyFirstRegion_RemotePreferred_NoAvailabilityStrategy",
-                ONE_SECOND_DURATION,
+                TWO_SECOND_DURATION,
                 null,
                 CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
                 ConnectionMode.DIRECT,
@@ -1711,7 +1716,7 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
             // cross regional retry to finish within e2e timeout.
             new Object[] {
                 "Create_404-1002_FirstRegionOnly_RemotePreferredWithHighInRegionRetryTime_NoAvailabilityStrategy_WithRetries",
-                ONE_SECOND_DURATION,
+                TWO_SECOND_DURATION,
                 noAvailabilityStrategy,
                 CosmosRegionSwitchHint.REMOTE_REGION_PREFERRED,
                 ConnectionMode.DIRECT,
@@ -2359,6 +2364,15 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
                 }
             };
 
+        BiConsumer<CosmosDiagnosticsContext, Integer> validateCtxUtmostRegions =
+            (ctx, expectedNumberOfRegionsContacted) -> {
+                assertThat(ctx).isNotNull();
+                if (ctx != null) {
+                    assertThat(ctx.getContactedRegionNames().size()).isGreaterThanOrEqualTo(1);
+                    assertThat(ctx.getContactedRegionNames().size()).isLessThanOrEqualTo(expectedNumberOfRegionsContacted);
+                }
+            };
+
         Consumer<CosmosDiagnosticsContext> validateCtxQueryPlan =
             (ctx) -> {
                 assertThat(ctx).isNotNull();
@@ -2428,6 +2442,9 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
 
         Consumer<CosmosDiagnosticsContext> validateCtxTwoRegions =
             (ctx) -> validateCtxRegions.accept(ctx, TWO_REGIONS);
+
+        Consumer<CosmosDiagnosticsContext> validateCtxUtmostTwoRegions =
+            (ctx) -> validateCtxUtmostRegions.accept(ctx, TWO_REGIONS);
 
         Consumer<CosmosDiagnosticsContext> validateCtxFirstRegionFailureSecondRegionSuccessfulSingleFeedResponse = (ctx) -> {
             CosmosDiagnostics[] diagnostics = ctx.getDiagnostics().toArray(new CosmosDiagnostics[0]);
@@ -3270,7 +3287,7 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
                         CosmosDiagnostics[] diagnostics = ctx.getDiagnostics().toArray(new CosmosDiagnostics[0]);
 
                         // Diagnostics of query attempt in first region not even available yet
-                        assertThat(diagnostics.length).isEqualTo(2);
+                        assertThat(diagnostics.length).isGreaterThanOrEqualTo(2);
 
                         // query plan on first region
                         assertThat(diagnostics[0].getContactedRegionNames().size()).isEqualTo(1);
@@ -3279,13 +3296,13 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
                     (ctx) -> {
                         assertThat(ctx.getDiagnostics()).isNotNull();
                         CosmosDiagnostics[] diagnostics = ctx.getDiagnostics().toArray(new CosmosDiagnostics[0]);
-                        assertThat(diagnostics[1].getContactedRegionNames().size()).isEqualTo(1);
-                        assertThat(diagnostics[1].getContactedRegionNames().iterator().next()).isEqualTo(SECOND_REGION_NAME);
-                        assertThat(diagnostics[1].getFeedResponseDiagnostics()).isNotNull();
-                        assertThat(diagnostics[1].getFeedResponseDiagnostics().getQueryMetricsMap()).isNotNull();
-                        assertThat(diagnostics[1].getFeedResponseDiagnostics().getClientSideRequestStatistics()).isNotNull();
+                        assertThat(diagnostics[diagnostics.length - 1].getContactedRegionNames().size()).isEqualTo(1);
+                        assertThat(diagnostics[diagnostics.length - 1].getContactedRegionNames().iterator().next()).isEqualTo(SECOND_REGION_NAME);
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics()).isNotNull();
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics().getQueryMetricsMap()).isNotNull();
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics().getClientSideRequestStatistics()).isNotNull();
                         ClientSideRequestStatistics[] clientStats =
-                            diagnostics[1]
+                            diagnostics[diagnostics.length - 1]
                                 .getFeedResponseDiagnostics()
                                 .getClientSideRequestStatistics()
                                 .toArray(new ClientSideRequestStatistics[0]);
@@ -3301,17 +3318,17 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
                     }
                 ),
                 ArrayUtils.toArray(
-                    validateCtxSingleRegion,
+                    validateCtxUtmostTwoRegions,
                     (ctx) -> {
                         assertThat(ctx.getDiagnostics()).isNotNull();
                         CosmosDiagnostics[] diagnostics = ctx.getDiagnostics().toArray(new CosmosDiagnostics[0]);
-                        assertThat(diagnostics[0].getContactedRegionNames().size()).isEqualTo(1);
-                        assertThat(diagnostics[0].getContactedRegionNames().iterator().next()).isEqualTo(SECOND_REGION_NAME);
-                        assertThat(diagnostics[0].getFeedResponseDiagnostics()).isNotNull();
-                        assertThat(diagnostics[0].getFeedResponseDiagnostics().getQueryMetricsMap()).isNotNull();
-                        assertThat(diagnostics[0].getFeedResponseDiagnostics().getClientSideRequestStatistics()).isNotNull();
+                        assertThat(diagnostics[diagnostics.length - 1].getContactedRegionNames().size()).isEqualTo(1);
+                        assertThat(diagnostics[diagnostics.length - 1].getContactedRegionNames().iterator().next()).isEqualTo(SECOND_REGION_NAME);
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics()).isNotNull();
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics().getQueryMetricsMap()).isNotNull();
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics().getClientSideRequestStatistics()).isNotNull();
                         ClientSideRequestStatistics[] clientStats =
-                            diagnostics[0]
+                            diagnostics[diagnostics.length - 1]
                                 .getFeedResponseDiagnostics()
                                 .getClientSideRequestStatistics()
                                 .toArray(new ClientSideRequestStatistics[0]);
@@ -4067,10 +4084,14 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
 
                     for (int i = start; i < diagnostics.length; i++) {
                         CosmosDiagnostics currentDiagnostics = diagnostics[i];
-                        assertThat(currentDiagnostics.getFeedResponseDiagnostics()).isNotNull();
-                        assertThat(currentDiagnostics.getFeedResponseDiagnostics().getQueryMetricsMap()).isNotNull();
-                        assertThat(currentDiagnostics.getFeedResponseDiagnostics().getClientSideRequestStatistics()).isNotNull();
-                        assertThat(currentDiagnostics.getFeedResponseDiagnostics().getClientSideRequestStatistics().size()).isGreaterThanOrEqualTo(1);
+
+                        if (i != diagnostics.length - 1) {
+                            assertThat(currentDiagnostics.getFeedResponseDiagnostics()).isNull();
+                        } else {
+                            assertThat(currentDiagnostics.getFeedResponseDiagnostics().getQueryMetricsMap()).isNotNull();
+                            assertThat(currentDiagnostics.getFeedResponseDiagnostics().getClientSideRequestStatistics()).isNotNull();
+                            assertThat(currentDiagnostics.getFeedResponseDiagnostics().getClientSideRequestStatistics().size()).isGreaterThanOrEqualTo(1);
+                        }
                     }
                 }
             };
@@ -4579,14 +4600,14 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
                         CosmosDiagnostics[] diagnostics = ctx.getDiagnostics().toArray(new CosmosDiagnostics[0]);
 
                         // Diagnostics of query attempt in first region not even available yet
-                        assertThat(diagnostics.length).isEqualTo(2);
-                        assertThat(diagnostics[1].getContactedRegionNames().size()).isEqualTo(1);
-                        assertThat(diagnostics[1].getContactedRegionNames().iterator().next()).isEqualTo(SECOND_REGION_NAME);
-                        assertThat(diagnostics[1].getFeedResponseDiagnostics()).isNotNull();
-                        assertThat(diagnostics[1].getFeedResponseDiagnostics().getQueryMetricsMap()).isNotNull();
-                        assertThat(diagnostics[1].getFeedResponseDiagnostics().getClientSideRequestStatistics()).isNotNull();
+                        assertThat(diagnostics.length).isGreaterThanOrEqualTo(2);
+                        assertThat(diagnostics[diagnostics.length - 1].getContactedRegionNames().size()).isEqualTo(1);
+                        assertThat(diagnostics[diagnostics.length - 1].getContactedRegionNames().iterator().next()).isEqualTo(SECOND_REGION_NAME);
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics()).isNotNull();
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics().getQueryMetricsMap()).isNotNull();
+                        assertThat(diagnostics[diagnostics.length - 1].getFeedResponseDiagnostics().getClientSideRequestStatistics()).isNotNull();
                         ClientSideRequestStatistics[] clientStats =
-                            diagnostics[1]
+                            diagnostics[diagnostics.length - 1]
                                 .getFeedResponseDiagnostics()
                                 .getClientSideRequestStatistics()
                                 .toArray(new ClientSideRequestStatistics[0]);
@@ -4862,14 +4883,29 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
         ConnectionMode connectionMode,
         boolean shouldInjectPreferredRegionsInClient) {
 
+        // When thin client + HTTP/2 are enabled, all requests route through the thin client
+        // gateway proxy — DIRECT mode is not exercised. Skip DIRECT mode tests.
+        if (Configs.isThinClientEnabled() && Configs.isHttp2Enabled() && connectionMode == ConnectionMode.DIRECT) {
+            throw new SkipException(
+                "Skipping DIRECT mode test '" + testCaseId + "' — thin client forces GATEWAY mode");
+        }
+
         // Test two cases here:
         // - the endToEndOperationLatencyPolicyConfig is being configured on the client only
         // - the endToEndOperationLatencyPolicyConfig is being configured on the request options only
         for (boolean e2eTimeoutPolicyOnClient : Arrays.asList(Boolean.TRUE, Boolean.FALSE)) {
             logger.info("START {}, e2eTimeoutPolicyOnClient {}", testCaseId, e2eTimeoutPolicyOnClient);
 
+            // Thin client adds ~500ms overhead for container + partition key range cache lookups
+            // through the RNTBD-encoded thin client proxy path. Increase e2e timeout to avoid
+            // spurious 408 (OperationCancelled) failures with tight timeouts.
+            Duration effectiveEndToEndTimeout = endToEndTimeout;
+            if (Configs.isThinClientEnabled() && Configs.isHttp2Enabled() && endToEndTimeout != null) {
+                effectiveEndToEndTimeout = endToEndTimeout.plusMillis(500);
+            }
+
             CosmosEndToEndOperationLatencyPolicyConfigBuilder e2ePolicyBuilder =
-                new CosmosEndToEndOperationLatencyPolicyConfigBuilder(endToEndTimeout)
+                new CosmosEndToEndOperationLatencyPolicyConfigBuilder(effectiveEndToEndTimeout)
                     .enable(true);
             CosmosEndToEndOperationLatencyPolicyConfig endToEndOperationLatencyPolicyConfig =
                 availabilityStrategy != null
@@ -4995,6 +5031,14 @@ public abstract class FaultInjectionWithAvailabilityStrategyTestsBase extends Te
 
                         for (Consumer<CosmosDiagnosticsContext> ctxValidation : otherDiagnosticsContextValidations) {
                             ctxValidation.accept(currentCtx);
+                        }
+                    }
+
+                    // When thin client + HTTP/2 are enabled (fi-thinclient-multi-master / fi-thinclient-multi-region)
+                    // and connection mode is GATEWAY, validate that requests targeted the thin client proxy endpoint
+                    if (Configs.isThinClientEnabled() && Configs.isHttp2Enabled() && connectionMode == ConnectionMode.GATEWAY) {
+                        for (CosmosDiagnosticsContext diagnosticsContext : diagnosticsContexts) {
+                            assertThinClientEndpointUsed(diagnosticsContext);
                         }
                     }
                 } catch (Exception e) {

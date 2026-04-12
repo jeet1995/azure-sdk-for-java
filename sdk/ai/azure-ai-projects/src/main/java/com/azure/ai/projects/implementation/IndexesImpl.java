@@ -4,7 +4,7 @@
 
 package com.azure.ai.projects.implementation;
 
-import com.azure.ai.projects.ProjectsServiceVersion;
+import com.azure.ai.projects.AIProjectsServiceVersion;
 import com.azure.core.annotation.BodyParam;
 import com.azure.core.annotation.Delete;
 import com.azure.core.annotation.ExpectedResponses;
@@ -67,7 +67,7 @@ public final class IndexesImpl {
      * 
      * @return the serviceVersion value.
      */
-    public ProjectsServiceVersion getServiceVersion() {
+    public AIProjectsServiceVersion getServiceVersion() {
         return client.getServiceVersion();
     }
 
@@ -148,8 +148,7 @@ public final class IndexesImpl {
         @UnexpectedResponseExceptionType(HttpResponseException.class)
         Mono<Response<Void>> deleteIndexVersion(@HostParam("endpoint") String endpoint,
             @QueryParam("api-version") String apiVersion, @PathParam("name") String name,
-            @PathParam("version") String version, @HeaderParam("Accept") String accept, RequestOptions requestOptions,
-            Context context);
+            @PathParam("version") String version, RequestOptions requestOptions, Context context);
 
         @Delete("/indexes/{name}/versions/{version}")
         @ExpectedResponses({ 204 })
@@ -159,8 +158,7 @@ public final class IndexesImpl {
         @UnexpectedResponseExceptionType(HttpResponseException.class)
         Response<Void> deleteIndexVersionSync(@HostParam("endpoint") String endpoint,
             @QueryParam("api-version") String apiVersion, @PathParam("name") String name,
-            @PathParam("version") String version, @HeaderParam("Accept") String accept, RequestOptions requestOptions,
-            Context context);
+            @PathParam("version") String version, RequestOptions requestOptions, Context context);
 
         @Patch("/indexes/{name}/versions/{version}")
         @ExpectedResponses({ 200, 201 })
@@ -517,7 +515,7 @@ public final class IndexesImpl {
     }
 
     /**
-     * Get the specific version of the Index.
+     * Get the specific version of the Index. The service returns 404 Not Found error if the Index does not exist.
      * <p><strong>Response Body Schema</strong></p>
      * 
      * <pre>
@@ -553,7 +551,7 @@ public final class IndexesImpl {
     }
 
     /**
-     * Get the specific version of the Index.
+     * Get the specific version of the Index. The service returns 404 Not Found error if the Index does not exist.
      * <p><strong>Response Body Schema</strong></p>
      * 
      * <pre>
@@ -589,7 +587,8 @@ public final class IndexesImpl {
     }
 
     /**
-     * Delete the specific version of the Index.
+     * Delete the specific version of the Index. The service returns 204 No Content if the Index was deleted
+     * successfully or if the Index does not exist.
      * 
      * @param name The name of the resource.
      * @param version The version of the Index to delete.
@@ -603,13 +602,13 @@ public final class IndexesImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Void>> deleteIndexVersionWithResponseAsync(String name, String version,
         RequestOptions requestOptions) {
-        final String accept = "application/json";
         return FluxUtil.withContext(context -> service.deleteIndexVersion(this.client.getEndpoint(),
-            this.client.getServiceVersion().getVersion(), name, version, accept, requestOptions, context));
+            this.client.getServiceVersion().getVersion(), name, version, requestOptions, context));
     }
 
     /**
-     * Delete the specific version of the Index.
+     * Delete the specific version of the Index. The service returns 204 No Content if the Index was deleted
+     * successfully or if the Index does not exist.
      * 
      * @param name The name of the resource.
      * @param version The version of the Index to delete.
@@ -622,9 +621,8 @@ public final class IndexesImpl {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<Void> deleteIndexVersionWithResponse(String name, String version, RequestOptions requestOptions) {
-        final String accept = "application/json";
         return service.deleteIndexVersionSync(this.client.getEndpoint(), this.client.getServiceVersion().getVersion(),
-            name, version, accept, requestOptions, Context.NONE);
+            name, version, requestOptions, Context.NONE);
     }
 
     /**

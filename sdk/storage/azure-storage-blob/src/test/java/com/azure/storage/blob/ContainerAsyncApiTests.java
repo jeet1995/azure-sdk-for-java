@@ -26,6 +26,7 @@ import com.azure.storage.common.test.shared.TestHttpClientType;
 import com.azure.storage.common.test.shared.extensions.LiveOnly;
 import com.azure.storage.common.test.shared.extensions.PlaybackOnly;
 import com.azure.storage.common.test.shared.extensions.RequiredServiceVersion;
+import com.azure.storage.common.test.shared.policy.InvalidServiceVersionPipelinePolicy;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -46,6 +47,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.azure.storage.common.implementation.StorageImplUtils.INVALID_VERSION_HEADER_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -936,6 +938,44 @@ public class ContainerAsyncApiTests extends BlobTestBase {
             .create(setupListBlobsTest(normalName, copyName, metadataName, tagsName, uncommittedName)
                 .thenMany(ccAsync.listBlobs(options)))
             .assertNext(r -> assertEquals(normalName, r.getName()))
+            .verifyComplete();
+    }
+
+    @Test
+    public void listBlobsFlatOptionsStartsFrom() {
+        String blob1 = "a" + generateBlobName();
+        String blob2 = "b" + generateBlobName();
+        String blob3 = "c" + generateBlobName();
+
+        Mono<Void> uploads
+            = Mono.when(ccAsync.getBlobAsyncClient(blob1).getBlockBlobAsyncClient().upload(DATA.getDefaultFlux(), 7),
+                ccAsync.getBlobAsyncClient(blob2).getBlockBlobAsyncClient().upload(DATA.getDefaultFlux(), 7),
+                ccAsync.getBlobAsyncClient(blob3).getBlockBlobAsyncClient().upload(DATA.getDefaultFlux(), 7));
+
+        ListBlobsOptions options = new ListBlobsOptions().setStartFrom(blob2);
+
+        StepVerifier.create(uploads.thenMany(ccAsync.listBlobs(options)))
+            .expectNextMatches(blob -> blob2.equals(blob.getName()))
+            .expectNextMatches(blob -> blob3.equals(blob.getName()))
+            .verifyComplete();
+    }
+
+    @Test
+    public void listBlobsByHierarchyOptionsStartsFrom() {
+        String blob1 = "a" + generateBlobName();
+        String blob2 = "b" + generateBlobName();
+        String blob3 = "c" + generateBlobName();
+
+        Mono<Void> uploads
+            = Mono.when(ccAsync.getBlobAsyncClient(blob1).getBlockBlobAsyncClient().upload(DATA.getDefaultFlux(), 7),
+                ccAsync.getBlobAsyncClient(blob2).getBlockBlobAsyncClient().upload(DATA.getDefaultFlux(), 7),
+                ccAsync.getBlobAsyncClient(blob3).getBlockBlobAsyncClient().upload(DATA.getDefaultFlux(), 7));
+
+        ListBlobsOptions options = new ListBlobsOptions().setStartFrom(blob2);
+
+        StepVerifier.create(uploads.thenMany(ccAsync.listBlobsByHierarchy("/", options)))
+            .expectNextMatches(blob -> blob2.equals(blob.getName()))
+            .expectNextMatches(blob -> blob3.equals(blob.getName()))
             .verifyComplete();
     }
 
@@ -2075,4 +2115,31 @@ public class ContainerAsyncApiTests extends BlobTestBase {
         StepVerifier.create(testMono).verifyComplete();
     }
 
+    @Test
+    public void invalidServiceVersion() {
+        BlobServiceAsyncClient serviceAsyncClient
+            = instrument(new BlobServiceClientBuilder().endpoint(ENVIRONMENT.getPrimaryAccount().getBlobEndpoint())
+                .credential(ENVIRONMENT.getPrimaryAccount().getCredential())
+                .addPolicy(new InvalidServiceVersionPipelinePolicy())).buildAsyncClient();
+
+        BlobContainerAsyncClient containerAsyncClient
+            = serviceAsyncClient.getBlobContainerAsyncClient(generateContainerName());
+
+        StepVerifier.create(containerAsyncClient.createIfNotExists()).verifyErrorSatisfies(ex -> {
+            BlobStorageException exception = assertInstanceOf(BlobStorageException.class, ex);
+            assertEquals(400, exception.getStatusCode());
+            assertTrue(exception.getMessage().contains(INVALID_VERSION_HEADER_MESSAGE));
+        });
+    }
+
+    // Tests that the container name is URL encoded. Container names with special characters are not supported
+    // by the service, however, the names should still be encoded.
+    @Test
+    public void getBlobContainerUrlEncodesContainerName() {
+        String containerName = "my container";
+        BlobContainerAsyncClient containerClient
+            = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient(containerName);
+
+        assertTrue(containerClient.getBlobContainerUrl().contains("my%20container"));
+    }
 }

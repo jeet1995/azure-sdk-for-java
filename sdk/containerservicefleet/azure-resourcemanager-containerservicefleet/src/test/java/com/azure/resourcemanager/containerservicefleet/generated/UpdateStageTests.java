@@ -5,6 +5,8 @@
 package com.azure.resourcemanager.containerservicefleet.generated;
 
 import com.azure.core.util.BinaryData;
+import com.azure.resourcemanager.containerservicefleet.models.GateConfiguration;
+import com.azure.resourcemanager.containerservicefleet.models.GateType;
 import com.azure.resourcemanager.containerservicefleet.models.UpdateGroup;
 import com.azure.resourcemanager.containerservicefleet.models.UpdateStage;
 import java.util.Arrays;
@@ -14,21 +16,66 @@ public final class UpdateStageTests {
     @org.junit.jupiter.api.Test
     public void testDeserialize() throws Exception {
         UpdateStage model = BinaryData.fromString(
-            "{\"name\":\"qkwpyeicxmqc\",\"groups\":[{\"name\":\"vhkhixu\"}],\"afterStageWaitInSeconds\":1713707644}")
+            "{\"name\":\"pp\",\"groups\":[{\"name\":\"cxogaokonzm\",\"maxConcurrency\":\"ikvmkqzeqqk\",\"beforeGates\":[{\"displayName\":\"zxmhhvhgu\",\"type\":\"Approval\"}],\"afterGates\":[{\"displayName\":\"wobdagxtibqdx\",\"type\":\"Approval\"},{\"displayName\":\"akbogqxndlkzgxh\",\"type\":\"Approval\"},{\"displayName\":\"plbpodxun\",\"type\":\"Approval\"}]},{\"name\":\"ebxmubyynt\",\"maxConcurrency\":\"rbqtkoie\",\"beforeGates\":[{\"displayName\":\"tgqr\",\"type\":\"Approval\"}],\"afterGates\":[{\"displayName\":\"wlauwzizxbmpg\",\"type\":\"Approval\"},{\"displayName\":\"fuzmuvpbtt\",\"type\":\"Approval\"},{\"displayName\":\"orppxebmnzbtb\",\"type\":\"Approval\"},{\"displayName\":\"glkfg\",\"type\":\"Approval\"}]}],\"afterStageWaitInSeconds\":1771038551,\"maxConcurrency\":\"uel\",\"beforeGates\":[{\"displayName\":\"dyhtozfikdowwquu\",\"type\":\"Approval\"}],\"afterGates\":[{\"displayName\":\"lvithhqzonosgg\",\"type\":\"Approval\"},{\"displayName\":\"ohfwds\",\"type\":\"Approval\"}]}")
             .toObject(UpdateStage.class);
-        Assertions.assertEquals("qkwpyeicxmqc", model.name());
-        Assertions.assertEquals("vhkhixu", model.groups().get(0).name());
-        Assertions.assertEquals(1713707644, model.afterStageWaitInSeconds());
+        Assertions.assertEquals("pp", model.name());
+        Assertions.assertEquals("cxogaokonzm", model.groups().get(0).name());
+        Assertions.assertEquals("ikvmkqzeqqk", model.groups().get(0).maxConcurrency());
+        Assertions.assertEquals("zxmhhvhgu", model.groups().get(0).beforeGates().get(0).displayName());
+        Assertions.assertEquals(GateType.APPROVAL, model.groups().get(0).beforeGates().get(0).type());
+        Assertions.assertEquals("wobdagxtibqdx", model.groups().get(0).afterGates().get(0).displayName());
+        Assertions.assertEquals(GateType.APPROVAL, model.groups().get(0).afterGates().get(0).type());
+        Assertions.assertEquals(1771038551, model.afterStageWaitInSeconds());
+        Assertions.assertEquals("uel", model.maxConcurrency());
+        Assertions.assertEquals("dyhtozfikdowwquu", model.beforeGates().get(0).displayName());
+        Assertions.assertEquals(GateType.APPROVAL, model.beforeGates().get(0).type());
+        Assertions.assertEquals("lvithhqzonosgg", model.afterGates().get(0).displayName());
+        Assertions.assertEquals(GateType.APPROVAL, model.afterGates().get(0).type());
     }
 
     @org.junit.jupiter.api.Test
     public void testSerialize() throws Exception {
-        UpdateStage model = new UpdateStage().withName("qkwpyeicxmqc")
-            .withGroups(Arrays.asList(new UpdateGroup().withName("vhkhixu")))
-            .withAfterStageWaitInSeconds(1713707644);
+        UpdateStage model
+            = new UpdateStage().withName("pp")
+                .withGroups(
+                    Arrays.asList(
+                        new UpdateGroup().withName("cxogaokonzm")
+                            .withMaxConcurrency("ikvmkqzeqqk")
+                            .withBeforeGates(Arrays.asList(
+                                new GateConfiguration().withDisplayName("zxmhhvhgu").withType(GateType.APPROVAL)))
+                            .withAfterGates(Arrays.asList(
+                                new GateConfiguration().withDisplayName("wobdagxtibqdx").withType(GateType.APPROVAL),
+                                new GateConfiguration().withDisplayName("akbogqxndlkzgxh").withType(GateType.APPROVAL),
+                                new GateConfiguration().withDisplayName("plbpodxun").withType(GateType.APPROVAL))),
+                        new UpdateGroup().withName("ebxmubyynt")
+                            .withMaxConcurrency("rbqtkoie")
+                            .withBeforeGates(Arrays
+                                .asList(new GateConfiguration().withDisplayName("tgqr").withType(GateType.APPROVAL)))
+                            .withAfterGates(Arrays.asList(
+                                new GateConfiguration().withDisplayName("wlauwzizxbmpg").withType(GateType.APPROVAL),
+                                new GateConfiguration().withDisplayName("fuzmuvpbtt").withType(GateType.APPROVAL),
+                                new GateConfiguration().withDisplayName("orppxebmnzbtb").withType(GateType.APPROVAL),
+                                new GateConfiguration().withDisplayName("glkfg").withType(GateType.APPROVAL)))))
+                .withAfterStageWaitInSeconds(1771038551)
+                .withMaxConcurrency("uel")
+                .withBeforeGates(Arrays
+                    .asList(new GateConfiguration().withDisplayName("dyhtozfikdowwquu").withType(GateType.APPROVAL)))
+                .withAfterGates(
+                    Arrays.asList(new GateConfiguration().withDisplayName("lvithhqzonosgg").withType(GateType.APPROVAL),
+                        new GateConfiguration().withDisplayName("ohfwds").withType(GateType.APPROVAL)));
         model = BinaryData.fromObject(model).toObject(UpdateStage.class);
-        Assertions.assertEquals("qkwpyeicxmqc", model.name());
-        Assertions.assertEquals("vhkhixu", model.groups().get(0).name());
-        Assertions.assertEquals(1713707644, model.afterStageWaitInSeconds());
+        Assertions.assertEquals("pp", model.name());
+        Assertions.assertEquals("cxogaokonzm", model.groups().get(0).name());
+        Assertions.assertEquals("ikvmkqzeqqk", model.groups().get(0).maxConcurrency());
+        Assertions.assertEquals("zxmhhvhgu", model.groups().get(0).beforeGates().get(0).displayName());
+        Assertions.assertEquals(GateType.APPROVAL, model.groups().get(0).beforeGates().get(0).type());
+        Assertions.assertEquals("wobdagxtibqdx", model.groups().get(0).afterGates().get(0).displayName());
+        Assertions.assertEquals(GateType.APPROVAL, model.groups().get(0).afterGates().get(0).type());
+        Assertions.assertEquals(1771038551, model.afterStageWaitInSeconds());
+        Assertions.assertEquals("uel", model.maxConcurrency());
+        Assertions.assertEquals("dyhtozfikdowwquu", model.beforeGates().get(0).displayName());
+        Assertions.assertEquals(GateType.APPROVAL, model.beforeGates().get(0).type());
+        Assertions.assertEquals("lvithhqzonosgg", model.afterGates().get(0).displayName());
+        Assertions.assertEquals(GateType.APPROVAL, model.afterGates().get(0).type());
     }
 }

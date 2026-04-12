@@ -755,9 +755,9 @@ public class CosmosContainerChangeFeedTest extends TestSuiteBase {
                 .result(
                     FaultInjectionResultBuilders
                         .getResultBuilder(faultInjectionServerErrorType)
-                        .times(1)
                         .build()
                 )
+                .hitLimit(1)
                 .build();
 
         CosmosFaultInjectionHelper.configureFaultInjectionRules(this.createdAsyncContainer, Arrays.asList(faultInjectionRule)).block();
@@ -767,7 +767,9 @@ public class CosmosContainerChangeFeedTest extends TestSuiteBase {
         CosmosChangeFeedRequestOptions changeFeedRequestOptions =
             CosmosChangeFeedRequestOptions.createForProcessingFromBeginning(feedRanges.get(0));
         if (disableSplitHandling) {
-            ModelBridgeInternal.disableSplitHandling(changeFeedRequestOptions);
+            ImplementationBridgeHelpers.CosmosChangeFeedRequestOptionsHelper
+              .getCosmosChangeFeedRequestOptionsAccessor()
+              .disableSplitHandling(changeFeedRequestOptions);
         }
 
         try {
@@ -781,6 +783,7 @@ public class CosmosContainerChangeFeedTest extends TestSuiteBase {
             }
 
         } catch (Exception e) {
+            logger.error("Error occurred in asyncChangeFeed_retryPolicy_tests", e);
             if (requestSucceeded) {
                 fail("ChangeFeed request should have succeeded even " + faultInjectionServerErrorType + " injected");
             }

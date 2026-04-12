@@ -5,10 +5,12 @@ package com.azure.cosmos.implementation.query;
 
 import com.azure.cosmos.BridgeInternal;
 import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfig;
+import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.DiagnosticsClientContext;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.PathsHelper;
+import com.azure.cosmos.implementation.Utils;
 import com.azure.cosmos.implementation.routing.PartitionKeyInternal;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.ModelBridgeInternal;
@@ -35,6 +37,10 @@ class QueryPlanRetriever {
     ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.CosmosQueryRequestOptionsAccessor qryOptAccessor =
         ImplementationBridgeHelpers.CosmosQueryRequestOptionsHelper.getCosmosQueryRequestOptionsAccessor();
 
+    private final static
+    ImplementationBridgeHelpers.CosmosExceptionHelper.CosmosExceptionAccessor cosmosExceptionAccessor =
+        ImplementationBridgeHelpers.CosmosExceptionHelper.getCosmosExceptionAccessor();
+
     private static final String TRUE = "True";
 
     // For a limited time, if the query runs against a region or emulator that has not yet been updated with the
@@ -53,7 +59,8 @@ class QueryPlanRetriever {
                                                                QueryFeature.DCount.name() + ", " +
                                                                QueryFeature.NonValueAggregate.name() + ", " +
                                                                QueryFeature.NonStreamingOrderBy.name() + ", " +
-                                                               QueryFeature.HybridSearch.name();
+                                                               QueryFeature.HybridSearch.name() + ", " +
+                                                               QueryFeature.WeightedRankFusion.name();
 
     private static final String OLD_SUPPORTED_QUERY_FEATURES = QueryFeature.Aggregate.name() + ", " +
                                                                 QueryFeature.CompositeAggregate.name() + ", " +
@@ -138,6 +145,21 @@ class QueryPlanRetriever {
             () -> queryClient.getResetSessionTokenRetryPolicy().getRequestPolicy(diagnosticsClientContext),
             queryPlanRequest,
             executeFunc,
-            PathsHelper.getCollectionPath(resourceLink));
+            PathsHelper.getCollectionPath(resourceLink))
+            .onErrorMap(throwable -> {
+
+                if (throwable instanceof CosmosException) {
+
+                    CosmosException cosmosException = Utils.as(throwable, CosmosException.class);
+
+                    if (HttpConstants.StatusCodes.NOTFOUND == (cosmosException.getStatusCode()) && HttpConstants.SubStatusCodes.UNKNOWN == (cosmosException.getSubStatusCode())) {
+                        cosmosExceptionAccessor.setSubStatusCode(cosmosException, HttpConstants.SubStatusCodes.OWNER_RESOURCE_NOT_EXISTS);
+                    }
+
+                    return cosmosException;
+                }
+
+                return throwable;
+            });
     }
 }

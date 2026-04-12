@@ -37,9 +37,10 @@ import com.azure.cosmos.implementation.feedranges.FeedRangeEpkImpl;
 import com.azure.cosmos.implementation.feedranges.FeedRangeInternal;
 import com.azure.cosmos.implementation.routing.PartitionKeyInternal;
 import com.azure.cosmos.implementation.routing.Range;
-import com.azure.cosmos.implementation.throughputControl.config.GlobalThroughputControlGroup;
-import com.azure.cosmos.implementation.throughputControl.config.LocalThroughputControlGroup;
-import com.azure.cosmos.implementation.throughputControl.config.ThroughputControlGroupFactory;
+import com.azure.cosmos.implementation.throughputControl.sdk.config.GlobalThroughputControlGroup;
+import com.azure.cosmos.implementation.throughputControl.sdk.config.LocalThroughputControlGroup;
+import com.azure.cosmos.implementation.throughputControl.server.config.ServerThroughputControlGroup;
+import com.azure.cosmos.implementation.throughputControl.ThroughputControlGroupFactory;
 import com.azure.cosmos.models.CosmosBatch;
 import com.azure.cosmos.models.CosmosBatchOperationResult;
 import com.azure.cosmos.models.CosmosBatchRequestOptions;
@@ -70,6 +71,7 @@ import com.azure.cosmos.models.ShowQueryMode;
 import com.azure.cosmos.models.SqlQuerySpec;
 import com.azure.cosmos.models.ThroughputProperties;
 import com.azure.cosmos.models.ThroughputResponse;
+import com.azure.cosmos.util.Beta;
 import com.azure.cosmos.util.CosmosPagedFlux;
 import com.azure.cosmos.util.UtilBridgeInternal;
 import org.slf4j.Logger;
@@ -81,7 +83,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -118,6 +119,8 @@ public class CosmosAsyncContainer {
         ImplementationBridgeHelpers.CosmosBulkExecutionOptionsHelper.getCosmosBulkExecutionOptionsAccessor();
     private static final ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper.CosmosClientTelemetryConfigAccessor clientTelemetryConfigAccessor =
         ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper.getCosmosClientTelemetryConfigAccessor();
+    private static final ImplementationBridgeHelpers.CosmosBatchRequestOptionsHelper.CosmosBatchRequestOptionsAccessor batchRequestOptionsAccessor =
+        ImplementationBridgeHelpers.CosmosBatchRequestOptionsHelper.getCosmosBatchRequestOptionsAccessor();
 
     private final CosmosAsyncDatabase database;
     private final String id;
@@ -383,12 +386,12 @@ public class CosmosAsyncContainer {
 
     private <T> Mono<CosmosItemResponse<T>> replaceItemWithTrackingId(Class<T> itemType,
                                                                       String itemId,
-                                                                      Document doc,
+                                                                      Object item,
                                                                       RequestOptions requestOptions,
                                                                       String trackingId) {
 
         checkNotNull(trackingId, "Argument 'trackingId' must not be null.");
-        return replaceItemInternalCore(itemType, itemId, doc, requestOptions, trackingId)
+        return replaceItemInternalCore(itemType, itemId, item, requestOptions, trackingId)
             .onErrorResume(throwable -> {
                 Throwable error = throwable instanceof CompletionException ? throwable.getCause() : throwable;
 
@@ -1165,21 +1168,8 @@ public class CosmosAsyncContainer {
 
             final AsyncDocumentClient clientWrapper = this.database.getDocClientWrapper();
             return clientWrapper
-                .getCollectionCache()
-                .resolveByNameAsync(
-                    null,
-                    this.getLinkWithoutTrailingSlash(),
-                    null)
-                .flatMapMany(
-                    collection -> {
-                        if (collection == null) {
-                            throw new IllegalStateException("Collection cannot be null");
-                        }
-
-                        return clientWrapper
-                            .queryDocumentChangeFeedFromPagedFlux(collection, state, classType)
-                            .map(response -> prepareFeedResponse(response, true));
-                    });
+                .queryDocumentChangeFeedFromPagedFlux(this.getLinkWithoutTrailingSlash(), state, classType)
+                .map(response -> prepareFeedResponse(response, true));
         });
 
         return pagedFluxOptionsFluxFunction;
@@ -1278,8 +1268,14 @@ public class CosmosAsyncContainer {
         RequestOptions requestOptionsInternal = ModelBridgeInternal.toRequestOptions(requestOptions);
         applyPolicies(OperationType.Batch, ResourceType.Document, requestOptionsInternal, this.batchSpanName);
 
+        boolean disableRetryForThrottledBatchRequest = batchRequestOptionsAccessor.shouldDisableRetryForThrottledBatchRequest(requestOptions);
         return withContext(context -> {
-            final BatchExecutor executor = new BatchExecutor(this, cosmosBatch, requestOptionsInternal);
+            final BatchExecutor executor =
+                new BatchExecutor(
+                    this,
+                    cosmosBatch,
+                    requestOptionsInternal,
+                    disableRetryForThrottledBatchRequest);
             final Mono<CosmosBatchResponse> responseMono = executor.executeAsync();
 
             CosmosAsyncClient client = database
@@ -1741,7 +1737,6 @@ public class CosmosAsyncContainer {
     public <T> Mono<CosmosItemResponse<T>> replaceItem(
         T item, String itemId, PartitionKey partitionKey,
         CosmosItemRequestOptions options) {
-        Document doc = InternalObjectNode.fromObject(item);
         if (options == null) {
             options = new CosmosItemRequestOptions();
         }
@@ -1749,7 +1744,7 @@ public class CosmosAsyncContainer {
         @SuppressWarnings("unchecked")
         Class<T> itemType = (Class<T>) item.getClass();
         final CosmosItemRequestOptions requestOptions = options;
-        return withContext(context -> replaceItemInternal(itemType, itemId, doc, requestOptions, context));
+        return withContext(context -> replaceItemInternal(itemType, itemId, item, requestOptions, context));
     }
 
     /**
@@ -2232,7 +2227,7 @@ public class CosmosAsyncContainer {
     private <T> Mono<CosmosItemResponse<T>> replaceItemInternalCore(
         Class<T> itemType,
         String itemId,
-        Document doc,
+        Object item,
         RequestOptions requestOptions,
         String trackingId) {
 
@@ -2240,7 +2235,7 @@ public class CosmosAsyncContainer {
 
         return this.getDatabase()
                    .getDocClientWrapper()
-                   .replaceDocument(getItemLink(itemId), doc, requestOptions)
+                   .replaceDocument(getItemLink(itemId), item, requestOptions)
                    .map(response -> itemResponseAccessor.createCosmosItemResponse(response, itemType, requestOptions.getEffectiveItemSerializer()))
                    .single();
     }
@@ -2265,7 +2260,7 @@ public class CosmosAsyncContainer {
     private <T> Mono<CosmosItemResponse<T>> replaceItemInternal(
         Class<T> itemType,
         String itemId,
-        Document doc,
+        Object item,
         CosmosItemRequestOptions options,
         Context context) {
 
@@ -2284,9 +2279,9 @@ public class CosmosAsyncContainer {
         String trackingId = null;
         if (nonIdempotentWriteRetryPolicy.isEnabled() && nonIdempotentWriteRetryPolicy.useTrackingIdProperty()) {
             trackingId = UUIDs.nonBlockingRandomUUID().toString();
-            responseMono = this.replaceItemWithTrackingId(itemType, itemId, doc, requestOptions, trackingId);
+            responseMono = this.replaceItemWithTrackingId(itemType, itemId, item, requestOptions, trackingId);
         } else {
-            responseMono = this.replaceItemInternalCore(itemType, itemId, doc, requestOptions, null);
+            responseMono = this.replaceItemInternalCore(itemType, itemId, item, requestOptions, null);
         }
 
         CosmosAsyncClient client = database
@@ -2783,7 +2778,7 @@ public class CosmosAsyncContainer {
 
         LocalThroughputControlGroup localControlGroup =
             ThroughputControlGroupFactory.createThroughputLocalControlGroup(groupConfig, this);
-        this.database.getClient().enableThroughputControlGroup(localControlGroup, throughputQueryMono);
+        this.database.getClient().enableSDKThroughputControlGroup(localControlGroup, throughputQueryMono);
     }
 
     /**
@@ -2808,7 +2803,7 @@ public class CosmosAsyncContainer {
      * </pre>
      * <!-- end com.azure.cosmos.throughputControl.globalControl -->
      *
-     * @param groupConfig The throughput control group configuration, see {@link GlobalThroughputControlGroup}.
+     * @param groupConfig The throughput control group configuration, see {@link ThroughputControlGroupConfig}.
      * @param globalControlConfig The global throughput control configuration, see {@link GlobalThroughputControlConfig}.
      */
     public void enableGlobalThroughputControlGroup(
@@ -2821,7 +2816,7 @@ public class CosmosAsyncContainer {
     /***
      * Only used internally.
      * <br/>
-     * @param groupConfig The throughput control group configuration, see {@link GlobalThroughputControlGroup}.
+     * @param groupConfig The throughput control group configuration, see {@link ThroughputControlGroupConfig}.
      * @param globalControlConfig The global throughput control configuration, see {@link GlobalThroughputControlConfig}.
      * @param throughputQueryMono The throughput query mono.
      */
@@ -2833,7 +2828,36 @@ public class CosmosAsyncContainer {
         GlobalThroughputControlGroup globalControlGroup =
             ThroughputControlGroupFactory.createThroughputGlobalControlGroup(groupConfig, globalControlConfig, this);
 
-        this.database.getClient().enableThroughputControlGroup(globalControlGroup, throughputQueryMono);
+        this.database.getClient().enableSDKThroughputControlGroup(globalControlGroup, throughputQueryMono);
+    }
+
+    /***
+     * Enable the server throughput bucket control group.
+     *
+     * <!-- src_embed com.azure.cosmos.throughputControl.serverControl -->
+     * <pre>
+     * ThroughputControlGroupConfig groupConfig =
+     *     new ThroughputControlGroupConfigBuilder&#40;&#41;
+     *         .groupName&#40;&quot;localControlGroup&quot;&#41;
+     *         .throughputBucket&#40;2&#41;
+     *         .build&#40;&#41;;
+     *
+     * container.enableServerThroughputControlGroup&#40;groupConfig&#41;;
+     * </pre>
+     * <!-- end com.azure.cosmos.throughputControl.serverControl -->
+     *
+     * @param groupConfig the throughput control group config, see {@link ThroughputControlGroupConfig}.
+     */
+    @Beta(value = Beta.SinceVersion.V4_74_0, warningText = Beta.PREVIEW_SUBJECT_TO_CHANGE_WARNING)
+    public void enableServerThroughputControlGroup(ThroughputControlGroupConfig groupConfig) {
+        if (groupConfig.getPriorityLevel() == null && groupConfig.getThroughputBucket() == null) {
+            throw new IllegalArgumentException("Config 'priorityLevel' and 'throughputBucket' can not be null for both.");
+        }
+
+        ServerThroughputControlGroup serverThroughputControlGroup =
+            ThroughputControlGroupFactory.createServerThroughputControlGroup(groupConfig, this);
+
+        this.database.getClient().enableServerThroughputControlGroup(serverThroughputControlGroup);
     }
 
     void configureFaultInjectionProvider(IFaultInjectorProvider injectorProvider) {

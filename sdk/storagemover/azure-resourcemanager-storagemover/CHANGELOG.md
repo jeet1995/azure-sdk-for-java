@@ -1,14 +1,219 @@
 # Release History
 
-## 1.4.0-beta.1 (Unreleased)
+## 1.5.0 (2026-04-06)
+
+- Azure Resource Manager Storage Mover client library for Java. This package contains Microsoft Azure SDK for Storage Mover Management SDK. The Azure Storage Mover REST API. Package api-version 2025-12-01. For documentation on how to use this package, please see [Azure Management Libraries for Java](https://aka.ms/azsdk/java/mgmt).
 
 ### Features Added
 
+* `models.S3WithHmacEndpointProperties` was added
+
+* `models.Connection$UpdateStages` was added
+
+* `models.Connection$DefinitionStages` was added
+
+* `models.Connection$Update` was added
+
+* `models.TriggerType` was added
+
+* `models.Connection` was added
+
+* `models.SchedulerTime` was added
+
+* `models.AzureKeyVaultS3WithHmacCredentials` was added
+
+* `models.S3WithHmacEndpointUpdateProperties` was added
+
+* `models.Frequency` was added
+
+* `models.S3WithHmacSourceType` was added
+
+* `models.ConnectionProperties` was added
+
+* `models.EndpointKind` was added
+
+* `models.ScheduleInfo` was added
+
+* `models.ConnectionStatus` was added
+
+* `models.JobRunWarning` was added
+
+* `models.Connection$Definition` was added
+
+* `models.Connections` was added
+
+* `models.DataIntegrityValidation` was added
+
+#### `StorageMoverManager` was modified
+
+* `connections()` was added
+
+#### `models.SmbMountEndpointProperties` was modified
+
+* `withEndpointKind(models.EndpointKind)` was added
+
+#### `models.EndpointBaseProperties` was modified
+
+* `endpointKind()` was added
+* `withEndpointKind(models.EndpointKind)` was added
+
+#### `models.AzureStorageNfsFileShareEndpointProperties` was modified
+
+* `withEndpointKind(models.EndpointKind)` was added
+
+#### `models.AzureMultiCloudConnectorEndpointProperties` was modified
+
+* `withEndpointKind(models.EndpointKind)` was added
+
+#### `models.AzureStorageSmbFileShareEndpointProperties` was modified
+
+* `withEndpointKind(models.EndpointKind)` was added
+
+#### `models.JobDefinitionUpdateParameters` was modified
+
+* `dataIntegrityValidation()` was added
+* `schedule()` was added
+* `withSchedule(models.ScheduleInfo)` was added
+* `withDataIntegrityValidation(models.DataIntegrityValidation)` was added
+* `connections()` was added
+* `withConnections(java.util.List)` was added
+
+#### `models.AzureStorageBlobContainerEndpointProperties` was modified
+
+* `withEndpointKind(models.EndpointKind)` was added
+
+#### `models.JobDefinition` was modified
+
+* `dataIntegrityValidation()` was added
+* `preservePermissions()` was added
+* `schedule()` was added
+* `connections()` was added
+
+#### `models.JobDefinition$Update` was modified
+
+* `withDataIntegrityValidation(models.DataIntegrityValidation)` was added
+* `withConnections(java.util.List)` was added
+* `withSchedule(models.ScheduleInfo)` was added
+
+#### `models.JobRun` was modified
+
+* `scheduledExecutionTime()` was added
+* `triggerType()` was added
+* `warnings()` was added
+
+#### `models.JobDefinition$Definition` was modified
+
+* `withDataIntegrityValidation(models.DataIntegrityValidation)` was added
+* `withConnections(java.util.List)` was added
+* `withSchedule(models.ScheduleInfo)` was added
+* `withPreservePermissions(java.lang.Boolean)` was added
+
+#### `models.EndpointType` was modified
+
+* `S3WITH_HMAC` was added
+
+#### `models.CredentialType` was modified
+
+* `AZURE_KEY_VAULT_S3WITH_HMAC` was added
+
+#### `models.NfsMountEndpointProperties` was modified
+
+* `withEndpointKind(models.EndpointKind)` was added
+
+## 1.4.0 (2025-08-29)
+
+- Azure Resource Manager Storage Mover client library for Java. This package contains Microsoft Azure SDK for Storage Mover Management SDK. The Azure Storage Mover REST API. Package api-version 2025-07-01. For documentation on how to use this package, please see [Azure Management Libraries for Java](https://aka.ms/azsdk/java/mgmt).
+
 ### Breaking Changes
 
-### Bugs Fixed
+#### `models.UploadLimit` was removed
 
-### Other Changes
+#### `models.JobRunList` was removed
+
+#### `models.AgentList` was removed
+
+#### `models.JobDefinitionList` was removed
+
+#### `models.StorageMoverList` was removed
+
+#### `models.OperationListResult` was removed
+
+#### `models.EndpointList` was removed
+
+#### `models.ProjectList` was removed
+
+#### `models.JobRunError` was modified
+
+* `withCode(java.lang.String)` was removed
+* `withTarget(java.lang.String)` was removed
+* `withMessage(java.lang.String)` was removed
+
+#### `models.AgentPropertiesErrorDetails` was modified
+
+* `withMessage(java.lang.String)` was removed
+* `withCode(java.lang.String)` was removed
+
+### Features Added
+
+* `models.UserAssignedIdentity` was added
+
+* `models.AzureMultiCloudConnectorEndpointUpdateProperties` was added
+
+* `models.SourceEndpointProperties` was added
+
+* `models.TargetEndpointProperties` was added
+
+* `models.AzureStorageNfsFileShareEndpointProperties` was added
+
+* `models.AzureMultiCloudConnectorEndpointProperties` was added
+
+* `models.JobDefinitionPropertiesSourceTargetMap` was added
+
+* `models.ManagedServiceIdentity` was added
+
+* `models.SourceTargetMap` was added
+
+* `models.ManagedServiceIdentityType` was added
+
+* `models.TargetEndpoint` was added
+
+* `models.AzureStorageNfsFileShareEndpointUpdateProperties` was added
+
+* `models.JobType` was added
+
+* `models.SourceEndpoint` was added
+
+#### `models.EndpointBaseUpdateParameters` was modified
+
+* `identity()` was added
+* `withIdentity(models.ManagedServiceIdentity)` was added
+
+#### `models.Minute` was modified
+
+* `fromJson(com.azure.json.JsonReader)` was added
+* `toJson(com.azure.json.JsonWriter)` was added
+
+#### `models.Endpoint$Definition` was modified
+
+* `withIdentity(models.ManagedServiceIdentity)` was added
+
+#### `models.Endpoint$Update` was modified
+
+* `withIdentity(models.ManagedServiceIdentity)` was added
+
+#### `models.JobDefinition` was modified
+
+* `jobType()` was added
+* `sourceTargetMap()` was added
+
+#### `models.Endpoint` was modified
+
+* `identity()` was added
+
+#### `models.JobDefinition$Definition` was modified
+
+* `withJobType(models.JobType)` was added
+* `withSourceTargetMap(models.JobDefinitionPropertiesSourceTargetMap)` was added
 
 ## 1.3.0 (2024-12-23)
 

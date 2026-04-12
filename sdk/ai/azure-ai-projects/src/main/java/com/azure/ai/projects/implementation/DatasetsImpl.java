@@ -4,7 +4,7 @@
 
 package com.azure.ai.projects.implementation;
 
-import com.azure.ai.projects.ProjectsServiceVersion;
+import com.azure.ai.projects.AIProjectsServiceVersion;
 import com.azure.core.annotation.BodyParam;
 import com.azure.core.annotation.Delete;
 import com.azure.core.annotation.ExpectedResponses;
@@ -68,7 +68,7 @@ public final class DatasetsImpl {
      * 
      * @return the serviceVersion value.
      */
-    public ProjectsServiceVersion getServiceVersion() {
+    public AIProjectsServiceVersion getServiceVersion() {
         return client.getServiceVersion();
     }
 
@@ -149,8 +149,7 @@ public final class DatasetsImpl {
         @UnexpectedResponseExceptionType(HttpResponseException.class)
         Mono<Response<Void>> deleteDatasetVersion(@HostParam("endpoint") String endpoint,
             @QueryParam("api-version") String apiVersion, @PathParam("name") String name,
-            @PathParam("version") String version, @HeaderParam("Accept") String accept, RequestOptions requestOptions,
-            Context context);
+            @PathParam("version") String version, RequestOptions requestOptions, Context context);
 
         @Delete("/datasets/{name}/versions/{version}")
         @ExpectedResponses({ 204 })
@@ -160,8 +159,7 @@ public final class DatasetsImpl {
         @UnexpectedResponseExceptionType(HttpResponseException.class)
         Response<Void> deleteDatasetVersionSync(@HostParam("endpoint") String endpoint,
             @QueryParam("api-version") String apiVersion, @PathParam("name") String name,
-            @PathParam("version") String version, @HeaderParam("Accept") String accept, RequestOptions requestOptions,
-            Context context);
+            @PathParam("version") String version, RequestOptions requestOptions, Context context);
 
         @Patch("/datasets/{name}/versions/{version}")
         @ExpectedResponses({ 200, 201 })
@@ -588,7 +586,8 @@ public final class DatasetsImpl {
     }
 
     /**
-     * Get the specific version of the DatasetVersion.
+     * Get the specific version of the DatasetVersion. The service returns 404 Not Found error if the DatasetVersion
+     * does not exist.
      * <p><strong>Response Body Schema</strong></p>
      * 
      * <pre>
@@ -628,7 +627,8 @@ public final class DatasetsImpl {
     }
 
     /**
-     * Get the specific version of the DatasetVersion.
+     * Get the specific version of the DatasetVersion. The service returns 404 Not Found error if the DatasetVersion
+     * does not exist.
      * <p><strong>Response Body Schema</strong></p>
      * 
      * <pre>
@@ -667,7 +667,8 @@ public final class DatasetsImpl {
     }
 
     /**
-     * Delete the specific version of the DatasetVersion.
+     * Delete the specific version of the DatasetVersion. The service returns 204 No Content if the DatasetVersion was
+     * deleted successfully or if the DatasetVersion does not exist.
      * 
      * @param name The name of the resource.
      * @param version The version of the DatasetVersion to delete.
@@ -681,13 +682,13 @@ public final class DatasetsImpl {
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Mono<Response<Void>> deleteDatasetVersionWithResponseAsync(String name, String version,
         RequestOptions requestOptions) {
-        final String accept = "application/json";
         return FluxUtil.withContext(context -> service.deleteDatasetVersion(this.client.getEndpoint(),
-            this.client.getServiceVersion().getVersion(), name, version, accept, requestOptions, context));
+            this.client.getServiceVersion().getVersion(), name, version, requestOptions, context));
     }
 
     /**
-     * Delete the specific version of the DatasetVersion.
+     * Delete the specific version of the DatasetVersion. The service returns 204 No Content if the DatasetVersion was
+     * deleted successfully or if the DatasetVersion does not exist.
      * 
      * @param name The name of the resource.
      * @param version The version of the DatasetVersion to delete.
@@ -700,9 +701,8 @@ public final class DatasetsImpl {
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
     public Response<Void> deleteDatasetVersionWithResponse(String name, String version, RequestOptions requestOptions) {
-        final String accept = "application/json";
         return service.deleteDatasetVersionSync(this.client.getEndpoint(), this.client.getServiceVersion().getVersion(),
-            name, version, accept, requestOptions, Context.NONE);
+            name, version, requestOptions, Context.NONE);
     }
 
     /**
@@ -853,7 +853,7 @@ public final class DatasetsImpl {
      *         storageAccountArmId: String (Required)
      *         credential (Required): {
      *             sasUri: String (Required)
-     *             type: String (Required)
+     *             type: String(ApiKey/AAD/SAS/CustomKeys/None/AgenticIdentityToken_Preview) (Required)
      *         }
      *     }
      *     pendingUploadId: String (Required)
@@ -908,7 +908,7 @@ public final class DatasetsImpl {
      *         storageAccountArmId: String (Required)
      *         credential (Required): {
      *             sasUri: String (Required)
-     *             type: String (Required)
+     *             type: String(ApiKey/AAD/SAS/CustomKeys/None/AgenticIdentityToken_Preview) (Required)
      *         }
      *     }
      *     pendingUploadId: String (Required)
@@ -949,7 +949,7 @@ public final class DatasetsImpl {
      *         storageAccountArmId: String (Required)
      *         credential (Required): {
      *             sasUri: String (Required)
-     *             type: String (Required)
+     *             type: String(ApiKey/AAD/SAS/CustomKeys/None/AgenticIdentityToken_Preview) (Required)
      *         }
      *     }
      * }
@@ -986,7 +986,7 @@ public final class DatasetsImpl {
      *         storageAccountArmId: String (Required)
      *         credential (Required): {
      *             sasUri: String (Required)
-     *             type: String (Required)
+     *             type: String(ApiKey/AAD/SAS/CustomKeys/None/AgenticIdentityToken_Preview) (Required)
      *         }
      *     }
      * }

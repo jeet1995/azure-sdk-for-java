@@ -24,6 +24,7 @@ public class StoreResult {
     final public String partitionKeyRangeId;
     final public long quorumAckedLSN;
     final public long globalCommittedLSN;
+    final public long globalNRegionCommittedLSN;
     final public long numberOfReadRegions;
     final public long itemLSN;
     final public ISessionToken sessionToken;
@@ -36,6 +37,7 @@ public class StoreResult {
     final public boolean isGoneException;
     final public boolean isNotFoundException;
     final public boolean isInvalidPartitionException;
+    final public boolean isAvoidQuorumSelectionException;
     final public Uri storePhysicalAddress;
     final public boolean isThroughputControlRequestRateTooLargeException;
     final public Double backendLatencyInMs;
@@ -55,6 +57,7 @@ public class StoreResult {
             boolean isValid,
             Uri storePhysicalAddress,
             long globalCommittedLSN,
+            long globalNRegionCommittedLSN,
             int numberOfReadRegions,
             long itemLSN,
             ISessionToken sessionToken,
@@ -77,12 +80,14 @@ public class StoreResult {
                 && Exceptions.isNameCacheStale(this.exception);
         this.storePhysicalAddress = storePhysicalAddress;
         this.globalCommittedLSN = globalCommittedLSN;
+        this.globalNRegionCommittedLSN = globalNRegionCommittedLSN;
         this.numberOfReadRegions = numberOfReadRegions;
         this.itemLSN = itemLSN;
         this.sessionToken = sessionToken;
         this.isThroughputControlRequestRateTooLargeException = this.exception != null && Exceptions.isThroughputControlRequestRateTooLargeException(this.exception);
         this.backendLatencyInMs = backendLatencyInMs;
         this.retryAfterInMs = retryAfterInMs;
+        this.isAvoidQuorumSelectionException = this.exception != null && Exceptions.isAvoidQuorumSelectionException(this.exception);
     }
 
     public StoreResponse getStoreResponse() {

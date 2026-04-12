@@ -43,6 +43,7 @@ public class RMResources {
     public static final String ReadConsistencyStrategyGlobalStrongOnlyAllowedForGlobalStrongAccount = "Value '%s' specified for the header '%s' is invalid. This value requires the account-level default consistency level to be '%s' - but it is '%s'.";
     public static final String RequestTimeout = "Request timed out. More info: https://aka.ms/cosmosdb-tsg-request-timeout-java";
     public static final String GlobalStrongWriteBarrierNotMet = "Global STRONG write barrier has not been met for the request.";
+    public static final String NRegionSyncCommitBarrierNotMet = "NRegion Commit write barrier has not been met for the request, since the gap between the local LSN and global n-region committed lsn is more than 1";
     public static final String InvalidRequestHeaderValue = "INVALID value for request header %s: %s";
     public static final String InvalidResourceAddress = "INVALID address for resource %s: %s";
     public static final String ReadQuorumNotMet = "READ Quorum size of %d is not met for the request.";
@@ -52,5 +53,5 @@ public class RMResources {
     public static final String PartitionKeyRangeIdAbsentInContext = "PartitionKeyRangeId is absent in the context.";
     public static final String EncryptionKeyProviderNotConfigured = "Encryption Key Provider is not configured";
     public static final String OperationCancelled = "Request cancelled by client after reaching timeout specified in end-end timeout policy";
-
+    public static final String LeaseNotFound = "Lease not found";
 }

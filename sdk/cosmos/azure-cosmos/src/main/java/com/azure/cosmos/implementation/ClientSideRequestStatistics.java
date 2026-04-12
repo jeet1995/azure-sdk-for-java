@@ -3,12 +3,12 @@
 package com.azure.cosmos.implementation;
 
 import com.azure.cosmos.implementation.apachecommons.lang.StringUtils;
-import com.azure.cosmos.implementation.perPartitionAutomaticFailover.PerPartitionFailoverInfoHolder;
+import com.azure.cosmos.implementation.perPartitionAutomaticFailover.PerPartitionAutomaticFailoverInfoHolder;
 import com.azure.cosmos.implementation.perPartitionCircuitBreaker.PerPartitionCircuitBreakerInfoHolder;
 import com.azure.cosmos.implementation.cpu.CpuMemoryMonitor;
 import com.azure.cosmos.implementation.directconnectivity.StoreResponseDiagnostics;
 import com.azure.cosmos.implementation.directconnectivity.StoreResultDiagnostics;
-import com.azure.cosmos.implementation.faultinjection.FaultInjectionRequestContext;
+import com.azure.cosmos.implementation.http.ReactorNettyRequestRecord;
 import com.azure.cosmos.implementation.routing.RegionalRoutingContext;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -33,7 +33,6 @@ import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
@@ -54,7 +53,6 @@ public class ClientSideRequestStatistics {
     private NavigableSet<RegionWithContext> regionsContactedWithContext;
     private Set<URI> locationEndpointsContacted;
     private RetryContext retryContext;
-    private FaultInjectionRequestContext requestContext;
     private List<GatewayStatistics> gatewayStatisticsList;
     private MetadataDiagnosticsContext metadataDiagnosticsContext;
     private SerializationDiagnosticsContext serializationDiagnosticsContext;
@@ -173,7 +171,18 @@ public class ClientSideRequestStatistics {
             this.approximateInsertionCountInBloomFilter = request.requestContext.getApproximateBloomFilterInsertionCount();
             storeResponseStatistics.sessionTokenEvaluationResults = request.requestContext.getSessionTokenEvaluationResults();
             storeResponseStatistics.perPartitionCircuitBreakerInfoHolder = request.requestContext.getPerPartitionCircuitBreakerInfoHolder();
-            storeResponseStatistics.perPartitionFailoverInfoHolder = request.requestContext.getPerPartitionFailoverContextHolder();
+            storeResponseStatistics.perPartitionAutomaticFailoverInfoHolder = request.requestContext.getPerPartitionFailoverContextHolder();
+
+            if (request.requestContext.getCrossRegionAvailabilityContext() != null) {
+                CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest
+                    = request.requestContext.getCrossRegionAvailabilityContext();
+
+                if (crossRegionAvailabilityContextForRequest.shouldAddHubRegionProcessingOnlyHeader()) {
+                    storeResponseStatistics.isHubRegionProcessingOnly = "true";
+                } else {
+                    storeResponseStatistics.isHubRegionProcessingOnly = "false";
+                }
+            }
 
             if (request.requestContext.getEndToEndOperationLatencyPolicyConfig() != null) {
                 storeResponseStatistics.e2ePolicyCfg =
@@ -238,7 +247,6 @@ public class ClientSideRequestStatistics {
             this.recordRetryContextEndTime();
 
             if (regionalRoutingContext != null) {
-
                 URI locationEndpoint = regionalRoutingContext.getGatewayRegionalEndpoint();
                 String regionName = globalEndpointManager.getRegionName(locationEndpoint, rxDocumentServiceRequest.getOperationType(), rxDocumentServiceRequest.isPerPartitionAutomaticFailoverEnabledAndWriteRequest);
 
@@ -257,9 +265,27 @@ public class ClientSideRequestStatistics {
                 if (rxDocumentServiceRequest.requestContext != null) {
                     gatewayStatistics.sessionTokenEvaluationResults = rxDocumentServiceRequest.requestContext.getSessionTokenEvaluationResults();
                     gatewayStatistics.perPartitionCircuitBreakerInfoHolder = rxDocumentServiceRequest.requestContext.getPerPartitionCircuitBreakerInfoHolder();
-                    gatewayStatistics.perPartitionFailoverInfoHolder = rxDocumentServiceRequest.requestContext.getPerPartitionFailoverContextHolder();
+                    gatewayStatistics.perPartitionAutomaticFailoverInfoHolder = rxDocumentServiceRequest.requestContext.getPerPartitionFailoverContextHolder();
+                    gatewayStatistics.isHubRegionProcessingOnly = "false";
+
+                    CrossRegionAvailabilityContextForRxDocumentServiceRequest crossRegionAvailabilityContextForRequest
+                        = rxDocumentServiceRequest.requestContext.getCrossRegionAvailabilityContext();
+
+                    if (crossRegionAvailabilityContextForRequest != null) {
+                        if (crossRegionAvailabilityContextForRequest.shouldAddHubRegionProcessingOnlyHeader()) {
+                            gatewayStatistics.isHubRegionProcessingOnly = "true";
+                        }
+                    }
+
+                    if (rxDocumentServiceRequest.requestContext.getEndToEndOperationLatencyPolicyConfig() != null) {
+                        gatewayStatistics.e2ePolicyCfg =
+                            rxDocumentServiceRequest.requestContext.getEndToEndOperationLatencyPolicyConfig().toString();
+                    }
                 }
+
+                gatewayStatistics.httpResponseTimeout = rxDocumentServiceRequest.getResponseTimeout();
             }
+
             gatewayStatistics.statusCode = storeResponseDiagnostics.getStatusCode();
             gatewayStatistics.subStatusCode = storeResponseDiagnostics.getSubStatusCode();
             gatewayStatistics.sessionToken = storeResponseDiagnostics.getSessionTokenAsString();
@@ -271,6 +297,21 @@ public class ClientSideRequestStatistics {
             gatewayStatistics.responsePayloadSizeInBytes = storeResponseDiagnostics.getResponsePayloadLength();
             gatewayStatistics.faultInjectionRuleId = storeResponseDiagnostics.getFaultInjectionRuleId();
             gatewayStatistics.faultInjectionEvaluationResults = storeResponseDiagnostics.getFaultInjectionEvaluationResults();
+            gatewayStatistics.endpoint = storeResponseDiagnostics.getEndpoint();
+            gatewayStatistics.requestThroughputControlGroupName = storeResponseDiagnostics.getRequestThroughputControlGroupName();
+            gatewayStatistics.requestThroughputControlGroupConfig = storeResponseDiagnostics.getRequestThroughputControlGroupConfig();
+
+            // Channel IDs are captured from requestContext.reactorNettyRequestRecord,
+            // which is set by RxGatewayStoreModel on both success and error paths.
+            if (rxDocumentServiceRequest != null
+                && rxDocumentServiceRequest.requestContext != null
+                && rxDocumentServiceRequest.requestContext.reactorNettyRequestRecord != null) {
+
+                ReactorNettyRequestRecord record = rxDocumentServiceRequest.requestContext.reactorNettyRequestRecord;
+                gatewayStatistics.channelId = record.getChannelId();
+                gatewayStatistics.parentChannelId = record.getParentChannelId();
+                gatewayStatistics.http2 = record.isHttp2();
+            }
 
             this.activityId = storeResponseDiagnostics.getActivityId() != null ? storeResponseDiagnostics.getActivityId() :
                 rxDocumentServiceRequest.getActivityId().toString();
@@ -699,8 +740,11 @@ public class ClientSideRequestStatistics {
         @JsonSerialize(using = PerPartitionCircuitBreakerInfoHolder.PerPartitionCircuitBreakerInfoHolderSerializer.class)
         private PerPartitionCircuitBreakerInfoHolder perPartitionCircuitBreakerInfoHolder;
 
-        @JsonSerialize(using = PerPartitionFailoverInfoHolder.PerPartitionFailoverInfoHolderSerializer.class)
-        private PerPartitionFailoverInfoHolder perPartitionFailoverInfoHolder;
+        @JsonSerialize(using = PerPartitionAutomaticFailoverInfoHolder.PerPartitionFailoverInfoHolderSerializer.class)
+        private PerPartitionAutomaticFailoverInfoHolder perPartitionAutomaticFailoverInfoHolder;
+
+        @JsonSerialize
+        private String isHubRegionProcessingOnly;
 
         public String getExcludedRegions() {
             return this.excludedRegions;
@@ -742,8 +786,16 @@ public class ClientSideRequestStatistics {
             return perPartitionCircuitBreakerInfoHolder;
         }
 
-        public PerPartitionFailoverInfoHolder getPerPartitionFailoverInfoHolder() {
-            return perPartitionFailoverInfoHolder;
+        public PerPartitionAutomaticFailoverInfoHolder getPerPartitionFailoverInfoHolder() {
+            return perPartitionAutomaticFailoverInfoHolder;
+        }
+
+        public String getIsHubRegionProcessingOnly() {
+            return isHubRegionProcessingOnly;
+        }
+
+        public void setIsHubRegionProcessingOnly(String isHubRegionProcessingOnly) {
+            this.isHubRegionProcessingOnly = isHubRegionProcessingOnly;
         }
 
         @JsonIgnore
@@ -909,7 +961,16 @@ public class ClientSideRequestStatistics {
         private List<String> faultInjectionEvaluationResults;
         private Set<String> sessionTokenEvaluationResults;
         private PerPartitionCircuitBreakerInfoHolder perPartitionCircuitBreakerInfoHolder;
-        private PerPartitionFailoverInfoHolder perPartitionFailoverInfoHolder;
+        private PerPartitionAutomaticFailoverInfoHolder perPartitionAutomaticFailoverInfoHolder;
+        private String endpoint;
+        private String requestThroughputControlGroupName;
+        private String requestThroughputControlGroupConfig;
+        private String isHubRegionProcessingOnly;
+        private Duration httpResponseTimeout;
+        private String channelId;
+        private String parentChannelId;
+        private boolean http2;
+        private String e2ePolicyCfg;
 
         public String getSessionToken() {
             return sessionToken;
@@ -971,8 +1032,45 @@ public class ClientSideRequestStatistics {
             return perPartitionCircuitBreakerInfoHolder;
         }
 
-        public PerPartitionFailoverInfoHolder getPerPartitionFailoverInfoHolder() {
-            return perPartitionFailoverInfoHolder;
+        public PerPartitionAutomaticFailoverInfoHolder getPerPartitionFailoverInfoHolder() {
+            return perPartitionAutomaticFailoverInfoHolder;
+        }
+
+        public String getEndpoint() {
+            return this.endpoint;
+        }
+
+        public String getRequestThroughputControlGroupName() {
+            return this.requestThroughputControlGroupName;
+        }
+
+        public String getRequestThroughputControlGroupConfig() {
+            return this.requestThroughputControlGroupConfig;
+        }
+
+        public String getChannelId() {
+            return this.channelId;
+        }
+
+        public String getParentChannelId() {
+            return this.parentChannelId;
+        }
+
+        public boolean isHttp2() {
+            return this.http2;
+        }
+
+        public String getE2ePolicyCfg() {
+            return this.e2ePolicyCfg;
+        }
+
+        private String getHttpNetworkResponseTimeout() {
+
+            if (this.httpResponseTimeout != null) {
+                return this.httpResponseTimeout.toString();
+            }
+
+            return "n/a";
         }
 
         public static class GatewayStatisticsSerializer extends StdSerializer<GatewayStatistics> {
@@ -996,9 +1094,12 @@ public class ClientSideRequestStatistics {
                 jsonGenerator.writeObjectField("requestTimeline", gatewayStatistics.getRequestTimeline());
                 jsonGenerator.writeStringField("partitionKeyRangeId", gatewayStatistics.getPartitionKeyRangeId());
                 jsonGenerator.writeNumberField("responsePayloadSizeInBytes", gatewayStatistics.getResponsePayloadSizeInBytes());
+                jsonGenerator.writeStringField("httpNetworkResponseTimeout", gatewayStatistics.getHttpNetworkResponseTimeout());
                 this.writeNonNullStringField(jsonGenerator, "exceptionMessage", gatewayStatistics.getExceptionMessage());
                 this.writeNonNullStringField(jsonGenerator, "exceptionResponseHeaders", gatewayStatistics.getExceptionResponseHeaders());
                 this.writeNonNullStringField(jsonGenerator, "faultInjectionRuleId", gatewayStatistics.getFaultInjectionRuleId());
+                this.writeNonNullStringField(jsonGenerator, "endpoint", gatewayStatistics.getEndpoint());
+                this.writeNonNullStringField(jsonGenerator, "isHubRegionProcessingOnly", gatewayStatistics.isHubRegionProcessingOnly);
 
                 if (StringUtils.isEmpty(gatewayStatistics.getFaultInjectionRuleId())) {
                     this.writeNonEmptyStringArrayField(
@@ -1009,8 +1110,16 @@ public class ClientSideRequestStatistics {
 
                 this.writeNonEmptyStringSetField(jsonGenerator, "sessionTokenEvaluationResults", gatewayStatistics.getSessionTokenEvaluationResults());
                 this.writeNonNullObjectField(jsonGenerator, "perPartitionCircuitBreakerInfoHolder", gatewayStatistics.getPerPartitionCircuitBreakerInfoHolder());
-                this.writeNonNullObjectField(jsonGenerator, "perPartitionFailoverInfoHolder", gatewayStatistics.getPerPartitionFailoverInfoHolder());
+                this.writeNonNullObjectField(jsonGenerator, "perPartitionAutomaticFailoverInfoHolder", gatewayStatistics.getPerPartitionFailoverInfoHolder());
 
+                this.writeNonNullStringField(jsonGenerator, "requestTCG", gatewayStatistics.getRequestThroughputControlGroupName());
+                this.writeNonNullStringField(jsonGenerator, "requestTCGConfig", gatewayStatistics.getRequestThroughputControlGroupConfig());
+                this.writeNonNullStringField(jsonGenerator, "channelId", gatewayStatistics.getChannelId());
+                this.writeNonNullStringField(jsonGenerator, "parentChannelId", gatewayStatistics.getParentChannelId());
+                if (gatewayStatistics.isHttp2()) {
+                    jsonGenerator.writeBooleanField("isHttp2", true);
+                }
+                this.writeNonNullStringField(jsonGenerator, "e2ePolicyCfg", gatewayStatistics.getE2ePolicyCfg());
                 jsonGenerator.writeEndObject();
             }
 
