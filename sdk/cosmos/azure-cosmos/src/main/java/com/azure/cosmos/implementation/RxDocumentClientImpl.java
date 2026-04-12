@@ -292,6 +292,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
     private List<CosmosOperationPolicy> operationPolicies;
     private final AtomicReference<CosmosAsyncClient> cachedCosmosAsyncClientSnapshot;
     private CosmosEndToEndOperationLatencyPolicyConfig ppafEnforcedE2ELatencyPolicyConfigForReads;
+    private CosmosEndToEndOperationLatencyPolicyConfig ppafEnforcedE2ELatencyPolicyConfigForChangeFeed;
     private Consumer<DatabaseAccount> perPartitionFailoverConfigModifier;
 
     public RxDocumentClientImpl(URI serviceEndpoint,
@@ -4831,6 +4832,12 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
                 ResourceType.Document,
                 OperationType.ReadFeed);
 
+        // For changefeed, use the higher PPAF timeout (7s) when the generic read PPAF config was applied
+        if (endToEndPolicyConfig == this.ppafEnforcedE2ELatencyPolicyConfigForReads
+            && this.ppafEnforcedE2ELatencyPolicyConfigForChangeFeed != null) {
+            endToEndPolicyConfig = this.ppafEnforcedE2ELatencyPolicyConfigForChangeFeed;
+        }
+
         Flux<FeedResponse<T>> feedResponseFlux = changeFeedQueryImpl.executeAsync();
 
         if (endToEndPolicyConfig != null && endToEndPolicyConfig.isEnabled()) {
@@ -7696,6 +7703,44 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         return null;
     }
 
+    private CosmosEndToEndOperationLatencyPolicyConfig evaluatePpafEnforcedE2eLatencyPolicyCfgForChangeFeed(
+        GlobalPartitionEndpointManagerForPerPartitionAutomaticFailover globalPartitionEndpointManagerForPerPartitionAutomaticFailover,
+        ConnectionPolicy connectionPolicy) {
+
+        if (!globalPartitionEndpointManagerForPerPartitionAutomaticFailover.isPerPartitionAutomaticFailoverEnabled()) {
+            return null;
+        }
+
+        if (Configs.isReadAvailabilityStrategyEnabledWithPpaf()) {
+
+            logger.info("ATTN: As Per-Partition Automatic Failover (PPAF) is enabled a default End-to-End Operation Latency Policy will be applied for changeFeed operation types with a 7-second timeout.");
+
+            // 7s was chosen to accommodate for changefeed operations which may require additional
+            // time for partition key range resolution and changefeed continuation handling
+            Duration overallE2eLatencyTimeout = Utils.SEVEN_SECONDS;
+
+            if (connectionPolicy.getConnectionMode() == ConnectionMode.DIRECT) {
+                Duration networkRequestTimeout = connectionPolicy.getTcpNetworkRequestTimeout();
+
+                checkNotNull(networkRequestTimeout, "Argument 'networkRequestTimeout' cannot be null!");
+
+                Duration directModeTimeout = networkRequestTimeout.plus(Utils.ONE_SECOND);
+                if (directModeTimeout.compareTo(overallE2eLatencyTimeout) > 0) {
+                    overallE2eLatencyTimeout = directModeTimeout;
+                }
+            }
+
+            Duration threshold = Utils.min(overallE2eLatencyTimeout.dividedBy(2), Utils.ONE_SECOND);
+            Duration thresholdStep = Utils.min(threshold.dividedBy(2), Utils.HALF_SECOND);
+
+            return new CosmosEndToEndOperationLatencyPolicyConfigBuilder(overallE2eLatencyTimeout)
+                .availabilityStrategy(new ThresholdBasedAvailabilityStrategy(threshold, thresholdStep))
+                .build();
+        }
+
+        return null;
+    }
+
     private DiagnosticsClientContext getEffectiveClientContext(DiagnosticsClientContext clientContextOverride) {
         if (clientContextOverride != null) {
             return clientContextOverride;
@@ -8156,6 +8201,17 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             logger.info("ATTN: Per-Partition Automatic Failover (PPAF) enforced E2E Latency Policy for reads is enabled.");
         } else {
             logger.info("ATTN: Per-Partition Automatic Failover (PPAF) enforced E2E Latency Policy for reads is disabled.");
+        }
+
+        this.ppafEnforcedE2ELatencyPolicyConfigForChangeFeed = this.evaluatePpafEnforcedE2eLatencyPolicyCfgForChangeFeed(
+            this.globalPartitionEndpointManagerForPerPartitionAutomaticFailover,
+            this.connectionPolicy
+        );
+
+        if (this.ppafEnforcedE2ELatencyPolicyConfigForChangeFeed != null) {
+            logger.info("ATTN: Per-Partition Automatic Failover (PPAF) enforced E2E Latency Policy for changeFeed is enabled with 7-second timeout.");
+        } else {
+            logger.info("ATTN: Per-Partition Automatic Failover (PPAF) enforced E2E Latency Policy for changeFeed is disabled.");
         }
     }
 
