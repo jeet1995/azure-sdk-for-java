@@ -1,13 +1,20 @@
 # Release History
 ## 7.4.0-beta.1 (Unreleased)
 
-### Features Added
+### Spring Cloud Azure Autoconfigure
 
-### Breaking Changes
+This section includes changes in `spring-cloud-azure-autoconfigure` module.
 
-### Bugs Fixed
+#### Features Added
 
-### Other Changes
+#### Breaking Changes
+
+#### Bugs Fixed
+
+- Fixed Redis Lettuce passwordless autoconfiguration so a user-defined `LettuceClientConfigurationBuilderCustomizer` no longer suppresses the Azure customizer bean that configures Azure Redis credentials and RESP2 support.
+- Applied `jwt-connect-timeout` and `jwt-read-timeout` properties to the RestTemplate used by the JWT decoder in AAD and B2C resource server configurations, preventing indefinite hanging when fetching JWK keys ([#49329](https://github.com/Azure/azure-sdk-for-java/pull/49329)).
+
+#### Other Changes
 
 ## 7.3.0 (2026-05-27)
 - This release is compatible with Spring Boot 4.0.0-4.0.6. (Note: 4.0.x (x>6) should be supported, but they aren't tested with this release.)
