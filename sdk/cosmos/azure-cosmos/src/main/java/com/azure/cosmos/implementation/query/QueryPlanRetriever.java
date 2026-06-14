@@ -4,8 +4,10 @@
 package com.azure.cosmos.implementation.query;
 
 import com.azure.cosmos.BridgeInternal;
+import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosEndToEndOperationLatencyPolicyConfig;
 import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.ReadConsistencyStrategy;
 import com.azure.cosmos.implementation.Configs;
 import com.azure.cosmos.implementation.DiagnosticsClientContext;
 import com.azure.cosmos.implementation.DocumentCollection;
@@ -111,6 +113,28 @@ class QueryPlanRetriever {
         if (partitionKey != null && partitionKey != PartitionKey.NONE) {
             PartitionKeyInternal partitionKeyInternal = BridgeInternal.getPartitionKeyInternal(partitionKey);
             requestHeaders.put(HttpConstants.HttpHeaders.PARTITION_KEY, partitionKeyInternal.toJson());
+        }
+
+        // Propagate request-level consistency context into the QueryPlan request.
+        // The QueryPlan POST may ride the thin-client wire (RNTBD over HTTP/2) when
+        // collection metadata is available, so it must carry the same RCS / CL intent
+        // as the subsequent data POST — otherwise the RNTBD frame omits the
+        // ReadConsistencyStrategy byte and downstream gateway routing/validation can
+        // see an inconsistent consistency context across the two requests.
+        // Mirrors RxDocumentClientImpl.getRequestHeaders propagation for data requests.
+        ReadConsistencyStrategy requestLevelRcs = nonNullRequestOptions.getReadConsistencyStrategy();
+        if (requestLevelRcs != null && requestLevelRcs != ReadConsistencyStrategy.DEFAULT) {
+            requestHeaders.put(
+                HttpConstants.HttpHeaders.READ_CONSISTENCY_STRATEGY,
+                requestLevelRcs.toString());
+        }
+
+        ConsistencyLevel requestLevelCl = nonNullRequestOptions.getConsistencyLevel();
+        if (requestLevelCl != null
+            && !requestHeaders.containsKey(HttpConstants.HttpHeaders.READ_CONSISTENCY_STRATEGY)) {
+            // Only set ConsistencyLevel when ReadConsistencyStrategy is NOT already present —
+            // setting both causes Compute Gateway to reject the request.
+            requestHeaders.put(HttpConstants.HttpHeaders.CONSISTENCY_LEVEL, requestLevelCl.toString());
         }
 
         final RxDocumentServiceRequest queryPlanRequest = RxDocumentServiceRequest.create(diagnosticsClientContext,
