@@ -29,6 +29,8 @@ import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.implementation.ResourceType;
 import com.azure.cosmos.implementation.RuntimeConstants;
 import com.azure.cosmos.implementation.RxDocumentServiceRequest;
+import com.azure.cosmos.implementation.BadRequestException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import reactor.core.publisher.Mono;
 
@@ -50,6 +52,30 @@ class QueryPlanRetriever {
     }
 
     private static final String TRUE = "True";
+
+    private static final int MAX_ERROR_BODY_LENGTH = 1024;
+
+    // Extracts a human-readable, log-safe message from a QueryPlan error payload. The
+    // Gateway-V2 / thin-client proxy may append NUL padding to the error text, so strip
+    // those out and truncate to a bounded length before surfacing it on a CosmosException.
+    private static String sanitizeResponseBody(JsonNode responseBody) {
+        if (responseBody == null) {
+            return "Query plan response could not be parsed as a valid partitioned query execution info.";
+        }
+
+        String text = responseBody.isTextual() ? responseBody.asText() : responseBody.toString();
+        text = text.replace("\0", "").trim();
+
+        if (text.isEmpty()) {
+            return "Query plan response could not be parsed as a valid partitioned query execution info.";
+        }
+
+        if (text.length() > MAX_ERROR_BODY_LENGTH) {
+            text = text.substring(0, MAX_ERROR_BODY_LENGTH) + "...";
+        }
+
+        return text;
+    }
 
     // For a limited time, if the query runs against a region or emulator that has not yet been updated with the
     // new NonStreamingOrderBy query feature the client might run into some issue of not being able to recognize this,
@@ -153,10 +179,17 @@ class QueryPlanRetriever {
                 return BackoffRetryUtility.executeRetry(() -> {
                     retryPolicyInstance.onBeforeSendRequest(req);
                     return queryClient.executeQueryAsync(req).flatMap(rxDocumentServiceResponse -> {
-                        ObjectNode responseBody = (ObjectNode) rxDocumentServiceResponse.getResponseBody();
-                        RequestTimeline timeline = rxDocumentServiceResponse.getGatewayHttpRequestTimeline();
+                        int statusCode = rxDocumentServiceResponse.getStatusCode();
 
-                        PartitionedQueryExecutionInfo partitionedQueryExecutionInfo;
+                        // If the decode path preserved a non-2xx status on the response (e.g. the
+                        // Gateway-V2 / thin-client proxy rejected an invalid-syntax query), surface
+                        // that status directly instead of attempting to parse the body as a plan.
+                        if (statusCode >= HttpConstants.StatusCodes.BADREQUEST) {
+                            return Mono.error(BridgeInternal.createCosmosException(
+                                statusCode, sanitizeResponseBody(rxDocumentServiceResponse.getResponseBody())));
+                        }
+
+                        RequestTimeline timeline = rxDocumentServiceResponse.getGatewayHttpRequestTimeline();
 
                         // In thin client mode, the proxy returns queryRanges in PartitionKeyInternal
                         // format (e.g., {"min": ["value"], "max": ["Infinity"]}). Convert to sorted
@@ -168,12 +201,24 @@ class QueryPlanRetriever {
                                 + "Ensure DocumentCollection is resolved before calling getQueryPlanThroughGatewayAsync.");
                         }
 
-                        if (req.useThinClientMode) {
-                            partitionedQueryExecutionInfo = new PartitionedQueryExecutionInfo(
-                                responseBody, timeline, partitionKeyDefinition);
-                        } else {
-                            partitionedQueryExecutionInfo = new PartitionedQueryExecutionInfo(
-                                responseBody, timeline);
+                        PartitionedQueryExecutionInfo partitionedQueryExecutionInfo;
+                        try {
+                            ObjectNode responseBody = (ObjectNode) rxDocumentServiceResponse.getResponseBody();
+                            if (req.useThinClientMode) {
+                                partitionedQueryExecutionInfo = new PartitionedQueryExecutionInfo(
+                                    responseBody, timeline, partitionKeyDefinition);
+                            } else {
+                                partitionedQueryExecutionInfo = new PartitionedQueryExecutionInfo(
+                                    responseBody, timeline);
+                            }
+                        } catch (IllegalArgumentException | ClassCastException parseError) {
+                            // For an invalid-syntax query, the Gateway-V2 / thin-client QueryPlan
+                            // response can carry a query-plan-generation error payload (and trailing
+                            // NUL padding) instead of a valid plan JSON. Constructing the DTO from
+                            // that payload throws; convert it into a clean 400 (BadRequest) so callers
+                            // never observe the default statusCode 0.
+                            return Mono.error(new BadRequestException(
+                                sanitizeResponseBody(rxDocumentServiceResponse.getResponseBody()), parseError));
                         }
 
                         return Mono.just(partitionedQueryExecutionInfo);
