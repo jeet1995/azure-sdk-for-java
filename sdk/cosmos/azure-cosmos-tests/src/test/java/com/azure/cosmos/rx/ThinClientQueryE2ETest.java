@@ -1011,9 +1011,12 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * Hierarchical prefix (half-open) range. Setting only the FIRST hierarchical component
      * (tenantId) on the options makes the proxy emit a half-open prefix range whose max is the
      * "Infinity"-suffixed sibling of the min - the prefix-range boundary case of the conversion. The
-     * full key (both components) instead resolves to a single point range. Asserts the prefix query
-     * returns exactly the tenant's users and the full key returns exactly one document, with parity
-     * to the Direct baseline.
+     * full key (both components) instead resolves to a single point range. Iterates the prefix
+     * assertion over ALL seeded tenants so that, with fewer physical partitions than
+     * {@code HIER_TENANTS}, at least two co-located tenants deterministically exercise the over-span
+     * case, and adds a nonexistent-tenant prefix that must return zero. Asserts each prefix query
+     * returns exactly the tenant's users and the full key returns exactly one document, all with
+     * parity to the Direct baseline.
      */
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testHierarchicalPrefixHalfOpenRange() {
@@ -1025,9 +1028,20 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         fullKeyOptions.setPartitionKey(new PartitionKeyBuilder().add(tenant0).add(user0).build());
         assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", fullKeyOptions, 1);
 
-        CosmosQueryRequestOptions prefixOptions = new CosmosQueryRequestOptions();
-        prefixOptions.setPartitionKey(new PartitionKeyBuilder().add(tenant0).build());
-        assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", prefixOptions, HIER_USERS_PER_TENANT);
+        // Iterate the prefix (half-open range) assertion over every tenant. With fewer physical
+        // partitions than HIER_TENANTS, at least two tenants are co-located, so the over-span
+        // regression reproduces deterministically instead of depending on tenant-0's placement.
+        for (int t = 0; t < HIER_TENANTS; t++) {
+            String tenant = hierarchicalKeys.get(t * HIER_USERS_PER_TENANT)[0];
+            CosmosQueryRequestOptions prefixOptions = new CosmosQueryRequestOptions();
+            prefixOptions.setPartitionKey(new PartitionKeyBuilder().add(tenant).build());
+            assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", prefixOptions, HIER_USERS_PER_TENANT);
+        }
+
+        // Negative guard: a nonexistent tenant prefix must scope to zero docs on both paths.
+        CosmosQueryRequestOptions absentOptions = new CosmosQueryRequestOptions();
+        absentOptions.setPartitionKey(new PartitionKeyBuilder().add("tenant-absent-" + UUID.randomUUID()).build());
+        assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", absentOptions, 0);
     }
 
     /**
@@ -1636,31 +1650,49 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     /**
      * readAllItems (ReadFeed) with a partial (prefix) hierarchical partition key - only the first
-     * component (/tenantId). Must return exactly that tenant's {@code HIER_USERS_PER_TENANT}
-     * documents, matching the Direct baseline. If the thin client over-spanned to the physical
-     * partition it would return co-located docs from other tenants, which the count/ID parity and the
-     * per-doc tenant assertion catch.
+     * component (/tenantId). Iterates over ALL seeded tenants (not just one): at 12000 RU/s the
+     * container has fewer physical partitions than {@code HIER_TENANTS}, so by the pigeonhole
+     * principle at least two tenants are co-located on the same physical partition, making the
+     * over-span regression deterministically reproducible instead of depending on tenant-0's
+     * placement. Each prefix read must return exactly that tenant's {@code HIER_USERS_PER_TENANT}
+     * documents, matching the Direct baseline; an over-span to the physical partition would surface
+     * co-located docs from other tenants, which the count/ID parity and per-doc tenant assertion
+     * catch. A final nonexistent-tenant prefix must return zero documents - a co-location-independent
+     * negative guard.
      */
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testHierarchicalReadAllItemsPrefixPartitionKey() {
-        String tenant0 = hierarchicalKeys.get(0)[0];
-        PartitionKey prefixKey = new PartitionKeyBuilder().add(tenant0).build();
+        for (int t = 0; t < HIER_TENANTS; t++) {
+            String tenant = hierarchicalKeys.get(t * HIER_USERS_PER_TENANT)[0];
+            PartitionKey prefixKey = new PartitionKeyBuilder().add(tenant).build();
 
-        QueryResult<ObjectNode> directResult = drainReadAllItems(directHierarchicalContainer, prefixKey, ObjectNode.class);
-        QueryResult<ObjectNode> tcResult = drainReadAllItems(thinClientHierarchicalContainer, prefixKey, ObjectNode.class);
-        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+            QueryResult<ObjectNode> directResult = drainReadAllItems(directHierarchicalContainer, prefixKey, ObjectNode.class);
+            QueryResult<ObjectNode> tcResult = drainReadAllItems(thinClientHierarchicalContainer, prefixKey, ObjectNode.class);
+            for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
 
-        assertThat(directResult.results.size())
-            .as("Direct readAllItems prefix count").isEqualTo(HIER_USERS_PER_TENANT);
-        assertThat(tcResult.results.size())
-            .as("Thin-client readAllItems prefix over-span vs Direct").isEqualTo(directResult.results.size());
-        assertThat(idsSorted(tcResult.results))
-            .as("readAllItems prefix ID mismatch").isEqualTo(idsSorted(directResult.results));
-        // Every returned doc must belong to the prefixed tenant (no over-span into co-located tenants).
-        for (ObjectNode doc : tcResult.results) {
-            assertThat(doc.get(TENANT_FIELD).asText())
-                .as("readAllItems prefix returned a foreign tenant's document").isEqualTo(tenant0);
+            assertThat(directResult.results.size())
+                .as("Direct readAllItems prefix count for " + tenant).isEqualTo(HIER_USERS_PER_TENANT);
+            assertThat(tcResult.results.size())
+                .as("Thin-client readAllItems prefix over-span vs Direct for " + tenant).isEqualTo(directResult.results.size());
+            assertThat(idsSorted(tcResult.results))
+                .as("readAllItems prefix ID mismatch for " + tenant).isEqualTo(idsSorted(directResult.results));
+            // Every returned doc must belong to the prefixed tenant (no over-span into co-located tenants).
+            for (ObjectNode doc : tcResult.results) {
+                assertThat(doc.get(TENANT_FIELD).asText())
+                    .as("readAllItems prefix returned a foreign tenant's document").isEqualTo(tenant);
+            }
         }
+
+        // Negative guard: a prefix matching no seeded tenant must return zero docs on both paths.
+        // Independent of physical co-location - a broken over-span would surface co-located docs even
+        // though this tenant was never seeded.
+        PartitionKey absentPrefix = new PartitionKeyBuilder().add("tenant-absent-" + UUID.randomUUID()).build();
+        QueryResult<ObjectNode> directAbsent = drainReadAllItems(directHierarchicalContainer, absentPrefix, ObjectNode.class);
+        QueryResult<ObjectNode> tcAbsent = drainReadAllItems(thinClientHierarchicalContainer, absentPrefix, ObjectNode.class);
+        for (CosmosDiagnostics d : tcAbsent.diagnostics) { assertThinClientEndpointUsed(d); }
+        assertThat(directAbsent.results.size()).as("Direct readAllItems nonexistent-tenant prefix count").isEqualTo(0);
+        assertThat(tcAbsent.results.size())
+            .as("Thin-client readAllItems nonexistent-tenant prefix over-span").isEqualTo(0);
     }
 
     /**
@@ -1685,10 +1717,17 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     }
 
     /**
-     * readManyByPartitionKeys with a partial (prefix) hierarchical key. groupPartitionKeysByPhysicalPartition
-     * expands the prefix to its effective-partition-key range; the thin client must apply that as a
-     * doc-level filter and return exactly the tenant's {@code HIER_USERS_PER_TENANT} documents,
-     * matching Direct rather than over-spanning the physical partition.
+     * readManyByPartitionKeys with a partial (prefix) hierarchical key: validates that a prefix
+     * readMany request routes over the thin client and returns exactly the tenant's documents,
+     * matching Direct.
+     *
+     * <p>Note: readManyByPartitionKeys groups the supplied keys by physical partition and emits a
+     * generated {@code WHERE} predicate on the prefix key component(s), so tenant isolation here is
+     * enforced by that SQL predicate rather than by the RNTBD prefix-EPK range header. This is
+     * therefore a routing + SQL-predicate parity guard against Direct, not a direct guard of the
+     * over-span fix. The prefix-EPK header path itself (query/readAll with only a prefix key and no
+     * generated predicate) is exercised by {@link #testHierarchicalReadAllItemsPrefixPartitionKey()}
+     * and {@link #testHierarchicalPrefixHalfOpenRange()}.
      */
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testHierarchicalReadManyByPartitionKeysPrefixPartitionKey() {

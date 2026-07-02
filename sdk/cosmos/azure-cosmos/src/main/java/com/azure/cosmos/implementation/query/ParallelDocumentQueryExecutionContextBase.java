@@ -97,7 +97,6 @@ public abstract class ParallelDocumentQueryExecutionContextBase<T>
                 queryOptionsAccessor().setCollectionRid(cosmosQueryRequestOptions, collection.getResourceId());
                 RxDocumentServiceRequest request = this.createDocumentServiceRequestWithFeedRange(headers, querySpecForInit, partitionKeyInternal, feedRange,
                                                          collection.getResourceId(), cosmosQueryRequestOptions.getThroughputControlGroupName());
-                request.setPrefixPartitionKeyQuery(isPrefixPartitionKeyQuery);
                 return request;
             };
 

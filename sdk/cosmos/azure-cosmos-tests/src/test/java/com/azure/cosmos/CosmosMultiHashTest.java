@@ -6,6 +6,7 @@
 
 package com.azure.cosmos;
 
+import com.azure.cosmos.implementation.TestConfigurations;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosItemIdentity;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
@@ -62,6 +63,22 @@ public class CosmosMultiHashTest extends TestSuiteBase {
     @BeforeClass(groups = {"emulator"}, timeOut = SETUP_TIMEOUT)
     public void before_CosmosMultiHashTest() {
         client = getClientBuilder().buildClient();
+        initDatabaseAndContainers();
+    }
+
+    // Enrolls the MULTI_HASH prefix over-span coverage into the thin-client (GatewayV2, proxy :10250) group.
+    // The class-level @Factory yields a plain gateway builder without HTTP/2, which cannot route to the thin
+    // client, so this lifecycle builds an explicit HTTP/2 gateway client (mirrors clientBuildersWithGatewayAndHttp2)
+    // and sets COSMOS.THINCLIENT_ENABLED so the same test bodies exercise the RNTBD prefix-EPK header path.
+    @BeforeClass(groups = {"thinclient"}, timeOut = SETUP_TIMEOUT)
+    public void before_CosmosMultiHashTest_thinClient() {
+        System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
+        client = createGatewayRxDocumentClient(
+            TestConfigurations.HOST, null, true, null, true, true, true).buildClient();
+        initDatabaseAndContainers();
+    }
+
+    private void initDatabaseAndContainers() {
         createdDatabase = createSyncDatabase(client, preExistingDatabaseId);
         String collectionName = UUID.randomUUID().toString();
 
@@ -103,7 +120,15 @@ public class CosmosMultiHashTest extends TestSuiteBase {
         safeCloseSyncClient(client);
     }
 
-    @Test(groups = {"emulator"}, timeOut = TIMEOUT)
+    @AfterClass(groups = {"thinclient"}, timeOut = SHUTDOWN_TIMEOUT, alwaysRun = true)
+    public void afterClass_thinClient() {
+        logger.info("starting cleanup (thin client)....");
+        safeDeleteSyncDatabase(createdDatabase);
+        safeCloseSyncClient(client);
+        System.clearProperty("COSMOS.THINCLIENT_ENABLED");
+    }
+
+    @Test(groups = {"emulator", "thinclient"}, timeOut = TIMEOUT)
     public void itemCRUD() {
         CityItem cityItem = new CityItem(UUID.randomUUID().toString(), "Redmond", "98052", 1);
 
@@ -170,7 +195,7 @@ public class CosmosMultiHashTest extends TestSuiteBase {
                     .collect(Collectors.toList())
         );
     }
-    @Test(groups = { "emulator" }, timeOut = TIMEOUT)
+    @Test(groups = { "emulator", "thinclient" }, timeOut = TIMEOUT)
     public void readManySupportsNestedPartitionKeyPaths() {
         String city = "nested-readmany-" + UUID.randomUUID();
 
@@ -188,7 +213,7 @@ public class CosmosMultiHashTest extends TestSuiteBase {
         validateResponse(documentFeedResponse, itemList);
     }
 
-    @Test(groups = { "emulator" }, timeOut = TIMEOUT)
+    @Test(groups = { "emulator", "thinclient" }, timeOut = TIMEOUT)
     public void readAllItemsSupportsNestedPartitionKeyPaths() {
         String city = "nested-readall-" + UUID.randomUUID();
 
@@ -445,7 +470,7 @@ public class CosmosMultiHashTest extends TestSuiteBase {
         deleteAllItems();
     }
 
-    @Test(groups = { "emulator" }, timeOut = TIMEOUT)
+    @Test(groups = { "emulator", "thinclient" }, timeOut = TIMEOUT)
     private void multiHashQueryTests() {
         ArrayList<CityItem> docs = createItems();
 
@@ -645,7 +670,12 @@ public class CosmosMultiHashTest extends TestSuiteBase {
     private void testPartialPKContinuationToken() {
         String requestContinuation = null;
         List<ObjectNode> receivedDocuments = new ArrayList<>();
-        CosmosAsyncClient asyncClient = getClientBuilder().buildAsyncClient();
+        // Under the thinclient group the process-wide property is set; build an HTTP/2 gateway client so this
+        // prefix continuation-token pass also routes to the thin client (:10250) instead of the plain gateway.
+        CosmosAsyncClient asyncClient =
+            Boolean.parseBoolean(System.getProperty("COSMOS.THINCLIENT_ENABLED"))
+                ? createGatewayRxDocumentClient(TestConfigurations.HOST, null, true, null, true, true, true).buildAsyncClient()
+                : getClientBuilder().buildAsyncClient();
         CosmosAsyncDatabase cosmosAsyncDatabase = new CosmosAsyncDatabase(createdDatabase.getId(), asyncClient);
         CosmosAsyncContainer cosmosAsyncContainer = new CosmosAsyncContainer(createdMultiHashContainer.getId(), cosmosAsyncDatabase);
         String query = "SELECT * FROM c ORDER BY c.zipcode ASC";
