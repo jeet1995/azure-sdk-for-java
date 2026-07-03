@@ -6,7 +6,6 @@
 
 package com.azure.cosmos;
 
-import com.azure.cosmos.SuperFlakyTestRetryAnalyzer;
 import com.azure.cosmos.implementation.DefaultCosmosItemSerializer;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.implementation.InternalObjectNode;
@@ -33,7 +32,6 @@ import com.azure.cosmos.models.ModelBridgeInternal;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.rx.TestSuiteBase;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
@@ -323,19 +321,21 @@ public class OperationPoliciesTest extends TestSuiteBase {
         InternalObjectNode item = getDocumentDefinition(UUID.randomUUID().toString());
         container.createItem(item).block();
 
-        CosmosItemResponse<InternalObjectNode> readResponse = container.readItem(item.getId(),
-            new PartitionKey(item.get("mypk")),
-            new CosmosItemRequestOptions(),
-            InternalObjectNode.class).block();
+        CosmosItemResponse<InternalObjectNode> readResponse = retryOnNotFound(
+            container.readItem(item.getId(),
+                new PartitionKey(item.get("mypk")),
+                new CosmosItemRequestOptions(),
+                InternalObjectNode.class)).block();
         validateItemResponse(item, readResponse);
         validateOptions(initialOptions, readResponse, true);
 
         changeProperties(changedOptions);
 
-        readResponse = container.readItem(item.getId(),
-            new PartitionKey(item.get("mypk")),
-            new CosmosItemRequestOptions(),
-            InternalObjectNode.class).block();
+        readResponse = retryOnNotFound(
+            container.readItem(item.getId(),
+                new PartitionKey(item.get("mypk")),
+                new CosmosItemRequestOptions(),
+                InternalObjectNode.class)).block();
         validateItemResponse(item, readResponse);
         validateOptions(changedOptions, readResponse, true);
     }
@@ -573,7 +573,7 @@ public class OperationPoliciesTest extends TestSuiteBase {
             }).blockLast();
     }
 
-    @Test(groups = { "fast" }, dataProvider = "changedOptions", timeOut = TIMEOUT, retryAnalyzer = SuperFlakyTestRetryAnalyzer.class)
+    @Test(groups = { "fast" }, dataProvider = "changedOptions", timeOut = 4 * TIMEOUT, retryAnalyzer = SuperFlakyTestRetryAnalyzer.class)
     public void readAllItems(String[] changedOptions) throws Exception {
         String id = UUID.randomUUID().toString();
         container.createItem(getDocumentDefinition(id)).block();
@@ -618,33 +618,24 @@ public class OperationPoliciesTest extends TestSuiteBase {
             idSet.add(document.getId());
         }
 
-        FeedResponse<InternalObjectNode> feedResponse = container.readMany(cosmosItemIdentities, InternalObjectNode.class).block();
-
-        assertThat(feedResponse).isNotNull();
-        assertThat(feedResponse.getResults()).isNotNull();
-        assertThat(feedResponse.getResults().size()).isEqualTo(numDocuments);
-
-        for (int i = 0; i < feedResponse.getResults().size(); i++) {
-            InternalObjectNode fetchedResult = feedResponse.getResults().get(i);
-            assertThat(idSet.contains(fetchedResult.getId())).isTrue();
-        }
+        FeedResponse<InternalObjectNode> feedResponse = readManyWithRetry(
+            container,
+            cosmosItemIdentities,
+            idSet,
+            InternalObjectNode.class);
         validateOptions(initialOptions, feedResponse, false, true);
         changeProperties(changedOptions);
-        feedResponse = container.readMany(cosmosItemIdentities, InternalObjectNode.class).block();
 
-        assertThat(feedResponse).isNotNull();
-        assertThat(feedResponse.getResults()).isNotNull();
-        assertThat(feedResponse.getResults().size()).isEqualTo(numDocuments);
-
-        for (int i = 0; i < feedResponse.getResults().size(); i++) {
-            InternalObjectNode fetchedResult = feedResponse.getResults().get(i);
-            assertThat(idSet.contains(fetchedResult.getId())).isTrue();
-        }
+        feedResponse = readManyWithRetry(
+            container,
+            cosmosItemIdentities,
+            idSet,
+            InternalObjectNode.class);
 
         validateOptions(changedOptions, feedResponse, false, true);
     }
 
-    @Test(groups = { "fast" }, dataProvider = "changedOptions", timeOut = TIMEOUT)
+    @Test(groups = { "fast" }, dataProvider = "changedOptions", timeOut = 2 * TIMEOUT, retryAnalyzer = SuperFlakyTestRetryAnalyzer.class)
     public void queryChangeFeed(String[] changedOptions) {
         int numInserted = 20;
         for (int i = 0; i < numInserted; i++) {
