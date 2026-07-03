@@ -8,7 +8,11 @@ import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.CosmosAsyncDatabase;
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosDiagnostics;
+import com.azure.cosmos.CosmosDiagnosticsContext;
+import com.azure.cosmos.CosmosDiagnosticsRequestInfo;
 import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.models.CompositePath;
+import com.azure.cosmos.models.CompositePathSortOrder;
 import com.azure.cosmos.models.CosmosBulkOperations;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosFullTextIndex;
@@ -28,12 +32,16 @@ import com.azure.cosmos.models.IncludedPath;
 import com.azure.cosmos.models.IndexingMode;
 import com.azure.cosmos.models.IndexingPolicy;
 import com.azure.cosmos.models.PartitionKey;
+import com.azure.cosmos.models.PartitionKeyBuilder;
 import com.azure.cosmos.models.PartitionKeyDefinition;
+import com.azure.cosmos.models.PartitionKeyDefinitionVersion;
+import com.azure.cosmos.models.PartitionKind;
 import com.azure.cosmos.models.SqlParameter;
 import com.azure.cosmos.models.SqlQuerySpec;
 import com.azure.cosmos.models.ThroughputProperties;
 import com.azure.cosmos.implementation.TestConfigurations;
 import com.azure.cosmos.implementation.directconnectivity.Protocol;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -45,7 +53,11 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -72,9 +84,31 @@ import static org.assertj.core.api.Fail.fail;
 public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     private CosmosAsyncClient directClient;    // Baseline: Direct TCP
-    private CosmosAsyncClient thinClient;      // SUT: Gateway V2 (thin client)
+    private CosmosAsyncClient thinClient;      // System under test: Gateway V2 (thin client)
     private CosmosAsyncContainer directContainer;
     private CosmosAsyncContainer thinClientContainer;
+
+    // Dedicated container whose documents reside in multiple physical partitions (distinct partition
+    // keys over a 12,000 RU/s container). Used by the cross-partition tests so they genuinely fan out.
+    private CosmosAsyncContainer directCrossPartitionContainer;
+    private CosmosAsyncContainer thinClientCrossPartitionContainer;
+    private String crossPartitionContainerId;
+
+    // Dedicated container with a HIERARCHICAL (MULTI_HASH) partition key (/tenantId, /userId) over a
+    // 12,000 RU/s container, so its rows span multiple physical partitions. The thin-client (Gateway
+    // V2 proxy) emits this container's QueryPlan with MULTI-COMPONENT PartitionKeyInternal min/max
+    // arrays (one element per hierarchical path), which the client converts to EPK ranges through the
+    // MULTI_HASH branch of convertToSortedEpkRanges. Single-path containers never reach that branch,
+    // so this fixture is required for the hierarchical-PK coverage and half-open prefix-range
+    // coverage.
+    private CosmosAsyncContainer directHierarchicalContainer;
+    private CosmosAsyncContainer thinClientHierarchicalContainer;
+    private String hierarchicalContainerId;
+    private final List<String[]> hierarchicalKeys = new ArrayList<>(); // {tenantId, userId} per seeded doc
+    private static final String TENANT_FIELD = "tenantId";
+    private static final String USER_FIELD = "userId";
+    private static final int HIER_TENANTS = 4;
+    private static final int HIER_USERS_PER_TENANT = 6;
 
     private final List<ObjectNode> seededDocs = new ArrayList<>();
     private final String commonPk = "tc-query-" + UUID.randomUUID().toString().substring(0, 8);
@@ -88,15 +122,15 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     public void before_ThinClientQueryE2ETest() {
         try {
             // 1. Direct TCP client (baseline)
-            CosmosClientBuilder directBuilder = createDirectRxDocumentClient(ConsistencyLevel.SESSION, Protocol.TCP, false, null, true, true);
-            this.directClient = directBuilder.buildAsyncClient();
+            CosmosClientBuilder directClientBuilder = createDirectRxDocumentClient(ConsistencyLevel.SESSION, Protocol.TCP, false, null, true, true);
+            this.directClient = directClientBuilder.buildAsyncClient();
             this.directContainer = getSharedMultiPartitionCosmosContainer(this.directClient);
 
             // 2. Gateway V2 thin client (system under test)
             ThinClientTestBase.enableThinClientForTest();
-            CosmosClientBuilder thinBuilder = createGatewayRxDocumentClient(
+            CosmosClientBuilder thinClientBuilder = createGatewayRxDocumentClient(
                 TestConfigurations.HOST, null, true, null, true, true, true);
-            this.thinClient = thinBuilder.buildAsyncClient();
+            this.thinClient = thinClientBuilder.buildAsyncClient();
             this.thinClientContainer = this.thinClient.getDatabase(
                 directContainer.getDatabase().getId()).getContainer(directContainer.getId());
 
@@ -105,6 +139,13 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
             // 4. Seed diverse test data for broad query coverage
             seedTestData();
+
+            // 5. Seed a dedicated multi-physical-partition container for genuine cross-partition coverage
+            seedCrossPartitionData();
+
+            // 6. Seed a dedicated hierarchical (MULTI_HASH) partition-key container for the
+            //    multi-component QueryPlan range-conversion coverage.
+            seedHierarchicalData();
         } catch (Exception e) {
             // Clean up any clients that were successfully created before the failure
             if (this.thinClient != null) { this.thinClient.close(); this.thinClient = null; }
@@ -170,6 +211,82 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         bulkInsert(directContainer, seededDocs).blockLast();
     }
 
+    /**
+     * Seeds a dedicated container whose documents reside in multiple physical partitions. The
+     * container is provisioned at 12,000 RU/s - above the 10,000 RU/s single-partition limit, so the
+     * service splits it into multiple physical partitions - and each document is given a distinct
+     * partition key, spreading the rows across those partitions. Cross-partition queries against this
+     * container therefore genuinely fan out, unlike the single-partition shared fixture.
+     */
+    private void seedCrossPartitionData() {
+        crossPartitionContainerId = "thinXp_" + UUID.randomUUID().toString().substring(0, 8);
+        CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
+
+        PartitionKeyDefinition pkDef = new PartitionKeyDefinition();
+        pkDef.setPaths(Collections.singletonList("/" + PK_FIELD));
+        CosmosContainerProperties props = new CosmosContainerProperties(crossPartitionContainerId, pkDef);
+        db.createContainer(props, ThroughputProperties.createManualThroughput(12000)).block();
+
+        this.directCrossPartitionContainer = db.getContainer(crossPartitionContainerId);
+        this.thinClientCrossPartitionContainer =
+            thinClient.getDatabase(db.getId()).getContainer(crossPartitionContainerId);
+
+        String[] categories = {"electronics", "books", "clothing", "toys"};
+        for (int i = 0; i < 30; i++) {
+            ObjectNode doc = OBJECT_MAPPER.createObjectNode();
+            doc.put(ID_FIELD, "xp-" + i + "-" + UUID.randomUUID().toString().substring(0, 8));
+            // Distinct partition key per document so the rows spread across physical partitions.
+            doc.put(PK_FIELD, "xppk-" + i + "-" + UUID.randomUUID());
+            doc.put("category", categories[i % categories.length]);
+            doc.put("idx", i); // distinct -> ORDER BY c.idx is a total order
+            directCrossPartitionContainer.createItem(doc, new PartitionKey(doc.get(PK_FIELD).asText()), null).block();
+        }
+    }
+
+    /**
+     * Seeds a dedicated container with a HIERARCHICAL (MULTI_HASH) partition key (/tenantId, /userId),
+     * provisioned at 12,000 RU/s so the rows span multiple physical partitions. Exactly
+     * {@code HIER_TENANTS * HIER_USERS_PER_TENANT} documents are seeded, one per distinct
+     * (tenantId, userId) pair, with a distinct {@code idx} (so {@code ORDER BY c.idx} is a total
+     * order) and a cycled {@code category}. The thin-client proxy emits this container's QueryPlan
+     * with MULTI-COMPONENT PartitionKeyInternal min/max arrays, exercising the MULTI_HASH branch of
+     * convertToSortedEpkRanges that single-path containers never reach.
+     */
+    private void seedHierarchicalData() {
+        hierarchicalContainerId = "thinHier_" + UUID.randomUUID().toString().substring(0, 8);
+        CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
+
+        PartitionKeyDefinition pkDef = new PartitionKeyDefinition();
+        pkDef.setKind(PartitionKind.MULTI_HASH);
+        pkDef.setVersion(PartitionKeyDefinitionVersion.V2);
+        pkDef.setPaths(Arrays.asList("/" + TENANT_FIELD, "/" + USER_FIELD));
+        CosmosContainerProperties props = new CosmosContainerProperties(hierarchicalContainerId, pkDef);
+        db.createContainer(props, ThroughputProperties.createManualThroughput(12000)).block();
+
+        this.directHierarchicalContainer = db.getContainer(hierarchicalContainerId);
+        this.thinClientHierarchicalContainer =
+            thinClient.getDatabase(db.getId()).getContainer(hierarchicalContainerId);
+
+        String[] categories = {"electronics", "books", "clothing", "toys"};
+        int idx = 0;
+        for (int t = 0; t < HIER_TENANTS; t++) {
+            String tenantId = "tenant-" + t + "-" + UUID.randomUUID().toString().substring(0, 8);
+            for (int u = 0; u < HIER_USERS_PER_TENANT; u++) {
+                String userId = "user-" + u + "-" + UUID.randomUUID().toString().substring(0, 8);
+                ObjectNode doc = OBJECT_MAPPER.createObjectNode();
+                doc.put(ID_FIELD, "hier-" + idx + "-" + UUID.randomUUID().toString().substring(0, 8));
+                doc.put(TENANT_FIELD, tenantId);
+                doc.put(USER_FIELD, userId);
+                doc.put("category", categories[idx % categories.length]);
+                doc.put("idx", idx); // distinct -> ORDER BY c.idx is a total order
+                PartitionKey pk = new PartitionKeyBuilder().add(tenantId).add(userId).build();
+                directHierarchicalContainer.createItem(doc, pk, null).block();
+                hierarchicalKeys.add(new String[]{tenantId, userId});
+                idx++;
+            }
+        }
+    }
+
     @AfterClass(groups = {"thinclient"}, timeOut = SHUTDOWN_TIMEOUT, alwaysRun = true)
     public void afterClass() {
         if (directContainer != null && !seededDocs.isEmpty()) {
@@ -184,6 +301,12 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             }
         }
         ThinClientTestBase.clearThinClientForTest();
+        if (directCrossPartitionContainer != null) {
+            safeDeleteContainer(directCrossPartitionContainer);
+        }
+        if (directHierarchicalContainer != null) {
+            safeDeleteContainer(directHierarchicalContainer);
+        }
         if (this.thinClient != null) { this.thinClient.close(); }
         if (this.directClient != null) { this.directClient.close(); }
     }
@@ -305,6 +428,65 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         assertDirectAndThinClientMatch("SELECT * FROM c ORDER BY c.price DESC");
     }
 
+    /**
+     * Multi-property ORDER BY (composite ordering). A multi-key ORDER BY can only be served when a
+     * matching composite index exists, so this test provisions a dedicated container with a
+     * (category ASC, age DESC) composite index, seeds documents on a single logical partition, and
+     * asserts the thin client returns the exact same strictly-ordered sequence as Direct. This
+     * exercises the multi-component ORDER BY composition / merge path, which single-key ORDER BY
+     * does not. Mirrors the multi-ORDER-BY coverage in the .NET SDK.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 2)
+    public void testMultipleOrderBy() {
+        String containerId = "multiOrderBy_" + UUID.randomUUID().toString().substring(0, 8);
+        CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
+        CosmosAsyncContainer directTestContainer = db.getContainer(containerId);
+
+        try {
+            PartitionKeyDefinition pkDef = new PartitionKeyDefinition();
+            pkDef.setPaths(Collections.singletonList("/" + PK_FIELD));
+            CosmosContainerProperties props = new CosmosContainerProperties(containerId, pkDef);
+
+            // Multi-property ORDER BY requires a matching composite index.
+            IndexingPolicy idxPolicy = new IndexingPolicy();
+            List<CompositePath> composite = new ArrayList<>();
+            composite.add(new CompositePath().setPath("/category").setOrder(CompositePathSortOrder.ASCENDING));
+            composite.add(new CompositePath().setPath("/age").setOrder(CompositePathSortOrder.DESCENDING));
+            idxPolicy.setCompositeIndexes(Collections.singletonList(composite));
+            props.setIndexingPolicy(idxPolicy);
+            db.createContainer(props, ThroughputProperties.createManualThroughput(400)).block();
+
+            CosmosAsyncContainer tcContainer = thinClient.getDatabase(db.getId()).getContainer(containerId);
+
+            String pk = "mob-" + UUID.randomUUID().toString().substring(0, 8);
+            String[] categories = {"alpha", "beta", "alpha", "gamma", "beta", "alpha"};
+            int[] ages = {30, 25, 20, 40, 35, 50};
+            for (int i = 0; i < categories.length; i++) {
+                ObjectNode doc = OBJECT_MAPPER.createObjectNode();
+                doc.put(ID_FIELD, "mob-" + i + "-" + UUID.randomUUID().toString().substring(0, 8));
+                doc.put(PK_FIELD, pk);
+                doc.put("category", categories[i]);
+                doc.put("age", ages[i]);
+                directTestContainer.createItem(doc, new PartitionKey(pk), null).block();
+            }
+
+            String query = "SELECT * FROM c ORDER BY c.category ASC, c.age DESC";
+            CosmosQueryRequestOptions options = new CosmosQueryRequestOptions().setPartitionKey(new PartitionKey(pk));
+
+            QueryResult<ObjectNode> directResult = drainQuery(directTestContainer, query, options, ObjectNode.class);
+            QueryResult<ObjectNode> tcResult = drainQuery(tcContainer, query, options, ObjectNode.class);
+
+            for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+            assertThat(tcResult.results.size()).as("Multi-ORDER-BY count mismatch: " + query).isEqualTo(directResult.results.size());
+            assertThat(tcResult.results.size()).isEqualTo(categories.length);
+            // Strict sequence parity — the multi-key ORDER BY ordering must be identical to Direct.
+            assertSameDocumentIds(directResult.results, tcResult.results, true, query);
+        } finally {
+            safeDeleteContainer(directTestContainer);
+        }
+    }
+
     // ==================== DISTINCT Tests ====================
 
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
@@ -354,6 +536,20 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testMax() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE MAX(c.age) FROM c", Integer.class);
+    }
+
+    /**
+     * DCount (distinct count). Validates the thin client serves the distinct-count aggregate identically
+     * to Direct. Cosmos SQL does not accept the standard {@code COUNT(DISTINCT ...)} form; the canonical
+     * DCount idiom is {@code COUNT(1)} over a {@code SELECT DISTINCT VALUE} subquery, which the query
+     * engine folds into a DCount aggregate. DCount is a distinct query feature that must be advertised in
+     * SupportedQueryFeatures for the proxy-generated query plan; this guards that negotiation path.
+     * The .NET SDK has equivalent DCount coverage.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testDCount() {
+        assertScalarDirectAndThinClientMatch(
+            "SELECT VALUE COUNT(1) FROM (SELECT DISTINCT VALUE c.category FROM c) AS t", Integer.class);
     }
 
     // ==================== GROUP BY Tests ====================
@@ -615,30 +811,256 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         assertScalarDirectAndThinClientMatch("SELECT VALUE c.category FROM c", String.class);
     }
 
+    // ==================== QueryOracle-derived coverage ====================
+    // The CosmosDB QueryOracle (CloudTest "Release-QueryOracle") fuzzes queries from category
+    // configs (Like, ScalarExpression, Builtin, Aggregate, ...). These tests bring the LIKE and
+    // scalar-expression categories that were not yet exercised above into the Direct-vs-thin-client
+    // oracle. Geospatial (ST_DISTANCE/ST_WITHIN) and UDF categories are intentionally NOT covered
+    // here because they require a geospatial-indexed container and registered user-defined
+    // functions respectively, which the shared seeded fixture does not provide.
+
+    // ---- LIKE: advanced patterns (character classes, single-char wildcard, negation) ----
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testLikeSingleCharWildcard() {
+        // '_' matches exactly one character: 'electronic_' matches "electronics".
+        assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE 'electronic_'");
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testLikeCharacterClassRange() {
+        // Character range '[a-c]' — categories starting with a..c (books, clothing).
+        assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE '[a-c]%'");
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testLikeNegatedCharacterClass() {
+        // Negated character class '[^bc]' — categories NOT starting with b or c (electronics, toys).
+        assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE '[^bc]%'");
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testNotLike() {
+        assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category NOT LIKE 'elec%'");
+    }
+
+    // ---- Scalar expressions: coalesce, computed member access, array literal, unary, modulo, ternary ----
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCoalesceOperator() {
+        // '??' returns the right operand when the left is undefined.
+        assertScalarDirectAndThinClientMatch("SELECT VALUE (c.missingField ?? c.category) FROM c", String.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testComputedMemberIndexer() {
+        // Quoted/computed property accessor c["category"].
+        assertScalarDirectAndThinClientMatch("SELECT VALUE c[\"category\"] FROM c", String.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testArrayLiteralProjection() {
+        // Array-create scalar expression in the projection.
+        assertDirectAndThinClientMatch("SELECT c.id, [c.age, c.idx] AS pair FROM c");
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testUnaryNegation() {
+        assertScalarDirectAndThinClientMatch("SELECT VALUE -c.age FROM c", Integer.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testModuloOperator() {
+        assertScalarDirectAndThinClientMatch("SELECT VALUE (c.age % 2) FROM c", Integer.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testTernaryConditional() {
+        // Ternary '?:' — distinct parse path from IIF(...).
+        assertScalarDirectAndThinClientMatch(
+            "SELECT VALUE (c.age >= 18 ? 'adult' : 'minor') FROM c", String.class);
+    }
+
+    // ==================== Query Plan Caching Tests ====================
+    // A query scoped to a single logical partition (partition key set on the options) caches the
+    // proxy-generated query plan on the client and reuses it on subsequent identical queries. This
+    // test verifies that the cached plan still executes correctly - i.e. a cached QueryPlan obtained
+    // from the thin-client proxy continues to produce results identical to the Direct (TCP) baseline.
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCachedQueryPlanFromProxyExecutesCorrectly() {
+        // GROUP BY requires a query plan. With a partition key set (assertGroupByDirectAndThinClientMatch
+        // uses partitionedOptions()), the proxy-generated plan is cached after the first execution.
+        String query = "SELECT c.category, COUNT(1) AS cachedPlanCount FROM c GROUP BY c.category";
+
+        // First execution fetches and caches the query plan generated by the thin-client proxy.
+        assertGroupByDirectAndThinClientMatch(query, "category");
+
+        // Second execution reuses the cached plan; assert it still matches the Direct baseline.
+        assertGroupByDirectAndThinClientMatch(query, "category");
+    }
+
     // ==================== Cross-Partition Tests ====================
 
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testCrossPartitionSelectAll() {
-        assertDirectAndThinClientMatch("SELECT * FROM c ORDER BY c.idx", new CosmosQueryRequestOptions());
+        assertCrossPartitionDirectAndThinClientMatch("SELECT * FROM c ORDER BY c.idx");
     }
 
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testCrossPartitionWhereFilter() {
-        assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category = 'electronics' ORDER BY c.idx",
-            new CosmosQueryRequestOptions());
+        assertCrossPartitionDirectAndThinClientMatch(
+            "SELECT * FROM c WHERE c.category = 'electronics' ORDER BY c.idx");
+    }
+
+    // ============ Cross-Partition Aggregate / GROUP BY Merge Tests ============
+    // These run aggregate and GROUP BY queries with NO partition key against the dedicated
+    // multi-physical-partition container, so the thin client must fan out to every physical partition
+    // and MERGE the partial results into the final value/groups. This is distinct from the
+    // single-partition aggregate/GROUP BY tests above (which set a partition key and never merge
+    // across partitions). Each helper also asserts the Direct baseline genuinely contacted more than
+    // one partition key range, proving the cross-partition merge path actually ran.
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCrossPartitionCount() {
+        assertCrossPartitionScalarMatch("SELECT VALUE COUNT(1) FROM c", Integer.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCrossPartitionSum() {
+        assertCrossPartitionScalarMatch("SELECT VALUE SUM(c.idx) FROM c", Double.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCrossPartitionAvg() {
+        assertCrossPartitionScalarMatch("SELECT VALUE AVG(c.idx) FROM c", Double.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCrossPartitionMin() {
+        assertCrossPartitionScalarMatch("SELECT VALUE MIN(c.idx) FROM c", Integer.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCrossPartitionMax() {
+        assertCrossPartitionScalarMatch("SELECT VALUE MAX(c.idx) FROM c", Integer.class);
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCrossPartitionGroupByCount() {
+        assertCrossPartitionGroupByMatch(
+            "SELECT c.category, COUNT(1) AS cnt FROM c GROUP BY c.category", "category");
+    }
+
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testCrossPartitionGroupBySumAvg() {
+        assertCrossPartitionGroupByMatch(
+            "SELECT c.category, SUM(c.idx) AS total, AVG(c.idx) AS avg FROM c GROUP BY c.category", "category");
+    }
+
+    // ============ QueryPlan Range-Conversion Boundary Tests ============
+    // These tests target the thin-client (Gateway V2 proxy) QueryPlan emission, where the
+    // PartitionedQueryExecutionInfo carries queryRanges as PartitionKeyInternal min/max JSON arrays
+    // (e.g. {"min":[],"max":["Infinity"]}) rather than the Gateway V1 EPK hex strings. The client
+    // converts those arrays to EPK ranges via PartitionKeyInternalHelper.convertToSortedEpkRanges:
+    //   - an empty min array  -> MinimumInclusiveEffectivePartitionKey ("")
+    //   - an "Infinity" max    -> MaximumExclusiveEffectivePartitionKey ("FF")
+    //   - a MULTI_HASH key     -> the multi-component branch of the conversion
+    // We assert result parity against the Direct-TCP baseline (whose plan comes from Gateway V1),
+    // proving both QueryPlan sources resolve to equivalent ranges.
+
+    /**
+     * Full-range / Infinity boundary. {@code SELECT * FROM c} with no partition key forces the
+     * proxy to emit the widest possible range (empty min -> "", "Infinity" max -> "FF"). Asserts the
+     * cross-partition container returns ALL seeded rows on both paths (absolute count, distinct from
+     * {@link #testCrossPartitionSelectAll} which only checks parity) and that the fan-out genuinely
+     * spans more than one partition key range.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testFullRangeInfinityBoundary() {
+        int expected = 30; // seedCrossPartitionData seeds exactly 30 docs
+        CosmosQueryRequestOptions crossPartitionOptions = new CosmosQueryRequestOptions();
+        QueryResult<ObjectNode> directResult =
+            drainQuery(directCrossPartitionContainer, "SELECT * FROM c", crossPartitionOptions, ObjectNode.class);
+        QueryResult<ObjectNode> tcResult =
+            drainQuery(thinClientCrossPartitionContainer, "SELECT * FROM c", crossPartitionOptions, ObjectNode.class);
+        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+        assertThat(directResult.results.size()).as("Direct full-range count").isEqualTo(expected);
+        assertThat(tcResult.results.size()).as("Thin-client full-range count").isEqualTo(expected);
+        assertSameDocumentIds(directResult.results, tcResult.results, false, "full-range SELECT *");
+        assertThat(distinctPartitionKeyRangesContacted(directResult.diagnostics))
+            .as("full-range query must contact more than one partition key range")
+            .isGreaterThan(1);
+    }
+
+    /**
+     * Hierarchical (MULTI_HASH) partition key cross-partition parity. Cross-partition queries
+     * over the /tenantId,/userId container force the proxy to emit MULTI-COMPONENT PartitionKeyInternal
+     * arrays, exercising the MULTI_HASH branch of convertToSortedEpkRanges. Validates plain, ORDER BY,
+     * and filtered-ORDER-BY shapes against the Direct baseline.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testHierarchicalPartitionKeyCrossPartition() {
+        assertHierarchicalCrossPartitionMatch("SELECT * FROM c");
+        assertHierarchicalCrossPartitionMatch("SELECT * FROM c ORDER BY c.idx");
+        assertHierarchicalCrossPartitionMatch("SELECT * FROM c WHERE c.category = 'books' ORDER BY c.idx");
+    }
+
+    /**
+     * Hierarchical prefix (half-open) range. Setting only the FIRST hierarchical component
+     * (tenantId) on the options makes the proxy emit a half-open prefix range whose max is the
+     * "Infinity"-suffixed sibling of the min - the prefix-range boundary case of the conversion. The
+     * full key (both components) instead resolves to a single point range. Asserts the prefix query
+     * returns exactly the tenant's users and the full key returns exactly one document, with parity
+     * to the Direct baseline.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testHierarchicalPrefixHalfOpenRange() {
+        String[] firstKey = hierarchicalKeys.get(0);
+        String tenant0 = firstKey[0];
+        String user0 = firstKey[1];
+
+        CosmosQueryRequestOptions fullKeyOptions = new CosmosQueryRequestOptions();
+        fullKeyOptions.setPartitionKey(new PartitionKeyBuilder().add(tenant0).add(user0).build());
+        assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", fullKeyOptions, 1);
+
+        CosmosQueryRequestOptions prefixOptions = new CosmosQueryRequestOptions();
+        prefixOptions.setPartitionKey(new PartitionKeyBuilder().add(tenant0).build());
+        assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", prefixOptions, HIER_USERS_PER_TENANT);
+    }
+
+    /**
+     * Two-source QueryPlan parity. The same ORDER BY projection query is resolved through both
+     * QueryPlan sources: the single-path cross-partition container (proxy emits single-component
+     * arrays) and the hierarchical container (proxy emits multi-component arrays). Both must match
+     * the Gateway V1 Direct baseline, formalizing the invariant that the two emission formats are
+     * interchangeable from the client's perspective.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testTwoSourceQueryPlanParity() {
+        String q = "SELECT c.id, c.idx, c.category FROM c WHERE c.idx >= 0 ORDER BY c.idx";
+        assertCrossPartitionDirectAndThinClientMatch(q);
+        assertHierarchicalCrossPartitionMatch(q);
     }
 
     // ==================== Multi-EPK-Range Tests (Sort Validation) ====================
-    // These tests use a dedicated 24,000 RU/s container (3 physical partitions) to ensure
-    // documents with different partition keys land on different physical partitions.
-    // After PartitionKeyInternal → EPK hash conversion, the sort in
-    // parseQueryRangesForThinClient() ensures RoutingMapProviderHelper.getOverlappingRanges()
-    // doesn't throw IllegalArgumentException for unsorted ranges.
+    // These tests use a dedicated higher-throughput (24,000 RU/s) container so that metadata
+    // exposes multiple EPK (effective partition key) ranges. Note: on the emulator / single-box
+    // backend these ranges are typically served by a single physical process (no true multi-box
+    // partitioning), so this does not guarantee documents physically land on separate partitions.
+    // It does, however, exercise the SDK-side routing and sort pipeline: documents with different
+    // partition keys map to different EPK ranges, and after PartitionKeyInternal → EPK hash
+    // conversion, the sort in parseQueryRangesForThinClient() ensures
+    // RoutingMapProviderHelper.getOverlappingRanges() doesn't throw IllegalArgumentException for
+    // unsorted ranges.
 
     /**
-     * Helper: creates a 24K RU container, runs the test, deletes the container.
+     * Helper: creates a higher-throughput (24K RU) container exposing multiple EPK ranges, runs the
+     * test, deletes the container.
      */
-    private void runMultiRangeTest(String[] pkValues, String queryTemplate, int expectedCount) {
+    private void runMultiRangeTest(String[] pkValues, String queryTemplate, int expectedCount,
+                                   boolean assertMultipleRangesContacted) {
         String containerId = "multiRange_" + UUID.randomUUID().toString().substring(0, 8);
         CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
         CosmosAsyncContainer directTestContainer = db.getContainer(containerId);
@@ -675,6 +1097,12 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             List<String> tcIds = tcResult.results.stream().map(d -> d.get(ID_FIELD).asText()).sorted().collect(Collectors.toList());
             assertThat(tcIds).isEqualTo(directIds);
 
+            if (assertMultipleRangesContacted) {
+                assertThat(distinctPartitionKeyRangesContacted(directResult.diagnostics))
+                    .as("multi-range query must contact more than one partition key range: " + query)
+                    .isGreaterThan(1);
+            }
+
         } finally {
             safeDeleteContainer(directTestContainer);
         }
@@ -688,7 +1116,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         String[] pkValues = {"pk-alpha", "pk-beta", "pk-gamma", "pk-delta", "pk-epsilon"};
         runMultiRangeTest(pkValues,
             "SELECT * FROM c WHERE c.mypk IN ('pk-alpha', 'pk-gamma', 'pk-epsilon')",
-            3);
+            3, false);
     }
 
     /**
@@ -699,7 +1127,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         String[] pkValues = {"pk-or-1", "pk-or-2", "pk-or-3"};
         runMultiRangeTest(pkValues,
             "SELECT * FROM c WHERE c.mypk = 'pk-or-1' OR c.mypk = 'pk-or-3'",
-            2);
+            2, false);
     }
 
     /**
@@ -720,7 +1148,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             sb.append("'").append(pkValues[i]).append("'");
         }
         sb.append(")");
-        runMultiRangeTest(pkValues, sb.toString(), 10);
+        runMultiRangeTest(pkValues, sb.toString(), 10, true);
     }
 
     // ==================== Continuation Token Draining ====================
@@ -752,6 +1180,13 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         for (CosmosDiagnostics d : tcDiag) { assertThinClientEndpointUsed(d); }
         assertThat(pageCount).as("Should have multiple pages with page size 3").isGreaterThan(1);
         assertThat(tcAll.size()).as("Continuation draining count mismatch").isEqualTo(gwResult.results.size());
+
+        List<String> tcDrainedIds = idsSorted(tcAll);
+        List<String> gwDrainedIds = idsSorted(gwResult.results);
+        assertThat(tcDrainedIds).as("Continuation draining ID-set mismatch").isEqualTo(gwDrainedIds);
+        assertThat(new HashSet<>(tcDrainedIds).size())
+            .as("Duplicate IDs encountered across drained continuation pages")
+            .isEqualTo(tcDrainedIds.size());
     }
 
     // ==================== Invalid Query ====================
@@ -763,13 +1198,11 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
                 .byPage().blockFirst();
             fail("Expected exception for invalid query");
         } catch (CosmosException e) {
-            assertThat(e.getStatusCode() == 400 || e.getStatusCode() == 0)
-                .as("Invalid query should return 400 Bad Request or a thin-client transport rejection, got "
-                    + e.getStatusCode())
-                .isTrue();
-            if (e.getStatusCode() == 0) {
-                assertThinClientEndpointUsed(e.getDiagnostics());
-            }
+            assertThat(e.getStatusCode())
+                .as("Invalid query must return 400 Bad Request (statusCode 0 indicates the thin-client "
+                    + "decode regression), got " + e.getStatusCode())
+                .isEqualTo(400);
+            assertThinClientEndpointUsed(e.getDiagnostics());
             logger.info("Expected error for invalid query: {} (status {})", e.getMessage(), e.getStatusCode());
         }
     }
@@ -1262,7 +1695,10 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     /**
      * Direct vs thin client comparison: run query via both Direct TCP and thin client.
-     * Assert: (1) thin client used :10250, (2) same count, (3) same document IDs in order.
+     * Assert: (1) thin client used :10250, (2) same count, (3) same document IDs — compared in
+     * strict sequence for ORDER BY queries and for single-partition queries (partition key set on
+     * the options), and as sorted sets only for cross-partition non-ORDER-BY queries where ordering
+     * is undefined. See {@link #isStrictlyOrdered}.
      */
     private void assertDirectAndThinClientMatch(String query) {
         assertDirectAndThinClientMatch(query, partitionedOptions());
@@ -1274,10 +1710,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
 
         assertThat(tcResult.results.size()).as("Count mismatch: " + query).isEqualTo(gwResult.results.size());
-
-        List<String> gwIds = gwResult.results.stream().filter(d -> d.has(ID_FIELD)).map(d -> d.get(ID_FIELD).asText()).collect(Collectors.toList());
-        List<String> tcIds = tcResult.results.stream().filter(d -> d.has(ID_FIELD)).map(d -> d.get(ID_FIELD).asText()).collect(Collectors.toList());
-        assertThat(tcIds).as("IDs mismatch: " + query).isEqualTo(gwIds);
+        assertSameDocumentIds(gwResult.results, tcResult.results, isStrictlyOrdered(query, options), query);
     }
 
     private void assertDirectAndThinClientMatch(SqlQuerySpec querySpec, CosmosQueryRequestOptions options) {
@@ -1286,10 +1719,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
 
         assertThat(tcResult.results.size()).as("Count mismatch: " + querySpec.getQueryText()).isEqualTo(gwResult.results.size());
-
-        List<String> gwIds = gwResult.results.stream().filter(d -> d.has(ID_FIELD)).map(d -> d.get(ID_FIELD).asText()).collect(Collectors.toList());
-        List<String> tcIds = tcResult.results.stream().filter(d -> d.has(ID_FIELD)).map(d -> d.get(ID_FIELD).asText()).collect(Collectors.toList());
-        assertThat(tcIds).as("IDs mismatch: " + querySpec.getQueryText()).isEqualTo(gwIds);
+        assertSameDocumentIds(gwResult.results, tcResult.results, isStrictlyOrdered(querySpec.getQueryText(), options), querySpec.getQueryText());
     }
 
     private <T> void assertScalarDirectAndThinClientMatch(String query, Class<T> resultType) {
@@ -1303,8 +1733,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
         assertThat(tcResult.results.size()).as("Scalar count mismatch: " + query).isEqualTo(gwResult.results.size());
         for (int i = 0; i < gwResult.results.size(); i++) {
-            assertThat(tcResult.results.get(i).toString()).as("Scalar value mismatch at " + i + ": " + query)
-                .isEqualTo(gwResult.results.get(i).toString());
+            assertScalarValueEquals(tcResult.results.get(i), gwResult.results.get(i), i + ": " + query);
         }
     }
 
@@ -1318,8 +1747,285 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         for (ObjectNode gwRow : gwResult.results) {
             String key = gwRow.get(groupField).asText();
             boolean found = tcResult.results.stream().anyMatch(tc -> tc.get(groupField).asText().equals(key)
-                && tc.toString().equals(gwRow.toString()));
+                && jsonEqualsWithTolerance(tc, gwRow));
             assertThat(found).as("GROUP BY row not found in thin client results: " + key).isTrue();
         }
+    }
+
+    private static final double NUMERIC_TOLERANCE = 1e-6;
+
+    private static boolean isOrderedQuery(String queryText) {
+        return queryText != null && queryText.toUpperCase(Locale.ROOT).contains("ORDER BY");
+    }
+
+    /**
+     * Decides whether Direct and thin client document IDs must match in strict sequence. Per query
+     * test best practice we validate order for as many queries as possible to flush out hidden
+     * ordering/paging bugs, and relax to a sorted-set comparison only when order is genuinely
+     * undefined: a cross-partition query (no partition key on the options) that lacks an ORDER BY.
+     * Single-partition queries (partitionedOptions sets a partition key) and any ORDER BY query are
+     * therefore always compared strictly.
+     */
+    private static boolean isStrictlyOrdered(String queryText, CosmosQueryRequestOptions options) {
+        boolean crossPartition = options == null || options.getPartitionKey() == null;
+        return isOrderedQuery(queryText) || !crossPartition;
+    }
+
+    /**
+     * Compares the Direct (baseline) and thin client result rows. When {@code ordered} is true the
+     * sequence is significant (compared position-by-position); otherwise the rows are compared
+     * order-insensitively (a cross-partition non-ORDER-BY query, where cross-partition / cross-page
+     * ordering is undefined). See {@link #isStrictlyOrdered}.
+     * <p>
+     * If every row projects an {@code id} it is used as the comparison key (stable and cheap).
+     * Otherwise (projection queries that do not select {@code id}, e.g. {@code SELECT <expr> AS x})
+     * we do NOT drop the check and lose coverage - the full projected rows are compared instead,
+     * with numeric fields matched within {@link #NUMERIC_TOLERANCE} to avoid float-formatting false
+     * mismatches between the Direct and thin-client serialization paths.
+     */
+    private static void assertSameDocumentIds(List<ObjectNode> gwDocs, List<ObjectNode> tcDocs, boolean ordered, String desc) {
+        assertThat(tcDocs.size()).as("Row count mismatch: " + desc).isEqualTo(gwDocs.size());
+
+        boolean allHaveId = !gwDocs.isEmpty()
+            && gwDocs.stream().allMatch(d -> d.has(ID_FIELD))
+            && tcDocs.stream().allMatch(d -> d.has(ID_FIELD));
+
+        if (allHaveId) {
+            List<String> gwIds = gwDocs.stream().map(d -> d.get(ID_FIELD).asText()).collect(Collectors.toList());
+            List<String> tcIds = tcDocs.stream().map(d -> d.get(ID_FIELD).asText()).collect(Collectors.toList());
+            if (ordered) {
+                assertThat(tcIds).as("IDs mismatch (ordered): " + desc).isEqualTo(gwIds);
+            } else {
+                assertThat(tcIds.stream().sorted().collect(Collectors.toList()))
+                    .as("IDs mismatch (unordered): " + desc)
+                    .isEqualTo(gwIds.stream().sorted().collect(Collectors.toList()));
+            }
+            return;
+        }
+
+        // No id projected - compare the full rows so ordering/content coverage is not lost.
+        if (ordered) {
+            for (int i = 0; i < gwDocs.size(); i++) {
+                assertThat(jsonEqualsWithTolerance(tcDocs.get(i), gwDocs.get(i)))
+                    .as("Row mismatch (ordered) at index " + i + ": " + desc
+                        + " | expected=" + gwDocs.get(i) + " actual=" + tcDocs.get(i))
+                    .isTrue();
+            }
+        } else {
+            // Multiset comparison: each Direct row must have a distinct matching thin-client row.
+            List<ObjectNode> remaining = new ArrayList<>(tcDocs);
+            for (ObjectNode gwRow : gwDocs) {
+                int matchIdx = -1;
+                for (int j = 0; j < remaining.size(); j++) {
+                    if (jsonEqualsWithTolerance(remaining.get(j), gwRow)) {
+                        matchIdx = j;
+                        break;
+                    }
+                }
+                assertThat(matchIdx)
+                    .as("Row not found in thin-client results (unordered): " + desc + " | row=" + gwRow)
+                    .isGreaterThanOrEqualTo(0);
+                remaining.remove(matchIdx);
+            }
+        }
+    }
+
+    /**
+     * Cross-partition parity check against the dedicated multi-physical-partition container. Asserts
+     * (1) thin client routing, (2) result parity with Direct (strict order for ORDER BY queries),
+     * and (3) that the query actually fanned out across more than one partition key range - i.e. the
+     * seeded data really does span multiple partitions.
+     */
+    private void assertCrossPartitionDirectAndThinClientMatch(String query) {
+        CosmosQueryRequestOptions crossPartitionOptions = new CosmosQueryRequestOptions();
+        QueryResult<ObjectNode> directResult = drainQuery(directCrossPartitionContainer, query, crossPartitionOptions, ObjectNode.class);
+        QueryResult<ObjectNode> tcResult = drainQuery(thinClientCrossPartitionContainer, query, crossPartitionOptions, ObjectNode.class);
+        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+        assertThat(tcResult.results.size()).as("Count mismatch: " + query).isEqualTo(directResult.results.size());
+        assertSameDocumentIds(directResult.results, tcResult.results, isStrictlyOrdered(query, crossPartitionOptions), query);
+
+        // Prove the fixture data genuinely spans more than one physical partition (so this really is
+        // a cross-partition query). Counted from the Direct diagnostics, which reliably report the
+        // partition key range per request; the parity check above already proves the thin client
+        // fanned out and merged all rows from those partitions correctly.
+        assertThat(distinctPartitionKeyRangesContacted(directResult.diagnostics))
+            .as("cross-partition query must contact more than one partition key range: " + query)
+            .isGreaterThan(1);
+    }
+
+    /**
+     * Cross-partition scalar-aggregate parity check. Runs a {@code SELECT VALUE <agg>} query with no
+     * partition key on the options, so the thin client must fan out to every physical partition,
+     * collect each partition's partial aggregate, and merge them into the single returned value -
+     * exercising the cross-partition aggregate MERGE path that the single-partition aggregate tests
+     * never reach. Asserts (1) thin client routing, (2) value parity with the Direct baseline within
+     * numeric tolerance, and (3) that the Direct baseline genuinely fanned out across more than one
+     * partition key range, proving the merge actually happened.
+     */
+    private <T> void assertCrossPartitionScalarMatch(String query, Class<T> resultType) {
+        CosmosQueryRequestOptions crossPartitionOptions = new CosmosQueryRequestOptions();
+        QueryResult<T> directResult = drainQuery(directCrossPartitionContainer, query, crossPartitionOptions, resultType);
+        QueryResult<T> tcResult = drainQuery(thinClientCrossPartitionContainer, query, crossPartitionOptions, resultType);
+        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+        assertThat(tcResult.results.size()).as("Scalar count mismatch: " + query).isEqualTo(directResult.results.size());
+        for (int i = 0; i < directResult.results.size(); i++) {
+            assertScalarValueEquals(tcResult.results.get(i), directResult.results.get(i), i + ": " + query);
+        }
+
+        assertThat(distinctPartitionKeyRangesContacted(directResult.diagnostics))
+            .as("cross-partition aggregate must contact more than one partition key range: " + query)
+            .isGreaterThan(1);
+    }
+
+    /**
+     * Cross-partition GROUP BY parity check. With no partition key on the options the thin client must
+     * fan out to every physical partition and merge each partition's partial groups into the final
+     * grouped result - exercising the cross-partition GROUP BY MERGE path. Because group/page ordering
+     * across partitions is undefined, rows are compared as a set keyed on {@code groupField} (numeric
+     * fields matched within tolerance). Asserts thin client routing, set parity with Direct, and
+     * genuine multi-range fan-out on the Direct baseline.
+     */
+    private void assertCrossPartitionGroupByMatch(String query, String groupField) {
+        CosmosQueryRequestOptions crossPartitionOptions = new CosmosQueryRequestOptions();
+        QueryResult<ObjectNode> directResult = drainQuery(directCrossPartitionContainer, query, crossPartitionOptions, ObjectNode.class);
+        QueryResult<ObjectNode> tcResult = drainQuery(thinClientCrossPartitionContainer, query, crossPartitionOptions, ObjectNode.class);
+        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+        assertThat(tcResult.results.size()).as("GROUP BY count mismatch: " + query).isEqualTo(directResult.results.size());
+        for (ObjectNode directRow : directResult.results) {
+            String key = directRow.get(groupField).asText();
+            boolean found = tcResult.results.stream().anyMatch(tc -> tc.get(groupField).asText().equals(key)
+                && jsonEqualsWithTolerance(tc, directRow));
+            assertThat(found).as("GROUP BY row not found in thin client results: " + key).isTrue();
+        }
+
+        assertThat(distinctPartitionKeyRangesContacted(directResult.diagnostics))
+            .as("cross-partition GROUP BY must contact more than one partition key range: " + query)
+            .isGreaterThan(1);
+    }
+
+    /**
+     * Hierarchical (MULTI_HASH) cross-partition parity check. With no partition key on the options the
+     * thin client fans out across the /tenantId,/userId container's physical partitions, forcing the
+     * proxy to emit MULTI-COMPONENT PartitionKeyInternal arrays that drive the MULTI_HASH branch of the
+     * range conversion. Asserts (1) thin client routing, (2) count parity, (3) row parity (ordered when
+     * the query is strictly ordered), and (4) genuine multi-range fan-out on the Direct baseline.
+     */
+    private void assertHierarchicalCrossPartitionMatch(String query) {
+        CosmosQueryRequestOptions crossPartitionOptions = new CosmosQueryRequestOptions();
+        QueryResult<ObjectNode> directResult = drainQuery(directHierarchicalContainer, query, crossPartitionOptions, ObjectNode.class);
+        QueryResult<ObjectNode> tcResult = drainQuery(thinClientHierarchicalContainer, query, crossPartitionOptions, ObjectNode.class);
+        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+        assertThat(tcResult.results.size()).as("Hierarchical count mismatch: " + query).isEqualTo(directResult.results.size());
+        assertSameDocumentIds(directResult.results, tcResult.results, isStrictlyOrdered(query, crossPartitionOptions), query);
+
+        assertThat(distinctPartitionKeyRangesContacted(directResult.diagnostics))
+            .as("hierarchical cross-partition query must contact more than one partition key range: " + query)
+            .isGreaterThan(1);
+    }
+
+    /**
+     * Hierarchical SCOPED parity check. Runs the query with a caller-supplied partition key on the
+     * options - either the full two-component key (a single point range) or just the first component
+     * (a half-open prefix range) - so the proxy emits the corresponding scoped PartitionKeyInternal
+     * range. Asserts thin client routing, that the Direct baseline returns {@code expectedCount} rows,
+     * and full row parity. No multi-range assertion: a scoped query may legitimately hit a single range.
+     */
+    private void assertHierarchicalScopedMatch(String query, CosmosQueryRequestOptions options, int expectedCount) {
+        QueryResult<ObjectNode> directResult = drainQuery(directHierarchicalContainer, query, options, ObjectNode.class);
+        QueryResult<ObjectNode> tcResult = drainQuery(thinClientHierarchicalContainer, query, options, ObjectNode.class);
+        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+        assertThat(directResult.results.size()).as("Direct scoped count: " + query).isEqualTo(expectedCount);
+        assertThat(tcResult.results.size()).as("Thin-client scoped count: " + query).isEqualTo(directResult.results.size());
+        assertSameDocumentIds(directResult.results, tcResult.results, isStrictlyOrdered(query, options), query);
+    }
+
+    /** Counts the distinct partition key ranges contacted across all pages' diagnostics. */
+    private static int distinctPartitionKeyRangesContacted(List<CosmosDiagnostics> diagnosticsList) {
+        Set<String> ranges = new HashSet<>();
+        for (CosmosDiagnostics diagnostics : diagnosticsList) {
+            CosmosDiagnosticsContext ctx = diagnostics.getDiagnosticsContext();
+            if (ctx == null) {
+                continue;
+            }
+            for (CosmosDiagnosticsRequestInfo requestInfo : ctx.getRequestInfo()) {
+                String pkRangeId = requestInfo.getPartitionKeyRangeId();
+                if (pkRangeId != null && !pkRangeId.isEmpty()) {
+                    ranges.add(pkRangeId);
+                }
+            }
+        }
+        return ranges.size();
+    }
+
+    /**
+     * Compares scalar aggregate values, treating two numeric values as equal when they fall within
+     * NUMERIC_TOLERANCE. Avoids false mismatches from floating-point formatting differences (e.g.
+     * SUM/AVG) between the Direct and thin client paths; falls back to string equality otherwise.
+     */
+    private static <T> void assertScalarValueEquals(T tcValue, T gwValue, String desc) {
+        String tcStr = String.valueOf(tcValue);
+        String gwStr = String.valueOf(gwValue);
+        Double tcNum = tryParseDouble(tcStr);
+        Double gwNum = tryParseDouble(gwStr);
+        if (tcNum != null && gwNum != null) {
+            assertThat(Math.abs(tcNum - gwNum)).as("Scalar numeric mismatch at " + desc).isLessThan(NUMERIC_TOLERANCE);
+        } else {
+            assertThat(tcStr).as("Scalar value mismatch at " + desc).isEqualTo(gwStr);
+        }
+    }
+
+    private static Double tryParseDouble(String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Recursively compares two JSON nodes, treating numeric leaves as equal when they fall within
+     * NUMERIC_TOLERANCE. Prevents false GROUP BY mismatches caused by floating-point formatting
+     * differences in aggregate values (e.g. SUM/AVG) between the Direct and thin client paths.
+     */
+    private static boolean jsonEqualsWithTolerance(JsonNode a, JsonNode b) {
+        if (a == null || b == null) {
+            return a == b;
+        }
+        if (a.isNumber() && b.isNumber()) {
+            return Math.abs(a.asDouble() - b.asDouble()) < NUMERIC_TOLERANCE;
+        }
+        if (a.isObject() && b.isObject()) {
+            if (a.size() != b.size()) {
+                return false;
+            }
+            Iterator<String> fieldNames = a.fieldNames();
+            while (fieldNames.hasNext()) {
+                String field = fieldNames.next();
+                if (!b.has(field) || !jsonEqualsWithTolerance(a.get(field), b.get(field))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (a.isArray() && b.isArray()) {
+            if (a.size() != b.size()) {
+                return false;
+            }
+            for (int i = 0; i < a.size(); i++) {
+                if (!jsonEqualsWithTolerance(a.get(i), b.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return a.equals(b);
     }
 }

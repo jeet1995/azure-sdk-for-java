@@ -232,19 +232,8 @@ public class ConfigsTests {
 
     @Test(groups = { "emulator" })
     public void thinClientEnabledTest() {
-        // Default flipped to true in the probe-flow work; explicit "false" must still opt out.
+        assertThat(isThinClientEnabled()).isFalse();
         System.clearProperty("COSMOS.THINCLIENT_ENABLED");
-        try {
-            assertThat(isThinClientEnabled()).isTrue();
-        } finally {
-            System.clearProperty("COSMOS.THINCLIENT_ENABLED");
-        }
-        System.setProperty("COSMOS.THINCLIENT_ENABLED", "false");
-        try {
-            assertThat(isThinClientEnabled()).isFalse();
-        } finally {
-            System.clearProperty("COSMOS.THINCLIENT_ENABLED");
-        }
         System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
         try {
             assertThat(isThinClientEnabled()).isTrue();

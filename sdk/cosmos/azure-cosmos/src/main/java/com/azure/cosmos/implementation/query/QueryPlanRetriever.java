@@ -124,7 +124,15 @@ class QueryPlanRetriever {
         // PartitionKeyDefinition available), the conversion is impossible, so the
         // query-plan request is pinned to Gateway V1 — where queryRanges come back
         // already in the EPK-hex format that the pipeline expects.
-        queryPlanRequest.useGatewayMode = partitionKeyDefinition == null;
+        //
+        // Otherwise, route the query-plan request based on the thin-client opt-in. When
+        // thin client is enabled and eligible for this request, leave gateway mode off so
+        // the request is routed through the Gateway V2 thin-client proxy; otherwise force
+        // Gateway V1 (preserving the legacy query-plan routing).
+        // Configs.isThinClientQueryPlanEnabled() is a kill-switch (system property /
+        // environment variable) that forces query-plan requests back onto Gateway V1.
+        queryPlanRequest.useGatewayMode = partitionKeyDefinition == null
+            || !(queryClient.useThinClient(queryPlanRequest) && Configs.isThinClientQueryPlanEnabled());
 
         // Create a defensive copy to prevent concurrent modification of the shared
         // SqlQuerySpec's internal ObjectNode when multiple threads retrieve the query
