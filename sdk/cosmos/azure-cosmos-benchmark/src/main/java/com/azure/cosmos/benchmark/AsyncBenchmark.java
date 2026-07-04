@@ -131,6 +131,24 @@ abstract class AsyncBenchmark<T> implements Benchmark {
                 logger.info("HTTP/2 enabled with maxConcurrentStreams: {}",
                     http2Config.getMaxConcurrentStreams());
             }
+
+            // Endpoint flavor: route HTTP/2 GATEWAY traffic through the classic Compute Gateway
+            // (Gateway V1) or the ThinClient proxy (Gateway V2). Thin-client selection is read by
+            // the SDK from the COSMOS.THINCLIENT_ENABLED system property at client build time
+            // (see Configs#isThinClientEnabled / ThinClientConnectivityConfig#canThinClientBeUsed).
+            if (cfg.isThinClientFlavor()) {
+                System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
+                if (cfg.getThinClientEndpoint() != null && !cfg.getThinClientEndpoint().isEmpty()) {
+                    System.setProperty("COSMOS.THINCLIENT_ENDPOINT", cfg.getThinClientEndpoint());
+                }
+                logger.info("Endpoint flavor: ThinClient (Gateway V2) - COSMOS.THINCLIENT_ENABLED=true, endpoint={}",
+                    cfg.getThinClientEndpoint() != null && !cfg.getThinClientEndpoint().isEmpty()
+                        ? cfg.getThinClientEndpoint() : "<sdk-default>");
+            } else {
+                System.setProperty("COSMOS.THINCLIENT_ENABLED", "false");
+                logger.info("Endpoint flavor: ComputeGateway (Gateway V1) - COSMOS.THINCLIENT_ENABLED=false");
+            }
+
             benchmarkSpecificClientBuilder = benchmarkSpecificClientBuilder.gatewayMode(gatewayConnectionConfig);
         }
 
