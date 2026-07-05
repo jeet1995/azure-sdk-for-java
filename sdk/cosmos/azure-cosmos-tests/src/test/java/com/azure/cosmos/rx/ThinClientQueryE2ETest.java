@@ -27,6 +27,7 @@ import com.azure.cosmos.models.CosmosVectorEmbeddingPolicy;
 import com.azure.cosmos.models.CosmosVectorIndexSpec;
 import com.azure.cosmos.models.CosmosVectorIndexType;
 import com.azure.cosmos.models.ExcludedPath;
+import com.azure.cosmos.models.FeedRange;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.IncludedPath;
 import com.azure.cosmos.models.IndexingMode;
@@ -992,6 +993,64 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         assertThat(distinctPartitionKeyRangesContacted(directResult.diagnostics))
             .as("full-range query must contact more than one partition key range")
             .isGreaterThan(1);
+    }
+
+    /**
+     * Explicit user-supplied {@link FeedRange} (EPK-range) scoped read parity.
+     * <p>
+     * The over-span fix in {@code ThinClientStoreModel#wrapInHttpRequest} keys off the presence of the
+     * StartEpk/EndEpk headers (paired with {@code READ_FEED_KEY_TYPE = EffectivePartitionKeyRange}),
+     * which {@code FeedRangeEpkImpl} emits whenever a caller supplies an explicit {@link FeedRange} on
+     * the query options. The prefix-HPK tests exercise that header path indirectly through the query
+     * plan; this test exercises it DIRECTLY by sharding the multi-physical-partition container into its
+     * physical feed ranges and querying each one, so a broken EPK-range guard would over-span a shard
+     * and surface documents belonging to a sibling partition.
+     * <p>
+     * For every physical feed range asserts: (1) the thin client routed through the :10250 endpoint,
+     * and (2) the thin-client rows for the shard exactly equal the Direct baseline for the SAME shard -
+     * an over-span would make the thin-client set a strict superset of the Direct set. Across all shards
+     * it further asserts the union exactly reconstructs the full unsharded fan-out with no duplicates,
+     * proving the shards are a clean, non-overlapping partition of the key space.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testExplicitFeedRangeShardedReadParity() {
+        List<FeedRange> feedRanges = directCrossPartitionContainer.getFeedRanges().block();
+        assertThat(feedRanges.size())
+            .as("multi-physical-partition container must expose more than one feed range")
+            .isGreaterThan(1);
+
+        List<String> unionThinClientIds = new ArrayList<>();
+        for (FeedRange feedRange : feedRanges) {
+            CosmosQueryRequestOptions directOptions = new CosmosQueryRequestOptions().setFeedRange(feedRange);
+            CosmosQueryRequestOptions tcOptions = new CosmosQueryRequestOptions().setFeedRange(feedRange);
+
+            QueryResult<ObjectNode> directShard =
+                drainQuery(directCrossPartitionContainer, "SELECT * FROM c", directOptions, ObjectNode.class);
+            QueryResult<ObjectNode> tcShard =
+                drainQuery(thinClientCrossPartitionContainer, "SELECT * FROM c", tcOptions, ObjectNode.class);
+            for (CosmosDiagnostics d : tcShard.diagnostics) { assertThinClientEndpointUsed(d); }
+
+            // Per-shard parity: the thin client must return EXACTLY the Direct baseline's documents for
+            // this feed range. A broken EPK-range guard would over-span and pull in sibling-shard docs,
+            // making the thin-client set a strict superset of the Direct set.
+            assertThat(tcShard.results.size())
+                .as("Thin-client feed-range shard count vs Direct for " + feedRange)
+                .isEqualTo(directShard.results.size());
+            assertThat(idsSorted(tcShard.results))
+                .as("Thin-client feed-range shard over-span vs Direct for " + feedRange)
+                .isEqualTo(idsSorted(directShard.results));
+
+            unionThinClientIds.addAll(idsSorted(tcShard.results));
+        }
+
+        // The shards must be a clean partition of the whole container: their union reconstructs the full
+        // unsharded fan-out exactly, with no duplicates (which would indicate two shards overlap).
+        QueryResult<ObjectNode> fullFanOut = drainQuery(
+            directCrossPartitionContainer, "SELECT * FROM c", new CosmosQueryRequestOptions(), ObjectNode.class);
+        List<String> unionSorted = unionThinClientIds.stream().sorted().collect(Collectors.toList());
+        assertThat(unionSorted)
+            .as("union of per-feed-range thin-client shards must equal the full fan-out with no duplicates")
+            .isEqualTo(idsSorted(fullFanOut.results));
     }
 
     /**

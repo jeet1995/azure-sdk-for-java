@@ -250,12 +250,18 @@ public class ThinClientStoreModel extends RxGatewayStoreModel {
 
         String startEpk = request.getHeaders().get(HttpConstants.HttpHeaders.START_EPK);
         String endEpk = request.getHeaders().get(HttpConstants.HttpHeaders.END_EPK);
-        if (startEpk != null && endEpk != null) {
-            // The request already carries the effective-partition-key range as HTTP headers (set by
+        String readFeedKeyType = request.getHeaders().get(HttpConstants.HttpHeaders.READ_FEED_KEY_TYPE);
+        if (startEpk != null && endEpk != null
+            && ReadFeedKeyType.EffectivePartitionKeyRange.name().equalsIgnoreCase(readFeedKeyType)) {
+            // The request already carries the effective-partition-key range as HTTP headers (set together by
             // FeedRangeEpkImpl#populateFeedRangeFilteringHeaders). This covers a partial (prefix)
-            // hierarchical partition key query as well as any explicit EPK-range read. The
-            // ReadFeedKeyType/StartEpk/EndEpk RNTBD string tokens are copied verbatim from those HTTP
-            // headers by RntbdRequestHeaders#addStartAndEndKeys during RntbdRequest.from() above, so only
+            // hierarchical partition key query as well as any explicit EPK-range read. All three headers
+            // (ReadFeedKeyType=EffectivePartitionKeyRange, StartEpk, EndEpk) are required for the backend to
+            // interpret the range: RntbdRequestHeaders#addStartAndEndKeys reads each independently and only
+            // emits the ReadFeedKeyType RNTBD token when READ_FEED_KEY_TYPE is present, so we guard on it here
+            // as well to keep the StartEpk/EndEpk string tokens and the StartEpkHash/EndEpkHash binary tokens
+            // coherent. The ReadFeedKeyType/StartEpk/EndEpk RNTBD string tokens are copied verbatim from those
+            // HTTP headers by RntbdRequestHeaders#addStartAndEndKeys during RntbdRequest.from() above, so only
             // the StartEpkHash/EndEpkHash tokens (the decoded hash bytes) are additive here. They steer the
             // thin-client proxy to the owning physical partition(s); without them the proxy resolves the
             // request to the whole physical partition and returns every co-located document (an over-span).
