@@ -38,7 +38,6 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
     @BeforeClass(groups = {"thinclient"}, timeOut = SETUP_TIMEOUT)
     public void before_ThinClientTest() {
         assertThat(this.client).isNull();
-        enableThinClientForTest();
         this.client = getClientBuilder().buildAsyncClient();
         this.container = getSharedMultiPartitionCosmosContainer(this.client);
 
@@ -48,18 +47,9 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
 
     @AfterClass(groups = {"thinclient"}, timeOut = SHUTDOWN_TIMEOUT, alwaysRun = true)
     public void afterClass() {
-        clearThinClientForTest();
         if (this.client != null) {
             this.client.close();
         }
-    }
-
-    protected static void enableThinClientForTest() {
-        System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
-    }
-
-    protected static void clearThinClientForTest() {
-        System.clearProperty("COSMOS.THINCLIENT_ENABLED");
     }
 
     /**
@@ -75,7 +65,7 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
     /**
      * Asserts that all requests in the diagnostics were routed through the thin client endpoint.
      */
-    protected static void assertThinClientEndpointUsed(CosmosDiagnostics diagnostics) {
+    public static void assertThinClientEndpointUsed(CosmosDiagnostics diagnostics) {
         // Delegate to the shared TestSuiteBase implementation so the thin-client routing invariant
         // (every non-QueryPlan request via the thin-client endpoint; QueryPlan may use the classic
         // gateway) and null-endpoint handling are applied consistently across all thin-client tests.
@@ -86,7 +76,7 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
      * Asserts that NO requests in the diagnostics were routed through the thin client endpoint,
      * confirming the gateway client used the standard :443 path.
      */
-    protected static void assertGatewayEndpointUsed(CosmosDiagnostics diagnostics) {
+    public static void assertGatewayEndpointUsed(CosmosDiagnostics diagnostics) {
         assertThat(diagnostics).isNotNull();
         CosmosDiagnosticsContext ctx = diagnostics.getDiagnosticsContext();
         assertThat(ctx).isNotNull();

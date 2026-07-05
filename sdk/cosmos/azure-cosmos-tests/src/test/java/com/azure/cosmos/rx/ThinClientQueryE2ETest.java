@@ -128,7 +128,6 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             this.directContainer = getSharedMultiPartitionCosmosContainer(this.directClient);
 
             // 2. Gateway V2 thin client (system under test)
-            ThinClientTestBase.enableThinClientForTest();
             CosmosClientBuilder thinClientBuilder = createGatewayRxDocumentClient(
                 TestConfigurations.HOST, null, true, null, true, true, true);
             this.thinClient = thinClientBuilder.buildAsyncClient();
@@ -301,7 +300,6 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
                 logger.warn("Bulk delete of seeded docs failed: {}", e.getMessage());
             }
         }
-        ThinClientTestBase.clearThinClientForTest();
         if (directCrossPartitionContainer != null) {
             safeDeleteContainer(directCrossPartitionContainer);
         }
