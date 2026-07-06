@@ -147,7 +147,15 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             //    multi-component QueryPlan range-conversion coverage.
             seedHierarchicalData();
         } catch (Exception e) {
-            // Clean up any clients that were successfully created before the failure
+            // Best-effort cleanup of any resources created before the failure. Dedicated container
+            // deletes must run before the owning clients are closed, and any cleanup failure must
+            // not mask the original setup exception.
+            try {
+                if (this.directCrossPartitionContainer != null) { safeDeleteContainer(this.directCrossPartitionContainer); }
+                if (this.directHierarchicalContainer != null) { safeDeleteContainer(this.directHierarchicalContainer); }
+            } catch (Exception cleanupError) {
+                logger.warn("Cleanup after setup failure did not fully succeed: {}", cleanupError.getMessage());
+            }
             if (this.thinClient != null) { this.thinClient.close(); this.thinClient = null; }
             if (this.directClient != null) { this.directClient.close(); this.directClient = null; }
             throw e;
@@ -1698,24 +1706,32 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     }
 
     // ==================== Partial (Prefix) HPK read Tests ====================
-    // Regression coverage for the thin-client MULTI_HASH prefix EPK over-span fix. A partial
-    // hierarchical key (only /tenantId, omitting /userId) must scope the read to that tenant's
-    // effective-partition-key sub-range [hash(prefix), hash(prefix)+"FF") as a doc-level filter,
-    // NOT resolve to the whole owning physical partition (which would return co-located documents
-    // from other tenants). Direct TCP is the baseline; the thin client must match it exactly, so a
-    // count/ID mismatch is exactly the over-span regression these tests guard against.
+    // Direct-vs-thin-client parity coverage for partial hierarchical keys (only /tenantId, omitting
+    // /userId). Direct TCP is the baseline; the thin client must return exactly the same documents.
+    //
+    // The isolation mechanism differs by API and is called out per-test below:
+    //   - readAllItems / readManyByPartitionKeys with a prefix generate a SQL WHERE predicate on the
+    //     present component(s) and route by the resolved physical PK-range id, so foreign co-located
+    //     tenants are filtered by that predicate (a routing + SQL-predicate parity guard).
+    //   - The RNTBD prefix-EPK range path (a raw query with only a prefix key and no generated
+    //     predicate, where isolation is purely by the [hash(prefix), hash(prefix)+"FF") sub-range) is
+    //     the direct guard of the thin-client MULTI_HASH prefix EPK over-span fix. It is exercised by
+    //     testHierarchicalPrefixHalfOpenRange() and testExplicitFeedRangeShardedReadParity().
 
     /**
      * readAllItems (ReadFeed) with a partial (prefix) hierarchical partition key - only the first
      * component (/tenantId). Iterates over ALL seeded tenants (not just one): at 12000 RU/s the
      * container has fewer physical partitions than {@code HIER_TENANTS}, so by the pigeonhole
-     * principle at least two tenants are co-located on the same physical partition, making the
-     * over-span regression deterministically reproducible instead of depending on tenant-0's
-     * placement. Each prefix read must return exactly that tenant's {@code HIER_USERS_PER_TENANT}
-     * documents, matching the Direct baseline; an over-span to the physical partition would surface
-     * co-located docs from other tenants, which the count/ID parity and per-doc tenant assertion
-     * catch. A final nonexistent-tenant prefix must return zero documents - a co-location-independent
-     * negative guard.
+     * principle at least two tenants are co-located on the same physical partition. Each prefix read
+     * must return exactly that tenant's {@code HIER_USERS_PER_TENANT} documents, matching the Direct
+     * baseline; a final nonexistent-tenant prefix must return zero documents.
+     *
+     * <p>Note: readAllItems with a prefix key generates a SQL {@code WHERE} predicate on the present
+     * component(s) ({@code createLogicalPartitionScanQuerySpec}) and routes by the resolved physical
+     * PK-range id, so tenant isolation here is enforced by that predicate rather than by an RNTBD
+     * prefix-EPK range header. This is therefore a routing + SQL-predicate parity guard against
+     * Direct, not a direct guard of the prefix-EPK over-span fix (see
+     * {@link #testHierarchicalPrefixHalfOpenRange()} for that path).
      */
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testHierarchicalReadAllItemsPrefixPartitionKey() {
@@ -1782,9 +1798,9 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * generated {@code WHERE} predicate on the prefix key component(s), so tenant isolation here is
      * enforced by that SQL predicate rather than by the RNTBD prefix-EPK range header. This is
      * therefore a routing + SQL-predicate parity guard against Direct, not a direct guard of the
-     * over-span fix. The prefix-EPK header path itself (query/readAll with only a prefix key and no
-     * generated predicate) is exercised by {@link #testHierarchicalReadAllItemsPrefixPartitionKey()}
-     * and {@link #testHierarchicalPrefixHalfOpenRange()}.
+     * over-span fix. The prefix-EPK header path itself (a raw query with only a prefix key and no
+     * generated predicate) is exercised by {@link #testHierarchicalPrefixHalfOpenRange()} and
+     * {@link #testExplicitFeedRangeShardedReadParity()}.
      */
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testHierarchicalReadManyByPartitionKeysPrefixPartitionKey() {
