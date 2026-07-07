@@ -1025,10 +1025,55 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
                     && !sessionCapturingOverrideEnabled);
             this.sessionContainer.setDisableSessionCapturing(updatedDisableSessionCapturing);
             this.addUserAgentSuffix(this.userAgentContainer, EnumSet.allOf(UserAgentFeatureFlags.class));
+
+            // Eagerly pre-warm the thin-client HTTP/2 connection pool (opt-in) so the first
+            // data-plane request does not pay the cold TLS+HTTP/2 handshake burst. Best-effort:
+            // guarded, bounded, and can never fail client construction.
+            this.warmUpThinClientHttp2ConnectionsIfEnabled();
         } catch (Exception e) {
             logger.error("unexpected failure in initializing client.", e);
             close();
             throw e;
+        }
+    }
+
+    /**
+     * Eagerly establishes thin-client HTTP/2 connections at client-build time so the first data-plane
+     * request does not pay the cold TLS+HTTP/2 handshake burst. Opt-in via
+     * {@code COSMOS.HTTP2_EAGER_CONNECTION_WARMUP_ENABLED}; a no-op unless thin-client is usable
+     * (GATEWAY + HTTP/2 effectively enabled + thin-client enabled). Blocks init for a bounded budget
+     * and can NEVER fail client construction — every failure path is absorbed.
+     */
+    private void warmUpThinClientHttp2ConnectionsIfEnabled() {
+        try {
+            if (!Configs.isHttp2EagerConnectionWarmupEnabled()) {
+                return;
+            }
+            if (!this.useThinClient()) {
+                logger.info("Eager HTTP/2 connection warm-up: thin-client not usable for this client; skipping.");
+                return;
+            }
+            Set<URI> endpoints = this.globalEndpointManager.getThinClientRegionalEndpoints();
+            if (endpoints == null || endpoints.isEmpty()) {
+                logger.info("Eager HTTP/2 connection warm-up: no thin-client regional endpoints resolved; skipping.");
+                return;
+            }
+            int warmupRequestsPerEndpoint = Configs.getHttp2MinConnectionPoolSize();
+            Duration budget = Duration.ofSeconds(Configs.getHttp2EagerConnectionWarmupTimeoutInSeconds());
+            logger.info("Eager HTTP/2 connection warm-up: dialing {} thin-client endpoint(s), {} request(s) each, budget {}.",
+                endpoints.size(), warmupRequestsPerEndpoint, budget);
+            EndpointProbeClient warmupClient = new EndpointProbeClient(this.reactorHttpClient);
+            try {
+                warmupClient
+                    .warmUpConnections(endpoints, warmupRequestsPerEndpoint)
+                    .block(budget);
+                logger.info("Eager HTTP/2 connection warm-up completed.");
+            } finally {
+                warmupClient.close();
+            }
+        } catch (Throwable t) {
+            // Pre-warm is a best-effort optimization; it must never fail CosmosClient construction.
+            logger.warn("Eager HTTP/2 connection warm-up failed; continuing without pre-warmed connections.", t);
         }
     }
 
@@ -9009,7 +9054,6 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         checkNotNull(this.globalPartitionEndpointManagerForPerPartitionAutomaticFailover, "Argument 'globalPartitionEndpointManagerForPerPartitionAutomaticFailover' cannot be null.");
         checkNotNull(this.globalPartitionEndpointManagerForPerPartitionCircuitBreaker, "Argument 'globalPartitionEndpointManagerForPerPartitionCircuitBreaker' cannot be null.");
 
-        this.diagnosticsClientConfig.withPartitionLevelCircuitBreakerConfig(this.globalPartitionEndpointManagerForPerPartitionCircuitBreaker.getCircuitBreakerConfig());
         this.diagnosticsClientConfig.withIsPerPartitionAutomaticFailoverEnabled(this.globalPartitionEndpointManagerForPerPartitionAutomaticFailover.isPerPartitionAutomaticFailoverEnabled());
     }
 
@@ -9038,6 +9082,12 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
 
         this.globalPartitionEndpointManagerForPerPartitionCircuitBreaker.resetCircuitBreakerConfig(partitionLevelCircuitBreakerConfig);
         this.globalPartitionEndpointManagerForPerPartitionCircuitBreaker.init();
+
+        // Populate the diagnostics client config with the effective per-partition circuit breaker
+        // configuration on every init path (both the unconditional client-side init and the
+        // PPAF-driven modifier path) so the "partitionLevelCircuitBreakerCfg" field is always
+        // reflected in CosmosDiagnostics, regardless of whether PPAF is service-mandated.
+        this.diagnosticsClientConfig.withPartitionLevelCircuitBreakerConfig(this.globalPartitionEndpointManagerForPerPartitionCircuitBreaker.getCircuitBreakerConfig());
     }
 
     private void enableAvailabilityStrategyForReads() {

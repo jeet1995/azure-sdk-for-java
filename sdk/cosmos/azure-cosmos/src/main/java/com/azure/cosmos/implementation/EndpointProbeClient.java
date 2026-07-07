@@ -179,6 +179,46 @@ public class EndpointProbeClient implements Closeable {
     }
 
     /**
+     * Eagerly warms the shared thin-client HTTP/2 connection pool at client-build time.
+     *
+     * <p>For each supplied regional endpoint this issues {@code warmupRequestsPerEndpoint} concurrent
+     * {@code POST /connectivity-probe} requests over the same HTTP/2 {@link HttpClient} that
+     * {@code ThinClientStoreModel} uses for data-plane traffic. The intent is to ACTIVATE the Reactor
+     * Netty pool and establish the first live connection (and let the pool's {@code minConnections}
+     * floor top-fill) BEFORE the first data-plane request, so the cold TLS+HTTP/2 handshake burst is
+     * paid off the request critical path.
+     *
+     * <p>Unlike {@link #runProbeCycle(Collection)}, this NEVER mutates the routing-gate state — it is
+     * a pure connection-warming side effect and its per-request outcomes are discarded. All errors are
+     * absorbed; the returned Mono completes (never errors) so a warm-up failure cannot fail client
+     * initialization. Callers should still bound it with an external timeout.
+     *
+     * @param regionalEndpoints the thin-client regional endpoints to dial (null/empty is a no-op).
+     * @param warmupRequestsPerEndpoint number of concurrent warm-up requests per endpoint (coerced to
+     *                                  at least 1).
+     * @return a {@link Mono} that completes when the warm-up requests settle; it never emits an error.
+     */
+    public Mono<Void> warmUpConnections(Collection<URI> regionalEndpoints, int warmupRequestsPerEndpoint) {
+        return Mono.defer(() -> {
+            if (this.closed.get() || regionalEndpoints == null || regionalEndpoints.isEmpty()) {
+                return Mono.empty();
+            }
+            int perEndpoint = Math.max(1, warmupRequestsPerEndpoint);
+            return Flux
+                .fromIterable(regionalEndpoints)
+                .filter(Objects::nonNull)
+                .flatMap(endpoint -> Flux
+                    .range(0, perEndpoint)
+                    .flatMap(i -> this.probeEndpointOnce(endpoint)))
+                .then()
+                .onErrorResume(t -> {
+                    logger.debug("Thin-client connection warm-up encountered an error; ignoring.", t);
+                    return Mono.empty();
+                });
+        });
+    }
+
+    /**
      * Marks the probe client as closed. Subsequent {@link #runProbeCycle(Collection)}
      * invocations short-circuit and issue no further HTTP/2 probes. The shared
      * thin-client {@link HttpClient} is owned by {@code RxDocumentClientImpl} and is NOT

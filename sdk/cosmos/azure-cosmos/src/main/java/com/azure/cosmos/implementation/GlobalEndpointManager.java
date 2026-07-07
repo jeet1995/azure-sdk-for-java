@@ -387,6 +387,16 @@ public class GlobalEndpointManager implements AutoCloseable {
     }
 
     /**
+     * Resolves the current set of thin-client regional endpoints from the location cache. Exposed so
+     * the client bootstrap ({@code RxDocumentClientImpl.init()}) can eagerly pre-warm the thin-client
+     * HTTP/2 connection pool at client-build time. Returns an empty set when no thin-client region can
+     * be resolved.
+     */
+    public Set<URI> getThinClientRegionalEndpoints() {
+        return this.locationCache.getThinClientRegionalEndpoints();
+    }
+
+    /**
      * Wires the thin-client HTTP/2 {@link HttpClient} used by the connectivity-probe
      * probeClient. Must be invoked by the client bootstrap before {@link #init()} so
      * that the very first topology refresh can issue probes.
