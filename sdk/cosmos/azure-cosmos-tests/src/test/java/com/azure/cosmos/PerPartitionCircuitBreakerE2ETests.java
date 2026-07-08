@@ -5587,6 +5587,30 @@ public class PerPartitionCircuitBreakerE2ETests extends FaultInjectionTestBase {
         return null;
     }
 
+    private static boolean isAnyRegionShortCircuitedForPartition(
+        PartitionKeyRangeWrapper partitionKeyRangeWrapper,
+        ConcurrentHashMap<PartitionKeyRangeWrapper, ?> partitionKeyRangeToLocationSpecificUnavailabilityInfo,
+        Field locationEndpointToLocationSpecificContextForPartitionField) throws IllegalAccessException {
+
+        Object partitionAndLocationSpecificUnavailabilityInfo
+            = partitionKeyRangeToLocationSpecificUnavailabilityInfo.get(partitionKeyRangeWrapper);
+
+        if (partitionAndLocationSpecificUnavailabilityInfo == null) {
+            return false;
+        }
+
+        ConcurrentHashMap<RegionalRoutingContext, LocationSpecificHealthContext> locationEndpointToLocationSpecificContextForPartition
+            = (ConcurrentHashMap<RegionalRoutingContext, LocationSpecificHealthContext>) locationEndpointToLocationSpecificContextForPartitionField.get(partitionAndLocationSpecificUnavailabilityInfo);
+
+        for (LocationSpecificHealthContext locationSpecificHealthContext : locationEndpointToLocationSpecificContextForPartition.values()) {
+            if (locationSpecificHealthContext.getLocationHealthStatus() == LocationHealthStatus.Unavailable) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static double getEstimatedFailureCountSeenPerRegionPerPartitionKeyRange(
         PartitionKeyRangeWrapper partitionKeyRangeWrapper,
         ConcurrentHashMap<PartitionKeyRangeWrapper, ?> partitionKeyRangeToLocationSpecificUnavailabilityInfo,
