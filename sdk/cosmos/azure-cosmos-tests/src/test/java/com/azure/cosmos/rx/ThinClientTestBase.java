@@ -23,7 +23,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
  */
 public abstract class ThinClientTestBase extends TestSuiteBase {
 
-    protected static final String THIN_CLIENT_ENDPOINT_INDICATOR = ":10250/";
     protected static final String ID_FIELD = "id";
     protected static final String PARTITION_KEY_FIELD = "mypk";
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -73,22 +72,14 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
     }
 
     /**
-     * Asserts that all requests in the diagnostics were routed through the thin client endpoint.
+     * Asserts that all data requests in the diagnostics were routed through the thin client endpoint.
      */
     protected static void assertThinClientEndpointUsed(CosmosDiagnostics diagnostics) {
-        assertThat(diagnostics).isNotNull();
-        CosmosDiagnosticsContext ctx = diagnostics.getDiagnosticsContext();
-        assertThat(ctx).isNotNull();
-        Collection<CosmosDiagnosticsRequestInfo> requests = ctx.getRequestInfo();
-        assertThat(requests).isNotNull();
-        assertThat(requests.size()).isPositive();
-        int requestCountAgainstThinClientEndpoint = 0;
-        for (CosmosDiagnosticsRequestInfo requestInfo : requests) {
-            if (requestInfo.getEndpoint().contains(THIN_CLIENT_ENDPOINT_INDICATOR)) {
-                requestCountAgainstThinClientEndpoint++;
-            }
-        }
-        assertThat(requestCountAgainstThinClientEndpoint).isEqualTo(requests.size());
+        // Delegate to the shared TestSuiteBase implementation so the thin-client routing invariant
+        // (every request via the thin-client endpoint -- including QueryPlan, which is routed to
+        // Gateway V2 when thin client + HTTP/2 are opted in) and null-endpoint handling are applied
+        // consistently across all thin-client tests.
+        TestSuiteBase.assertThinClientEndpointUsed(diagnostics);
     }
 
     /**

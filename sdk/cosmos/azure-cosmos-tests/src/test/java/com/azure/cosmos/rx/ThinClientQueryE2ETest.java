@@ -27,6 +27,7 @@ import com.azure.cosmos.models.CosmosVectorEmbeddingPolicy;
 import com.azure.cosmos.models.CosmosVectorIndexSpec;
 import com.azure.cosmos.models.CosmosVectorIndexType;
 import com.azure.cosmos.models.ExcludedPath;
+import com.azure.cosmos.models.FeedRange;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.IncludedPath;
 import com.azure.cosmos.models.IndexingMode;
@@ -127,7 +128,6 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             this.directContainer = getSharedMultiPartitionCosmosContainer(this.directClient);
 
             // 2. Gateway V2 thin client (system under test)
-            ThinClientTestBase.enableThinClientForTest();
             CosmosClientBuilder thinClientBuilder = createGatewayRxDocumentClient(
                 TestConfigurations.HOST, null, true, null, true, true, true);
             this.thinClient = thinClientBuilder.buildAsyncClient();
@@ -147,7 +147,15 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             //    multi-component QueryPlan range-conversion coverage.
             seedHierarchicalData();
         } catch (Exception e) {
-            // Clean up any clients that were successfully created before the failure
+            // Best-effort cleanup of any resources created before the failure. Dedicated container
+            // deletes must run before the owning clients are closed, and any cleanup failure must
+            // not mask the original setup exception.
+            try {
+                if (this.directCrossPartitionContainer != null) { safeDeleteContainer(this.directCrossPartitionContainer); }
+                if (this.directHierarchicalContainer != null) { safeDeleteContainer(this.directHierarchicalContainer); }
+            } catch (Exception cleanupError) {
+                logger.warn("Cleanup after setup failure did not fully succeed: {}", cleanupError.getMessage());
+            }
             if (this.thinClient != null) { this.thinClient.close(); this.thinClient = null; }
             if (this.directClient != null) { this.directClient.close(); this.directClient = null; }
             throw e;
@@ -300,7 +308,6 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
                 logger.warn("Bulk delete of seeded docs failed: {}", e.getMessage());
             }
         }
-        ThinClientTestBase.clearThinClientForTest();
         if (directCrossPartitionContainer != null) {
             safeDeleteContainer(directCrossPartitionContainer);
         }
@@ -995,6 +1002,64 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     }
 
     /**
+     * Explicit user-supplied {@link FeedRange} (EPK-range) scoped read parity.
+     * <p>
+     * The over-span fix in {@code ThinClientStoreModel#wrapInHttpRequest} keys off the presence of the
+     * StartEpk/EndEpk headers (paired with {@code READ_FEED_KEY_TYPE = EffectivePartitionKeyRange}),
+     * which {@code FeedRangeEpkImpl} emits whenever a caller supplies an explicit {@link FeedRange} on
+     * the query options. The prefix-HPK tests exercise that header path indirectly through the query
+     * plan; this test exercises it DIRECTLY by sharding the multi-physical-partition container into its
+     * physical feed ranges and querying each one, so a broken EPK-range guard would over-span a shard
+     * and surface documents belonging to a sibling partition.
+     * <p>
+     * For every physical feed range asserts: (1) the thin client routed through the :10250 endpoint,
+     * and (2) the thin-client rows for the shard exactly equal the Direct baseline for the SAME shard -
+     * an over-span would make the thin-client set a strict superset of the Direct set. Across all shards
+     * it further asserts the union exactly reconstructs the full unsharded fan-out with no duplicates,
+     * proving the shards are a clean, non-overlapping partition of the key space.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testExplicitFeedRangeShardedReadParity() {
+        List<FeedRange> feedRanges = directCrossPartitionContainer.getFeedRanges().block();
+        assertThat(feedRanges.size())
+            .as("multi-physical-partition container must expose more than one feed range")
+            .isGreaterThan(1);
+
+        List<String> unionThinClientIds = new ArrayList<>();
+        for (FeedRange feedRange : feedRanges) {
+            CosmosQueryRequestOptions directOptions = new CosmosQueryRequestOptions().setFeedRange(feedRange);
+            CosmosQueryRequestOptions tcOptions = new CosmosQueryRequestOptions().setFeedRange(feedRange);
+
+            QueryResult<ObjectNode> directShard =
+                drainQuery(directCrossPartitionContainer, "SELECT * FROM c", directOptions, ObjectNode.class);
+            QueryResult<ObjectNode> tcShard =
+                drainQuery(thinClientCrossPartitionContainer, "SELECT * FROM c", tcOptions, ObjectNode.class);
+            for (CosmosDiagnostics d : tcShard.diagnostics) { assertThinClientEndpointUsed(d); }
+
+            // Per-shard parity: the thin client must return EXACTLY the Direct baseline's documents for
+            // this feed range. A broken EPK-range guard would over-span and pull in sibling-shard docs,
+            // making the thin-client set a strict superset of the Direct set.
+            assertThat(tcShard.results.size())
+                .as("Thin-client feed-range shard count vs Direct for " + feedRange)
+                .isEqualTo(directShard.results.size());
+            assertThat(idsSorted(tcShard.results))
+                .as("Thin-client feed-range shard over-span vs Direct for " + feedRange)
+                .isEqualTo(idsSorted(directShard.results));
+
+            unionThinClientIds.addAll(idsSorted(tcShard.results));
+        }
+
+        // The shards must be a clean partition of the whole container: their union reconstructs the full
+        // unsharded fan-out exactly, with no duplicates (which would indicate two shards overlap).
+        QueryResult<ObjectNode> fullFanOut = drainQuery(
+            directCrossPartitionContainer, "SELECT * FROM c", new CosmosQueryRequestOptions(), ObjectNode.class);
+        List<String> unionSorted = unionThinClientIds.stream().sorted().collect(Collectors.toList());
+        assertThat(unionSorted)
+            .as("union of per-feed-range thin-client shards must equal the full fan-out with no duplicates")
+            .isEqualTo(idsSorted(fullFanOut.results));
+    }
+
+    /**
      * Hierarchical (MULTI_HASH) partition key cross-partition parity. Cross-partition queries
      * over the /tenantId,/userId container force the proxy to emit MULTI-COMPONENT PartitionKeyInternal
      * arrays, exercising the MULTI_HASH branch of convertToSortedEpkRanges. Validates plain, ORDER BY,
@@ -1011,9 +1076,12 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * Hierarchical prefix (half-open) range. Setting only the FIRST hierarchical component
      * (tenantId) on the options makes the proxy emit a half-open prefix range whose max is the
      * "Infinity"-suffixed sibling of the min - the prefix-range boundary case of the conversion. The
-     * full key (both components) instead resolves to a single point range. Asserts the prefix query
-     * returns exactly the tenant's users and the full key returns exactly one document, with parity
-     * to the Direct baseline.
+     * full key (both components) instead resolves to a single point range. Iterates the prefix
+     * assertion over ALL seeded tenants so that, with fewer physical partitions than
+     * {@code HIER_TENANTS}, at least two co-located tenants deterministically exercise the over-span
+     * case, and adds a nonexistent-tenant prefix that must return zero. Asserts each prefix query
+     * returns exactly the tenant's users and the full key returns exactly one document, all with
+     * parity to the Direct baseline.
      */
     @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
     public void testHierarchicalPrefixHalfOpenRange() {
@@ -1025,9 +1093,20 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         fullKeyOptions.setPartitionKey(new PartitionKeyBuilder().add(tenant0).add(user0).build());
         assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", fullKeyOptions, 1);
 
-        CosmosQueryRequestOptions prefixOptions = new CosmosQueryRequestOptions();
-        prefixOptions.setPartitionKey(new PartitionKeyBuilder().add(tenant0).build());
-        assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", prefixOptions, HIER_USERS_PER_TENANT);
+        // Iterate the prefix (half-open range) assertion over every tenant. With fewer physical
+        // partitions than HIER_TENANTS, at least two tenants are co-located, so the over-span
+        // regression reproduces deterministically instead of depending on tenant-0's placement.
+        for (int t = 0; t < HIER_TENANTS; t++) {
+            String tenant = hierarchicalKeys.get(t * HIER_USERS_PER_TENANT)[0];
+            CosmosQueryRequestOptions prefixOptions = new CosmosQueryRequestOptions();
+            prefixOptions.setPartitionKey(new PartitionKeyBuilder().add(tenant).build());
+            assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", prefixOptions, HIER_USERS_PER_TENANT);
+        }
+
+        // Negative guard: a nonexistent tenant prefix must scope to zero docs on both paths.
+        CosmosQueryRequestOptions absentOptions = new CosmosQueryRequestOptions();
+        absentOptions.setPartitionKey(new PartitionKeyBuilder().add("tenant-absent-" + UUID.randomUUID()).build());
+        assertHierarchicalScopedMatch("SELECT * FROM c ORDER BY c.idx", absentOptions, 0);
     }
 
     /**
@@ -1626,6 +1705,127 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         }
     }
 
+    // ==================== Partial (Prefix) HPK read Tests ====================
+    // Direct-vs-thin-client parity coverage for partial hierarchical keys (only /tenantId, omitting
+    // /userId). Direct TCP is the baseline; the thin client must return exactly the same documents.
+    //
+    // The isolation mechanism differs by API and is called out per-test below:
+    //   - readAllItems / readManyByPartitionKeys with a prefix generate a SQL WHERE predicate on the
+    //     present component(s) and route by the resolved physical PK-range id, so foreign co-located
+    //     tenants are filtered by that predicate (a routing + SQL-predicate parity guard).
+    //   - The RNTBD prefix-EPK range path (a raw query with only a prefix key and no generated
+    //     predicate, where isolation is purely by the [hash(prefix), hash(prefix)+"FF") sub-range) is
+    //     the direct guard of the thin-client MULTI_HASH prefix EPK over-span fix. It is exercised by
+    //     testHierarchicalPrefixHalfOpenRange() and testExplicitFeedRangeShardedReadParity().
+
+    /**
+     * readAllItems (ReadFeed) with a partial (prefix) hierarchical partition key - only the first
+     * component (/tenantId). Iterates over ALL seeded tenants (not just one): at 12000 RU/s the
+     * container has fewer physical partitions than {@code HIER_TENANTS}, so by the pigeonhole
+     * principle at least two tenants are co-located on the same physical partition. Each prefix read
+     * must return exactly that tenant's {@code HIER_USERS_PER_TENANT} documents, matching the Direct
+     * baseline; a final nonexistent-tenant prefix must return zero documents.
+     *
+     * <p>Note: readAllItems with a prefix key generates a SQL {@code WHERE} predicate on the present
+     * component(s) ({@code createLogicalPartitionScanQuerySpec}) and routes by the resolved physical
+     * PK-range id, so tenant isolation here is enforced by that predicate rather than by an RNTBD
+     * prefix-EPK range header. This is therefore a routing + SQL-predicate parity guard against
+     * Direct, not a direct guard of the prefix-EPK over-span fix (see
+     * {@link #testHierarchicalPrefixHalfOpenRange()} for that path).
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testHierarchicalReadAllItemsPrefixPartitionKey() {
+        for (int t = 0; t < HIER_TENANTS; t++) {
+            String tenant = hierarchicalKeys.get(t * HIER_USERS_PER_TENANT)[0];
+            PartitionKey prefixKey = new PartitionKeyBuilder().add(tenant).build();
+
+            QueryResult<ObjectNode> directResult = drainReadAllItems(directHierarchicalContainer, prefixKey, ObjectNode.class);
+            QueryResult<ObjectNode> tcResult = drainReadAllItems(thinClientHierarchicalContainer, prefixKey, ObjectNode.class);
+            for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+            assertThat(directResult.results.size())
+                .as("Direct readAllItems prefix count for " + tenant).isEqualTo(HIER_USERS_PER_TENANT);
+            assertThat(tcResult.results.size())
+                .as("Thin-client readAllItems prefix over-span vs Direct for " + tenant).isEqualTo(directResult.results.size());
+            assertThat(idsSorted(tcResult.results))
+                .as("readAllItems prefix ID mismatch for " + tenant).isEqualTo(idsSorted(directResult.results));
+            // Every returned doc must belong to the prefixed tenant (no over-span into co-located tenants).
+            for (ObjectNode doc : tcResult.results) {
+                assertThat(doc.get(TENANT_FIELD).asText())
+                    .as("readAllItems prefix returned a foreign tenant's document").isEqualTo(tenant);
+            }
+        }
+
+        // Negative guard: a prefix matching no seeded tenant must return zero docs on both paths.
+        // Independent of physical co-location - a broken over-span would surface co-located docs even
+        // though this tenant was never seeded.
+        PartitionKey absentPrefix = new PartitionKeyBuilder().add("tenant-absent-" + UUID.randomUUID()).build();
+        QueryResult<ObjectNode> directAbsent = drainReadAllItems(directHierarchicalContainer, absentPrefix, ObjectNode.class);
+        QueryResult<ObjectNode> tcAbsent = drainReadAllItems(thinClientHierarchicalContainer, absentPrefix, ObjectNode.class);
+        for (CosmosDiagnostics d : tcAbsent.diagnostics) { assertThinClientEndpointUsed(d); }
+        assertThat(directAbsent.results.size()).as("Direct readAllItems nonexistent-tenant prefix count").isEqualTo(0);
+        assertThat(tcAbsent.results.size())
+            .as("Thin-client readAllItems nonexistent-tenant prefix over-span").isEqualTo(0);
+    }
+
+    /**
+     * readAllItems (ReadFeed) with the FULL two-component hierarchical key resolves to a single
+     * logical partition - exactly one document - matching the Direct baseline. Guards that the prefix
+     * handling does not regress the full-key point path.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testHierarchicalReadAllItemsFullPartitionKey() {
+        String[] firstKey = hierarchicalKeys.get(0);
+        PartitionKey fullKey = new PartitionKeyBuilder().add(firstKey[0]).add(firstKey[1]).build();
+
+        QueryResult<ObjectNode> directResult = drainReadAllItems(directHierarchicalContainer, fullKey, ObjectNode.class);
+        QueryResult<ObjectNode> tcResult = drainReadAllItems(thinClientHierarchicalContainer, fullKey, ObjectNode.class);
+        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+        assertThat(directResult.results.size()).as("Direct readAllItems full-key count").isEqualTo(1);
+        assertThat(tcResult.results.size())
+            .as("Thin-client readAllItems full-key vs Direct").isEqualTo(directResult.results.size());
+        assertThat(idsSorted(tcResult.results))
+            .as("readAllItems full-key ID mismatch").isEqualTo(idsSorted(directResult.results));
+    }
+
+    /**
+     * readManyByPartitionKeys with a partial (prefix) hierarchical key: validates that a prefix
+     * readMany request routes over the thin client and returns exactly the tenant's documents,
+     * matching Direct.
+     *
+     * <p>Note: readManyByPartitionKeys groups the supplied keys by physical partition and emits a
+     * generated {@code WHERE} predicate on the prefix key component(s), so tenant isolation here is
+     * enforced by that SQL predicate rather than by the RNTBD prefix-EPK range header. This is
+     * therefore a routing + SQL-predicate parity guard against Direct, not a direct guard of the
+     * over-span fix. The prefix-EPK header path itself (a raw query with only a prefix key and no
+     * generated predicate) is exercised by {@link #testHierarchicalPrefixHalfOpenRange()} and
+     * {@link #testExplicitFeedRangeShardedReadParity()}.
+     */
+    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    public void testHierarchicalReadManyByPartitionKeysPrefixPartitionKey() {
+        String tenant0 = hierarchicalKeys.get(0)[0];
+        PartitionKey prefixKey = new PartitionKeyBuilder().add(tenant0).build();
+        SqlQuerySpec selectAll = new SqlQuerySpec("SELECT * FROM c");
+
+        ReadManyResult<ObjectNode> directResult = drainReadMany(
+            directHierarchicalContainer, Collections.singletonList(prefixKey), selectAll, ObjectNode.class);
+        ReadManyResult<ObjectNode> tcResult = drainReadMany(
+            thinClientHierarchicalContainer, Collections.singletonList(prefixKey), selectAll, ObjectNode.class);
+        for (CosmosDiagnostics d : tcResult.diagnostics) { assertThinClientEndpointUsed(d); }
+
+        assertThat(directResult.results.size())
+            .as("Direct readMany prefix count").isEqualTo(HIER_USERS_PER_TENANT);
+        assertThat(tcResult.results.size())
+            .as("Thin-client readMany prefix over-span vs Direct").isEqualTo(directResult.results.size());
+        assertThat(idsSorted(tcResult.results))
+            .as("readMany prefix ID mismatch").isEqualTo(idsSorted(directResult.results));
+        for (ObjectNode doc : tcResult.results) {
+            assertThat(doc.get(TENANT_FIELD).asText())
+                .as("readMany prefix returned a foreign tenant's document").isEqualTo(tenant0);
+        }
+    }
+
     // ==================== Assertion & Drain Helpers ====================
 
     private static void safeDeleteContainer(CosmosAsyncContainer container) {
@@ -1655,6 +1855,18 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         for (FeedResponse<T> page : c.readManyByPartitionKeys(partitionKeys, customQuery, type)
                                        .byPage()
                                        .toIterable()) {
+            result.results.addAll(page.getResults());
+            result.diagnostics.add(page.getCosmosDiagnostics());
+        }
+        return result;
+    }
+
+    private <T> QueryResult<T> drainReadAllItems(
+        CosmosAsyncContainer c,
+        PartitionKey partitionKey,
+        Class<T> type) {
+        QueryResult<T> result = new QueryResult<>();
+        for (FeedResponse<T> page : c.readAllItems(partitionKey, type).byPage().toIterable()) {
             result.results.addAll(page.getResults());
             result.diagnostics.add(page.getCosmosDiagnostics());
         }
