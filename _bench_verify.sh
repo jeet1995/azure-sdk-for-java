@@ -1,0 +1,1 @@
+for j in bench-probe bench-v81 bench-v80 bench-v79; do python3 ~/jarver.py ~/$j.jar; done
