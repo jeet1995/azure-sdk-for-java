@@ -1184,6 +1184,7 @@ public abstract class TestSuiteBase extends CosmosAsyncClientTest {
                 || (statusCode == HttpConstants.StatusCodes.NOTFOUND
                     && (cosmosException.getSubStatusCode() == HttpConstants.SubStatusCodes.UNKNOWN
                         || cosmosException.getSubStatusCode() == 1013
+                        || cosmosException.getSubStatusCode() == HttpConstants.SubStatusCodes.OWNER_RESOURCE_NOT_EXISTS
                         || cosmosException.getSubStatusCode() == HttpConstants.SubStatusCodes.INCORRECT_CONTAINER_RID_SUB_STATUS));
         }
 

@@ -74,7 +74,7 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
     /**
      * Asserts that all data requests in the diagnostics were routed through the thin client endpoint.
      */
-    protected static void assertThinClientEndpointUsed(CosmosDiagnostics diagnostics) {
+    public static void assertThinClientEndpointUsed(CosmosDiagnostics diagnostics) {
         // Delegate to the shared TestSuiteBase implementation so the thin-client routing invariant
         // (every request via the thin-client endpoint -- including QueryPlan, which is routed to
         // Gateway V2 when thin client + HTTP/2 are opted in) and null-endpoint handling are applied
@@ -86,7 +86,7 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
      * Asserts that NO requests in the diagnostics were routed through the thin client endpoint,
      * confirming the gateway client used the standard :443 path.
      */
-    protected static void assertGatewayEndpointUsed(CosmosDiagnostics diagnostics) {
+    public static void assertGatewayEndpointUsed(CosmosDiagnostics diagnostics) {
         assertThat(diagnostics).isNotNull();
         CosmosDiagnosticsContext ctx = diagnostics.getDiagnosticsContext();
         assertThat(ctx).isNotNull();
