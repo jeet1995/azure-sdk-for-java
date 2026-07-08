@@ -23,7 +23,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
  */
 public abstract class ThinClientTestBase extends TestSuiteBase {
 
-    protected static final String THIN_CLIENT_ENDPOINT_INDICATOR = ":10250/";
     protected static final String ID_FIELD = "id";
     protected static final String PARTITION_KEY_FIELD = "mypk";
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -73,12 +72,13 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
     }
 
     /**
-     * Asserts that all requests in the diagnostics were routed through the thin client endpoint.
+     * Asserts that all data requests in the diagnostics were routed through the thin client endpoint.
      */
-    protected static void assertThinClientEndpointUsed(CosmosDiagnostics diagnostics) {
+    public static void assertThinClientEndpointUsed(CosmosDiagnostics diagnostics) {
         // Delegate to the shared TestSuiteBase implementation so the thin-client routing invariant
-        // (every non-QueryPlan request via the thin-client endpoint; QueryPlan may use the classic
-        // gateway) and null-endpoint handling are applied consistently across all thin-client tests.
+        // (every request via the thin-client endpoint -- including QueryPlan, which is routed to
+        // Gateway V2 when thin client + HTTP/2 are opted in) and null-endpoint handling are applied
+        // consistently across all thin-client tests.
         TestSuiteBase.assertThinClientEndpointUsed(diagnostics);
     }
 
@@ -86,7 +86,7 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
      * Asserts that NO requests in the diagnostics were routed through the thin client endpoint,
      * confirming the gateway client used the standard :443 path.
      */
-    protected static void assertGatewayEndpointUsed(CosmosDiagnostics diagnostics) {
+    public static void assertGatewayEndpointUsed(CosmosDiagnostics diagnostics) {
         assertThat(diagnostics).isNotNull();
         CosmosDiagnosticsContext ctx = diagnostics.getDiagnosticsContext();
         assertThat(ctx).isNotNull();
