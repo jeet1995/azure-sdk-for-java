@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p>Routing decisions are made strictly at refresh boundaries; this class does not implement
  * any per-request circuit-breaker. The data-plane routing site
- * ({@link ThinClientConnectivityConfig#shouldUseThinClientStoreModel(boolean, boolean, boolean, Boolean, RxDocumentServiceRequest)})
+ * ({@link ThinClientConnectivityConfig#shouldUseThinClientStoreModel(boolean, boolean, Boolean, Boolean, RxDocumentServiceRequest)})
  * ANDs the thin-client capability, topology availability, and request eligibility with this gate
  * (surfaced via {@code GlobalEndpointManager.getProxyProbeDecision()} → {@link #isThinClientRoutable()}).
  *

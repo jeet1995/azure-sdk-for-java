@@ -88,6 +88,49 @@ public class ReadManyByPartitionKeyQueryPlanRoutingTest {
             .isFalse();
     }
 
+    @Test(groups = { "unit" })
+    public void validationQueryPlanForcedToGatewayV1WhenKillSwitchDisabled() {
+        // The kill-switch (Configs.isThinClientQueryPlanEnabled(), backed by the
+        // COSMOS.THINCLIENT_QUERY_PLAN_ENABLED system property / COSMOS_THINCLIENT_QUERY_PLAN_ENABLED
+        // env var) must dominate the thin-client opt-in: even when the request is thin-client eligible
+        // (useThinClient=true), disabling the switch pins the validation query-plan back onto Gateway V1
+        // (useGatewayMode=true). This is the inverse of validationQueryPlanIsThinClientEligibleWhenOptedIn.
+        String previous = System.getProperty("COSMOS.THINCLIENT_QUERY_PLAN_ENABLED");
+        System.setProperty("COSMOS.THINCLIENT_QUERY_PLAN_ENABLED", "false");
+        try {
+            ArgumentCaptor<RxDocumentServiceRequest> requestCaptor =
+                ArgumentCaptor.forClass(RxDocumentServiceRequest.class);
+            IDocumentQueryClient queryClient = mockQueryClient(requestCaptor, /* useThinClient */ true);
+
+            DocumentQueryExecutionContextFactory
+                .fetchQueryPlanForValidation(
+                    Mockito.mock(DiagnosticsClientContext.class),
+                    queryClient,
+                    new SqlQuerySpec("SELECT * FROM c"),
+                    "dbs/db/colls/col",
+                    new CosmosQueryRequestOptions(),
+                    collectionWithPartitionKey(),
+                    /* queryPlanCachingEnabled */ false,
+                    Collections.emptyMap())
+                .block();
+
+            assertThat(requestCaptor.getAllValues())
+                .as("a single validation query-plan request must be issued")
+                .hasSize(1);
+            assertThat(requestCaptor.getValue().useGatewayMode)
+                .as("validation query-plan must be forced onto Gateway V1 (useGatewayMode=true) when "
+                    + "the thin-client query-plan kill-switch is disabled, even though the request is "
+                    + "thin-client eligible")
+                .isTrue();
+        } finally {
+            if (previous == null) {
+                System.clearProperty("COSMOS.THINCLIENT_QUERY_PLAN_ENABLED");
+            } else {
+                System.setProperty("COSMOS.THINCLIENT_QUERY_PLAN_ENABLED", previous);
+            }
+        }
+    }
+
     private static DocumentCollection collectionWithPartitionKey() {
         PartitionKeyDefinition partitionKeyDefinition = new PartitionKeyDefinition();
         partitionKeyDefinition.setPaths(Collections.singletonList("/pk"));

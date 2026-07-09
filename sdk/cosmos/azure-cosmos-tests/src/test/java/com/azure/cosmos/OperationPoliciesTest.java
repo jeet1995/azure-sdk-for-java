@@ -577,12 +577,25 @@ public class OperationPoliciesTest extends TestSuiteBase {
     public void readAllItems(String[] changedOptions) throws Exception {
         String id = UUID.randomUUID().toString();
         container.createItem(getDocumentDefinition(id)).block();
-        // Drain only the first page. This test asserts request charge, a non-empty page, and the
-        // applied request options (via CosmosDiagnostics) - all present on the first page. The shared
-        // multi-partition container is continuously grown by the other tests in this class, so a full
-        // cross-partition enumeration would blow the overall test timeout; take(1) cancels after the
-        // first page so no further page round-trips are issued.
-        container.readAllItems(InternalObjectNode.class).byPage().take(1)
+        AtomicInteger initialReadAllItemsPages = new AtomicInteger();
+        container.readAllItems(InternalObjectNode.class).byPage()
+            .doOnSubscribe(subscription -> logger.info(
+                "OperationPoliciesTest.readAllItems initial options started. options={}",
+                Arrays.toString(initialOptions)))
+            .doOnNext(feedResponse -> logger.info(
+                "OperationPoliciesTest.readAllItems initial options page={}, itemCount={}, requestCharge={}, continuationPresent={}",
+                initialReadAllItemsPages.incrementAndGet(),
+                feedResponse.getResults().size(),
+                feedResponse.getRequestCharge(),
+                feedResponse.getContinuationToken() != null))
+            .doOnError(error -> logger.warn(
+                "OperationPoliciesTest.readAllItems initial options failed after {} pages.",
+                initialReadAllItemsPages.get(),
+                error))
+            .doFinally(signalType -> logger.info(
+                "OperationPoliciesTest.readAllItems initial options finished with signal={} after {} pages.",
+                signalType,
+                initialReadAllItemsPages.get()))
             .flatMap(feedResponse -> {
                 List<InternalObjectNode> results = feedResponse.getResults();
                 assertThat(feedResponse.getRequestCharge()).isGreaterThan(0);
@@ -593,7 +606,25 @@ public class OperationPoliciesTest extends TestSuiteBase {
 
         changeProperties(changedOptions);
 
-        container.readAllItems(InternalObjectNode.class).byPage().take(1)
+        AtomicInteger changedReadAllItemsPages = new AtomicInteger();
+        container.readAllItems(InternalObjectNode.class).byPage()
+            .doOnSubscribe(subscription -> logger.info(
+                "OperationPoliciesTest.readAllItems changed options started. options={}",
+                Arrays.toString(changedOptions)))
+            .doOnNext(feedResponse -> logger.info(
+                "OperationPoliciesTest.readAllItems changed options page={}, itemCount={}, requestCharge={}, continuationPresent={}",
+                changedReadAllItemsPages.incrementAndGet(),
+                feedResponse.getResults().size(),
+                feedResponse.getRequestCharge(),
+                feedResponse.getContinuationToken() != null))
+            .doOnError(error -> logger.warn(
+                "OperationPoliciesTest.readAllItems changed options failed after {} pages.",
+                changedReadAllItemsPages.get(),
+                error))
+            .doFinally(signalType -> logger.info(
+                "OperationPoliciesTest.readAllItems changed options finished with signal={} after {} pages.",
+                signalType,
+                changedReadAllItemsPages.get()))
             .flatMap(feedResponse -> {
                 List<InternalObjectNode> results = feedResponse.getResults();
                 assertThat(feedResponse.getRequestCharge()).isGreaterThan(0);

@@ -27,6 +27,7 @@ import com.azure.cosmos.models.CosmosVectorEmbeddingPolicy;
 import com.azure.cosmos.models.CosmosVectorIndexSpec;
 import com.azure.cosmos.models.CosmosVectorIndexType;
 import com.azure.cosmos.models.ExcludedPath;
+import com.azure.cosmos.models.FeedRange;
 import com.azure.cosmos.models.FeedResponse;
 import com.azure.cosmos.models.IncludedPath;
 import com.azure.cosmos.models.IndexingMode;
@@ -118,7 +119,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     private static final String PK_FIELD = ThinClientTestBase.PARTITION_KEY_FIELD;
     private static final ObjectMapper OBJECT_MAPPER = ThinClientTestBase.OBJECT_MAPPER;
 
-    @BeforeClass(groups = {"thinclient"}, timeOut = SETUP_TIMEOUT * 2)
+    @BeforeClass(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = SETUP_TIMEOUT * 2)
     public void before_ThinClientQueryE2ETest() {
         try {
             // 1. Direct TCP client (baseline)
@@ -127,7 +128,6 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             this.directContainer = getSharedMultiPartitionCosmosContainer(this.directClient);
 
             // 2. Gateway V2 thin client (system under test)
-            ThinClientTestBase.enableThinClientForTest();
             CosmosClientBuilder thinClientBuilder = createGatewayRxDocumentClient(
                 TestConfigurations.HOST, null, true, null, true, true, true);
             this.thinClient = thinClientBuilder.buildAsyncClient();
@@ -147,7 +147,15 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             //    multi-component QueryPlan range-conversion coverage.
             seedHierarchicalData();
         } catch (Exception e) {
-            // Clean up any clients that were successfully created before the failure
+            // Best-effort cleanup of any resources created before the failure. Dedicated container
+            // deletes must run before the owning clients are closed, and any cleanup failure must
+            // not mask the original setup exception.
+            try {
+                if (this.directCrossPartitionContainer != null) { safeDeleteContainer(this.directCrossPartitionContainer); }
+                if (this.directHierarchicalContainer != null) { safeDeleteContainer(this.directHierarchicalContainer); }
+            } catch (Exception cleanupError) {
+                logger.warn("Cleanup after setup failure did not fully succeed: {}", cleanupError.getMessage());
+            }
             if (this.thinClient != null) { this.thinClient.close(); this.thinClient = null; }
             if (this.directClient != null) { this.directClient.close(); this.directClient = null; }
             throw e;
@@ -287,7 +295,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         }
     }
 
-    @AfterClass(groups = {"thinclient"}, timeOut = SHUTDOWN_TIMEOUT, alwaysRun = true)
+    @AfterClass(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = SHUTDOWN_TIMEOUT, alwaysRun = true)
     public void afterClass() {
         if (directContainer != null && !seededDocs.isEmpty()) {
             try {
@@ -300,7 +308,6 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
                 logger.warn("Bulk delete of seeded docs failed: {}", e.getMessage());
             }
         }
-        ThinClientTestBase.clearThinClientForTest();
         if (directCrossPartitionContainer != null) {
             safeDeleteContainer(directCrossPartitionContainer);
         }
@@ -313,86 +320,86 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== Equality & Filter Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testSelectAll() {
         assertDirectAndThinClientMatch("SELECT * FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereEquality() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category = 'electronics'");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereEqualityParameterized() {
         SqlQuerySpec qs = new SqlQuerySpec("SELECT * FROM c WHERE c.category = @cat");
         qs.setParameters(Arrays.asList(new SqlParameter("@cat", "books")));
         assertDirectAndThinClientMatch(qs, partitionedOptions());
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereRangeGreaterThan() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.age > 30");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereRangeLessThanOrEqual() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.price <= 25.00");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereRangeBetween() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.age >= 18 AND c.age <= 40");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereIn() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category IN ('electronics', 'toys')");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereCompoundAndOr() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.status = 'active' AND (c.category = 'electronics' OR c.category = 'books')");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereNotEqual() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.status != 'inactive'");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereBooleanField() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.isActive = true");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereIsDefined() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE IS_DEFINED(c.address)");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereStartsWith() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE STARTSWITH(c.category, 'elec')");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereContains() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE CONTAINS(c.category, 'ook')");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereArrayContains() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE ARRAY_CONTAINS(c.scores, 50)");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testWhereNestedProperty() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.address.city = 'Seattle'");
     }
 
     // ==================== Projection Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testSelectSpecificFields() {
         String query = "SELECT c.id, c.category, c.price FROM c";
         QueryResult<ObjectNode> gwResult = drainQuery(directContainer, query, partitionedOptions(), ObjectNode.class);
@@ -406,7 +413,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         }
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testSelectComputedAlias() {
         String query = "SELECT c.id, c.price * 1.1 AS taxedPrice FROM c";
         QueryResult<ObjectNode> gwResult = drainQuery(directContainer, query, partitionedOptions(), ObjectNode.class);
@@ -418,12 +425,12 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== ORDER BY Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testOrderByAsc() {
         assertDirectAndThinClientMatch("SELECT * FROM c ORDER BY c.age");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testOrderByDesc() {
         assertDirectAndThinClientMatch("SELECT * FROM c ORDER BY c.price DESC");
     }
@@ -436,7 +443,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * exercises the multi-component ORDER BY composition / merge path, which single-key ORDER BY
      * does not. Mirrors the multi-ORDER-BY coverage in the .NET SDK.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 2)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT * 2)
     public void testMultipleOrderBy() {
         String containerId = "multiOrderBy_" + UUID.randomUUID().toString().substring(0, 8);
         CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
@@ -489,51 +496,51 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== DISTINCT Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testDistinctValue() {
         assertScalarDirectAndThinClientMatch("SELECT DISTINCT VALUE c.category FROM c", String.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testDistinctValueBoolean() {
         assertScalarDirectAndThinClientMatch("SELECT DISTINCT VALUE c.isActive FROM c", Boolean.class);
     }
 
     // ==================== TOP Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testTop() {
         assertDirectAndThinClientMatch("SELECT TOP 3 * FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testTopWithOrderBy() {
         assertDirectAndThinClientMatch("SELECT TOP 5 * FROM c ORDER BY c.price DESC");
     }
 
     // ==================== Aggregate Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCount() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE COUNT(1) FROM c", Integer.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testSum() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE SUM(c.price) FROM c", Double.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testAvg() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE AVG(c.age) FROM c", Double.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testMin() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE MIN(c.price) FROM c", Double.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testMax() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE MAX(c.age) FROM c", Integer.class);
     }
@@ -546,7 +553,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * SupportedQueryFeatures for the proxy-generated query plan; this guards that negotiation path.
      * The .NET SDK has equivalent DCount coverage.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testDCount() {
         assertScalarDirectAndThinClientMatch(
             "SELECT VALUE COUNT(1) FROM (SELECT DISTINCT VALUE c.category FROM c) AS t", Integer.class);
@@ -554,38 +561,38 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== GROUP BY Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testGroupByCount() {
         assertGroupByDirectAndThinClientMatch("SELECT c.category, COUNT(1) as cnt FROM c GROUP BY c.category", "category");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testGroupBySumAvg() {
         assertGroupByDirectAndThinClientMatch("SELECT c.category, SUM(c.price) as total, AVG(c.price) as avg FROM c GROUP BY c.category", "category");
     }
 
     // ==================== OFFSET / LIMIT Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testOffsetLimit() {
         assertDirectAndThinClientMatch("SELECT * FROM c ORDER BY c.idx OFFSET 3 LIMIT 4");
     }
 
     // ==================== JOIN Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testJoinScoresArray() {
         // Self-join on scores array — produces one row per array element
         assertDirectAndThinClientMatch("SELECT c.id, s AS score FROM c JOIN s IN c.scores");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testJoinWithFilter() {
         // Self-join with WHERE filter on the joined element
         assertDirectAndThinClientMatch("SELECT c.id, s AS score FROM c JOIN s IN c.scores WHERE s >= 50");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testJoinTagsArray() {
         // Self-join on tags string array
         assertDirectAndThinClientMatch("SELECT c.id, t AS tag FROM c JOIN t IN c.tags");
@@ -593,21 +600,21 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== EXISTS Subquery Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testExistsSubquery() {
         // Docs pattern: use EXISTS to check if any array element matches
         assertDirectAndThinClientMatch(
             "SELECT * FROM c WHERE EXISTS (SELECT VALUE s FROM s IN c.scores WHERE s > 60)");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testExistsSubqueryWithStringMatch() {
         // EXISTS on tags array with string match
         assertDirectAndThinClientMatch(
             "SELECT * FROM c WHERE EXISTS (SELECT VALUE t FROM t IN c.tags WHERE t = 'on-sale')");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testExistsAliasInProjection() {
         // EXISTS aliased in SELECT — returns boolean column
         assertDirectAndThinClientMatch(
@@ -616,19 +623,19 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== LIKE Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testLikePrefix() {
         // LIKE with prefix pattern
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE 'elec%'");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testLikeSuffix() {
         // LIKE with suffix pattern
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE '%ing'");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testLikeContains() {
         // LIKE with contains pattern (substring match via wildcards)
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE '%ook%'");
@@ -636,154 +643,154 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== BETWEEN Keyword ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testBetween() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.age BETWEEN 18 AND 40");
     }
 
     // ==================== String Function Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringConcat() {
         assertDirectAndThinClientMatch("SELECT CONCAT(c.category, '-', c.status) AS label FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringEndsWith() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE ENDSWITH(c.category, 'ics')");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringLower() {
         assertDirectAndThinClientMatch("SELECT LOWER(c.category) AS lowerCat FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringUpper() {
         assertDirectAndThinClientMatch("SELECT UPPER(c.status) AS upperStatus FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringLength() {
         assertDirectAndThinClientMatch("SELECT c.category, LENGTH(c.category) AS len FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringSubstring() {
         assertDirectAndThinClientMatch("SELECT SUBSTRING(c.category, 0, 4) AS prefix FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringReplace() {
         assertDirectAndThinClientMatch("SELECT REPLACE(c.category, 'o', '0') AS replaced FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringIndexOf() {
         assertDirectAndThinClientMatch("SELECT INDEX_OF(c.category, 'o') AS pos FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringLeft() {
         assertDirectAndThinClientMatch("SELECT LEFT(c.category, 3) AS l FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringReverse() {
         assertDirectAndThinClientMatch("SELECT REVERSE(c.category) AS rev FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testStringTrim() {
         assertDirectAndThinClientMatch("SELECT TRIM(c.status) AS trimmed FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testRegexMatch() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE RegexMatch(c.category, '^elec.*')");
     }
 
     // ==================== Type Checking Function Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testIsArray() {
         assertDirectAndThinClientMatch("SELECT c.id, IS_ARRAY(c.scores) AS isArr FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testIsBool() {
         assertDirectAndThinClientMatch("SELECT c.id, IS_BOOL(c.isActive) AS isBool FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testIsNull() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE IS_NULL(c.nonExistentField)");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testIsNumber() {
         assertDirectAndThinClientMatch("SELECT c.id, IS_NUMBER(c.age) AS isNum FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testIsString() {
         assertDirectAndThinClientMatch("SELECT c.id, IS_STRING(c.category) AS isStr FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testIsObject() {
         assertDirectAndThinClientMatch("SELECT c.id, IS_OBJECT(c.address) AS isObj FROM c");
     }
 
     // ==================== Math Function Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testMathAbs() {
         assertDirectAndThinClientMatch("SELECT ABS(c.age - 30) AS diff FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testMathCeilingFloor() {
         assertDirectAndThinClientMatch("SELECT CEILING(c.price) AS ceil, FLOOR(c.price) AS flr FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testMathRound() {
         assertDirectAndThinClientMatch("SELECT ROUND(c.price) AS rounded FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testMathPower() {
         assertDirectAndThinClientMatch("SELECT POWER(c.age, 2) AS ageSq FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testMathSqrt() {
         assertDirectAndThinClientMatch("SELECT SQRT(c.price) AS sqrtPrice FROM c");
     }
 
     // ==================== Array Function Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testArrayLength() {
         assertDirectAndThinClientMatch("SELECT c.id, ARRAY_LENGTH(c.scores) AS len FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testArraySlice() {
         assertDirectAndThinClientMatch("SELECT c.id, ARRAY_SLICE(c.tags, 0, 1) AS firstTag FROM c");
     }
 
     // ==================== Conditional Function Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testIif() {
         assertDirectAndThinClientMatch("SELECT c.id, IIF(c.age >= 18, 'adult', 'minor') AS ageGroup FROM c");
     }
 
     // ==================== Date/Time Function Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testGetCurrentDateTime() {
         // Only assert both paths return a non-empty ISO 8601 string — exact values
         // will differ because gateway and proxy execute at slightly different times.
@@ -800,13 +807,13 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== SELECT VALUE / Nested Projection Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testSelectValueObject() {
         assertDirectAndThinClientMatch(
             "SELECT VALUE { name: c.category, loc: c.address.city } FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testSelectValueScalar() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE c.category FROM c", String.class);
     }
@@ -821,60 +828,60 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ---- LIKE: advanced patterns (character classes, single-char wildcard, negation) ----
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testLikeSingleCharWildcard() {
         // '_' matches exactly one character: 'electronic_' matches "electronics".
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE 'electronic_'");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testLikeCharacterClassRange() {
         // Character range '[a-c]' — categories starting with a..c (books, clothing).
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE '[a-c]%'");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testLikeNegatedCharacterClass() {
         // Negated character class '[^bc]' — categories NOT starting with b or c (electronics, toys).
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category LIKE '[^bc]%'");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testNotLike() {
         assertDirectAndThinClientMatch("SELECT * FROM c WHERE c.category NOT LIKE 'elec%'");
     }
 
     // ---- Scalar expressions: coalesce, computed member access, array literal, unary, modulo, ternary ----
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCoalesceOperator() {
         // '??' returns the right operand when the left is undefined.
         assertScalarDirectAndThinClientMatch("SELECT VALUE (c.missingField ?? c.category) FROM c", String.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testComputedMemberIndexer() {
         // Quoted/computed property accessor c["category"].
         assertScalarDirectAndThinClientMatch("SELECT VALUE c[\"category\"] FROM c", String.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testArrayLiteralProjection() {
         // Array-create scalar expression in the projection.
         assertDirectAndThinClientMatch("SELECT c.id, [c.age, c.idx] AS pair FROM c");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testUnaryNegation() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE -c.age FROM c", Integer.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testModuloOperator() {
         assertScalarDirectAndThinClientMatch("SELECT VALUE (c.age % 2) FROM c", Integer.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testTernaryConditional() {
         // Ternary '?:' — distinct parse path from IIF(...).
         assertScalarDirectAndThinClientMatch(
@@ -887,7 +894,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     // test verifies that the cached plan still executes correctly - i.e. a cached QueryPlan obtained
     // from the thin-client proxy continues to produce results identical to the Direct (TCP) baseline.
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCachedQueryPlanFromProxyExecutesCorrectly() {
         // GROUP BY requires a query plan. With a partition key set (assertGroupByDirectAndThinClientMatch
         // uses partitionedOptions()), the proxy-generated plan is cached after the first execution.
@@ -902,12 +909,12 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== Cross-Partition Tests ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionSelectAll() {
         assertCrossPartitionDirectAndThinClientMatch("SELECT * FROM c ORDER BY c.idx");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionWhereFilter() {
         assertCrossPartitionDirectAndThinClientMatch(
             "SELECT * FROM c WHERE c.category = 'electronics' ORDER BY c.idx");
@@ -921,38 +928,38 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     // across partitions). Each helper also asserts the Direct baseline genuinely contacted more than
     // one partition key range, proving the cross-partition merge path actually ran.
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionCount() {
         assertCrossPartitionScalarMatch("SELECT VALUE COUNT(1) FROM c", Integer.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionSum() {
         assertCrossPartitionScalarMatch("SELECT VALUE SUM(c.idx) FROM c", Double.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionAvg() {
         assertCrossPartitionScalarMatch("SELECT VALUE AVG(c.idx) FROM c", Double.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionMin() {
         assertCrossPartitionScalarMatch("SELECT VALUE MIN(c.idx) FROM c", Integer.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionMax() {
         assertCrossPartitionScalarMatch("SELECT VALUE MAX(c.idx) FROM c", Integer.class);
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionGroupByCount() {
         assertCrossPartitionGroupByMatch(
             "SELECT c.category, COUNT(1) AS cnt FROM c GROUP BY c.category", "category");
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testCrossPartitionGroupBySumAvg() {
         assertCrossPartitionGroupByMatch(
             "SELECT c.category, SUM(c.idx) AS total, AVG(c.idx) AS avg FROM c GROUP BY c.category", "category");
@@ -976,7 +983,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * {@link #testCrossPartitionSelectAll} which only checks parity) and that the fan-out genuinely
      * spans more than one partition key range.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testFullRangeInfinityBoundary() {
         int expected = 30; // seedCrossPartitionData seeds exactly 30 docs
         CosmosQueryRequestOptions crossPartitionOptions = new CosmosQueryRequestOptions();
@@ -995,12 +1002,70 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     }
 
     /**
+     * Explicit user-supplied {@link FeedRange} (EPK-range) scoped read parity.
+     * <p>
+     * The over-span fix in {@code ThinClientStoreModel#wrapInHttpRequest} keys off the presence of the
+     * StartEpk/EndEpk headers (paired with {@code READ_FEED_KEY_TYPE = EffectivePartitionKeyRange}),
+     * which {@code FeedRangeEpkImpl} emits whenever a caller supplies an explicit {@link FeedRange} on
+     * the query options. The prefix-HPK tests exercise that header path indirectly through the query
+     * plan; this test exercises it DIRECTLY by sharding the multi-physical-partition container into its
+     * physical feed ranges and querying each one, so a broken EPK-range guard would over-span a shard
+     * and surface documents belonging to a sibling partition.
+     * <p>
+     * For every physical feed range asserts: (1) the thin client routed through the :10250 endpoint,
+     * and (2) the thin-client rows for the shard exactly equal the Direct baseline for the SAME shard -
+     * an over-span would make the thin-client set a strict superset of the Direct set. Across all shards
+     * it further asserts the union exactly reconstructs the full unsharded fan-out with no duplicates,
+     * proving the shards are a clean, non-overlapping partition of the key space.
+     */
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
+    public void testExplicitFeedRangeShardedReadParity() {
+        List<FeedRange> feedRanges = directCrossPartitionContainer.getFeedRanges().block();
+        assertThat(feedRanges.size())
+            .as("multi-physical-partition container must expose more than one feed range")
+            .isGreaterThan(1);
+
+        List<String> unionThinClientIds = new ArrayList<>();
+        for (FeedRange feedRange : feedRanges) {
+            CosmosQueryRequestOptions directOptions = new CosmosQueryRequestOptions().setFeedRange(feedRange);
+            CosmosQueryRequestOptions tcOptions = new CosmosQueryRequestOptions().setFeedRange(feedRange);
+
+            QueryResult<ObjectNode> directShard =
+                drainQuery(directCrossPartitionContainer, "SELECT * FROM c", directOptions, ObjectNode.class);
+            QueryResult<ObjectNode> tcShard =
+                drainQuery(thinClientCrossPartitionContainer, "SELECT * FROM c", tcOptions, ObjectNode.class);
+            for (CosmosDiagnostics d : tcShard.diagnostics) { assertThinClientEndpointUsed(d); }
+
+            // Per-shard parity: the thin client must return EXACTLY the Direct baseline's documents for
+            // this feed range. A broken EPK-range guard would over-span and pull in sibling-shard docs,
+            // making the thin-client set a strict superset of the Direct set.
+            assertThat(tcShard.results.size())
+                .as("Thin-client feed-range shard count vs Direct for " + feedRange)
+                .isEqualTo(directShard.results.size());
+            assertThat(idsSorted(tcShard.results))
+                .as("Thin-client feed-range shard over-span vs Direct for " + feedRange)
+                .isEqualTo(idsSorted(directShard.results));
+
+            unionThinClientIds.addAll(idsSorted(tcShard.results));
+        }
+
+        // The shards must be a clean partition of the whole container: their union reconstructs the full
+        // unsharded fan-out exactly, with no duplicates (which would indicate two shards overlap).
+        QueryResult<ObjectNode> fullFanOut = drainQuery(
+            directCrossPartitionContainer, "SELECT * FROM c", new CosmosQueryRequestOptions(), ObjectNode.class);
+        List<String> unionSorted = unionThinClientIds.stream().sorted().collect(Collectors.toList());
+        assertThat(unionSorted)
+            .as("union of per-feed-range thin-client shards must equal the full fan-out with no duplicates")
+            .isEqualTo(idsSorted(fullFanOut.results));
+    }
+
+    /**
      * Hierarchical (MULTI_HASH) partition key cross-partition parity. Cross-partition queries
      * over the /tenantId,/userId container force the proxy to emit MULTI-COMPONENT PartitionKeyInternal
      * arrays, exercising the MULTI_HASH branch of convertToSortedEpkRanges. Validates plain, ORDER BY,
      * and filtered-ORDER-BY shapes against the Direct baseline.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testHierarchicalPartitionKeyCrossPartition() {
         assertHierarchicalCrossPartitionMatch("SELECT * FROM c");
         assertHierarchicalCrossPartitionMatch("SELECT * FROM c ORDER BY c.idx");
@@ -1018,7 +1083,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * returns exactly the tenant's users and the full key returns exactly one document, all with
      * parity to the Direct baseline.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testHierarchicalPrefixHalfOpenRange() {
         String[] firstKey = hierarchicalKeys.get(0);
         String tenant0 = firstKey[0];
@@ -1051,7 +1116,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * the Gateway V1 Direct baseline, formalizing the invariant that the two emission formats are
      * interchangeable from the client's perspective.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testTwoSourceQueryPlanParity() {
         String q = "SELECT c.id, c.idx, c.category FROM c WHERE c.idx >= 0 ORDER BY c.idx";
         assertCrossPartitionDirectAndThinClientMatch(q);
@@ -1125,7 +1190,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     /**
      * Test: IN clause on partition key with 3 values → 3 disjoint EPK ranges across 3 physical partitions.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 3)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT * 3)
     public void testMultiRangePartitionKeyInClause() {
         String[] pkValues = {"pk-alpha", "pk-beta", "pk-gamma", "pk-delta", "pk-epsilon"};
         runMultiRangeTest(pkValues,
@@ -1136,7 +1201,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     /**
      * Test: OR on partition key values → 2 disjoint EPK ranges.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 3)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT * 3)
     public void testMultiRangePartitionKeyOrClause() {
         String[] pkValues = {"pk-or-1", "pk-or-2", "pk-or-3"};
         runMultiRangeTest(pkValues,
@@ -1148,7 +1213,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * Test: IN clause with 10 PK values → 10 disjoint EPK ranges, stress test for sort correctness.
      * Uses UUID-based PK values to maximize EPK hash spread.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 3)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT * 3)
     public void testMultiRangeManyPartitionKeys() {
         String[] pkValues = new String[10];
         for (int i = 0; i < 10; i++) {
@@ -1167,7 +1232,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== Continuation Token Draining ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testContinuationTokenDraining() {
         // Drain gateway fully for expected count
         QueryResult<ObjectNode> gwResult = drainQuery(directContainer, "SELECT * FROM c", partitionedOptions(), ObjectNode.class);
@@ -1205,7 +1270,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
 
     // ==================== Invalid Query ====================
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testInvalidQueryReturnsBadRequest() {
         try {
             thinClientContainer.queryItems("SELEC * FORM c", new CosmosQueryRequestOptions(), ObjectNode.class)
@@ -1227,7 +1292,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * Creates a vector-enabled container, runs VectorDistance query through both
      * Direct and thin client, compares results.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 2)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT * 2)
     public void testVectorSearchGatewayVsThinClient() {
         String vectorContainerId = "vecCompare_" + UUID.randomUUID().toString().substring(0, 8);
         CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
@@ -1326,7 +1391,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     /**
      * Creates a container with full-text policy and index, runs FullTextContains query.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 2)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT * 2)
     public void testFullTextSearchGatewayVsThinClient() {
         String containerId = "ftsCompare_" + UUID.randomUUID().toString().substring(0, 8);
         CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
@@ -1396,7 +1461,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * Creates a container with full-text policy and index, runs ORDER BY RANK FullTextScore query.
      * Compares exact ordering between Direct and thin client.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 2)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT * 2)
     public void testFullTextScoreRanking() {
         String containerId = "ftsRank_" + UUID.randomUUID().toString().substring(0, 8);
         CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
@@ -1469,7 +1534,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     /**
      * Creates a container with vector + full-text policies, runs hybrid RRF query.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT * 2)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT * 2)
     public void testHybridSearchGatewayVsThinClient() {
         String containerId = "hybridCompare_" + UUID.randomUUID().toString().substring(0, 8);
         CosmosAsyncDatabase db = directClient.getDatabase(directContainer.getDatabase().getId());
@@ -1559,7 +1624,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     // For the thin client container we expect the validation QueryPlan call itself to land on
     // the :10250 endpoint, just like the per-batch query requests it precedes.
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testReadManyByPartitionKeysNoCustomQuery() {
         // No custom query: no QueryPlan is fetched, but the per-batch reads must still
         // route through the thin client endpoint.
@@ -1578,7 +1643,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
             .isEqualTo(idsSorted(gwResult.results));
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testReadManyByPartitionKeysWithCustomQuery() {
         // Custom projection + filter triggers QueryPlan validation. With the bifurcation
         // wiring in place the QueryPlan request must travel through Gateway V2 (:10250).
@@ -1611,7 +1676,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
         }
     }
 
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testReadManyByPartitionKeysWithParameterizedCustomQuery() {
         // Parameterized custom query — same validation path, exercises SqlParameter binding.
         SqlQuerySpec customQuery = new SqlQuerySpec(
@@ -1641,26 +1706,34 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
     }
 
     // ==================== Partial (Prefix) HPK read Tests ====================
-    // Regression coverage for the thin-client MULTI_HASH prefix EPK over-span fix. A partial
-    // hierarchical key (only /tenantId, omitting /userId) must scope the read to that tenant's
-    // effective-partition-key sub-range [hash(prefix), hash(prefix)+"FF") as a doc-level filter,
-    // NOT resolve to the whole owning physical partition (which would return co-located documents
-    // from other tenants). Direct TCP is the baseline; the thin client must match it exactly, so a
-    // count/ID mismatch is exactly the over-span regression these tests guard against.
+    // Direct-vs-thin-client parity coverage for partial hierarchical keys (only /tenantId, omitting
+    // /userId). Direct TCP is the baseline; the thin client must return exactly the same documents.
+    //
+    // The isolation mechanism differs by API and is called out per-test below:
+    //   - readAllItems / readManyByPartitionKeys with a prefix generate a SQL WHERE predicate on the
+    //     present component(s) and route by the resolved physical PK-range id, so foreign co-located
+    //     tenants are filtered by that predicate (a routing + SQL-predicate parity guard).
+    //   - The RNTBD prefix-EPK range path (a raw query with only a prefix key and no generated
+    //     predicate, where isolation is purely by the [hash(prefix), hash(prefix)+"FF") sub-range) is
+    //     the direct guard of the thin-client MULTI_HASH prefix EPK over-span fix. It is exercised by
+    //     testHierarchicalPrefixHalfOpenRange() and testExplicitFeedRangeShardedReadParity().
 
     /**
      * readAllItems (ReadFeed) with a partial (prefix) hierarchical partition key - only the first
      * component (/tenantId). Iterates over ALL seeded tenants (not just one): at 12000 RU/s the
      * container has fewer physical partitions than {@code HIER_TENANTS}, so by the pigeonhole
-     * principle at least two tenants are co-located on the same physical partition, making the
-     * over-span regression deterministically reproducible instead of depending on tenant-0's
-     * placement. Each prefix read must return exactly that tenant's {@code HIER_USERS_PER_TENANT}
-     * documents, matching the Direct baseline; an over-span to the physical partition would surface
-     * co-located docs from other tenants, which the count/ID parity and per-doc tenant assertion
-     * catch. A final nonexistent-tenant prefix must return zero documents - a co-location-independent
-     * negative guard.
+     * principle at least two tenants are co-located on the same physical partition. Each prefix read
+     * must return exactly that tenant's {@code HIER_USERS_PER_TENANT} documents, matching the Direct
+     * baseline; a final nonexistent-tenant prefix must return zero documents.
+     *
+     * <p>Note: readAllItems with a prefix key generates a SQL {@code WHERE} predicate on the present
+     * component(s) ({@code createLogicalPartitionScanQuerySpec}) and routes by the resolved physical
+     * PK-range id, so tenant isolation here is enforced by that predicate rather than by an RNTBD
+     * prefix-EPK range header. This is therefore a routing + SQL-predicate parity guard against
+     * Direct, not a direct guard of the prefix-EPK over-span fix (see
+     * {@link #testHierarchicalPrefixHalfOpenRange()} for that path).
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testHierarchicalReadAllItemsPrefixPartitionKey() {
         for (int t = 0; t < HIER_TENANTS; t++) {
             String tenant = hierarchicalKeys.get(t * HIER_USERS_PER_TENANT)[0];
@@ -1700,7 +1773,7 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * logical partition - exactly one document - matching the Direct baseline. Guards that the prefix
      * handling does not regress the full-key point path.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testHierarchicalReadAllItemsFullPartitionKey() {
         String[] firstKey = hierarchicalKeys.get(0);
         PartitionKey fullKey = new PartitionKeyBuilder().add(firstKey[0]).add(firstKey[1]).build();
@@ -1725,11 +1798,11 @@ public class ThinClientQueryE2ETest extends TestSuiteBase {
      * generated {@code WHERE} predicate on the prefix key component(s), so tenant isolation here is
      * enforced by that SQL predicate rather than by the RNTBD prefix-EPK range header. This is
      * therefore a routing + SQL-predicate parity guard against Direct, not a direct guard of the
-     * over-span fix. The prefix-EPK header path itself (query/readAll with only a prefix key and no
-     * generated predicate) is exercised by {@link #testHierarchicalReadAllItemsPrefixPartitionKey()}
-     * and {@link #testHierarchicalPrefixHalfOpenRange()}.
+     * over-span fix. The prefix-EPK header path itself (a raw query with only a prefix key and no
+     * generated predicate) is exercised by {@link #testHierarchicalPrefixHalfOpenRange()} and
+     * {@link #testExplicitFeedRangeShardedReadParity()}.
      */
-    @Test(groups = {"thinclient"}, timeOut = TIMEOUT)
+    @Test(groups = {"thinclient", "thinclientEndpointProbe"}, timeOut = TIMEOUT)
     public void testHierarchicalReadManyByPartitionKeysPrefixPartitionKey() {
         String tenant0 = hierarchicalKeys.get(0)[0];
         PartitionKey prefixKey = new PartitionKeyBuilder().add(tenant0).build();

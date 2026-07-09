@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -65,6 +66,16 @@ public class ThinClientProbeWiringTests {
         "{\"_self\":\"\",\"id\":\"testaccount\",\"_rid\":\"testaccount.documents.azure.com\","
             + "\"writableLocations\":[{\"name\":\"East US\",\"databaseAccountEndpoint\":\"https://testaccount-eastus.documents.azure.com:443/\"}],"
             + "\"readableLocations\":[{\"name\":\"East US\",\"databaseAccountEndpoint\":\"https://testaccount-eastus.documents.azure.com:443/\"}],"
+            + "\"enableMultipleWriteLocations\":false,\"userReplicationPolicy\":{\"asyncReplication\":false,\"minReplicaSetSize\":3,\"maxReplicasetSize\":4},"
+            + "\"userConsistencyPolicy\":{\"defaultConsistencyLevel\":\"Session\"},\"systemReplicationPolicy\":{\"minReplicaSetSize\":3,\"maxReplicasetSize\":4},"
+            + "\"readPolicy\":{\"primaryReadCoefficient\":1,\"secondaryReadCoefficient\":1}}";
+
+    private static final String DB_ACCOUNT_ONE_THINCLIENT_LOCATION =
+        "{\"_self\":\"\",\"id\":\"testaccount\",\"_rid\":\"testaccount.documents.azure.com\","
+            + "\"writableLocations\":[{\"name\":\"East US\",\"databaseAccountEndpoint\":\"https://testaccount-eastus.documents.azure.com:443/\"}],"
+            + "\"readableLocations\":[{\"name\":\"East US\",\"databaseAccountEndpoint\":\"https://testaccount-eastus.documents.azure.com:443/\"}],"
+            + "\"thinClientWritableLocations\":[{\"name\":\"East US\",\"databaseAccountEndpoint\":\"https://testaccount-eastus.documents.azure.com:10250/\"}],"
+            + "\"thinClientReadableLocations\":[{\"name\":\"East US\",\"databaseAccountEndpoint\":\"https://testaccount-eastus.documents.azure.com:10250/\"}],"
             + "\"enableMultipleWriteLocations\":false,\"userReplicationPolicy\":{\"asyncReplication\":false,\"minReplicaSetSize\":3,\"maxReplicasetSize\":4},"
             + "\"userConsistencyPolicy\":{\"defaultConsistencyLevel\":\"Session\"},\"systemReplicationPolicy\":{\"minReplicaSetSize\":3,\"maxReplicasetSize\":4},"
             + "\"readPolicy\":{\"primaryReadCoefficient\":1,\"secondaryReadCoefficient\":1}}";
@@ -185,6 +196,59 @@ public class ThinClientProbeWiringTests {
         }
     }
 
+    @Test(groups = { "unit" }, timeOut = TIMEOUT)
+    public void refreshWithNewRegion_probesOnlyNewlyAddedRegion() throws Exception {
+        // Delta-probing across a SUBSEQUENT account refresh: a thin-client region that appears
+        // after the initial topology read must be probed, while an already-proven region must
+        // NOT be re-probed. This proves the probe cycle (a) runs on every refresh and (b) is
+        // delta-gated to newly-added regions.
+        AtomicInteger probeCallCount = new AtomicInteger(0);
+        Map<URI, Integer> statusByEndpoint = new HashMap<>();
+        statusByEndpoint.put(URI.create("https://testaccount-eastus.documents.azure.com:10250/connectivity-probe"), 200);
+        statusByEndpoint.put(URI.create("https://testaccount-eastasia.documents.azure.com:10250/connectivity-probe"), 200);
+        HttpClient httpClient = stubHttpClient(statusByEndpoint, probeCallCount);
+
+        // Topology can change between refreshes; start with a single thin-client region (East US).
+        AtomicReference<DatabaseAccount> currentAccount =
+            new AtomicReference<>(new DatabaseAccount(DB_ACCOUNT_ONE_THINCLIENT_LOCATION));
+        Mockito.when(databaseAccountManagerInternal.getDatabaseAccountFromEndpoint(any()))
+            .thenAnswer(invocation -> Flux.just(currentAccount.get()));
+        Mockito.when(databaseAccountManagerInternal.getServiceEndpoint())
+            .thenReturn(new URI("https://testaccount.documents.azure.com:443"));
+
+        ConnectionPolicy connectionPolicy = new ConnectionPolicy(DirectConnectionConfig.getDefaultConfig());
+        connectionPolicy.setEndpointDiscoveryEnabled(true);
+        connectionPolicy.setMultipleWriteRegionsEnabled(true);
+
+        GlobalEndpointManager gem = new GlobalEndpointManager(databaseAccountManagerInternal, connectionPolicy, new Configs());
+        try {
+            gem.setThinClientHttpClient(httpClient);
+            gem.init();
+
+            // Phase 1: only East US is known -> exactly one region is probed and the gate goes healthy.
+            waitForProxyDecision(gem, Boolean.TRUE, Duration.ofSeconds(5));
+            assertThat(probeCallCount.get())
+                .as("only the single known thin-client region (East US) is probed on the initial refresh")
+                .isEqualTo(1);
+            assertThat(gem.getProxyProbeDecision()).isEqualTo(Boolean.TRUE);
+
+            // Phase 2: East Asia is added to the topology; a forced refresh must probe ONLY the new region.
+            currentAccount.set(new DatabaseAccount(DB_ACCOUNT_WITH_THINCLIENT_LOCATIONS));
+            gem.refreshLocationAsync(null, true).block();
+
+            waitForProbeCallCount(probeCallCount, 2, Duration.ofSeconds(5));
+
+            assertThat(probeCallCount.get())
+                .as("delta refresh probes only the newly-added region (East Asia); East US is not re-probed")
+                .isEqualTo(2);
+            assertThat(gem.getProxyProbeDecision())
+                .as("both thin-client regions are now proven healthy")
+                .isEqualTo(Boolean.TRUE);
+        } finally {
+            LifeCycleUtils.closeQuietly(gem);
+        }
+    }
+
     // ---- helpers ----
 
     private GlobalEndpointManager newGemWithAccount(String accountJson) throws Exception {
@@ -269,6 +333,14 @@ public class ThinClientProbeWiringTests {
     private static void waitForProbeCallCount(AtomicInteger counter, int expected, Duration timeout) throws InterruptedException {
         long deadline = System.currentTimeMillis() + timeout.toMillis();
         while (System.currentTimeMillis() < deadline && counter.get() < expected) {
+            Thread.sleep(50);
+        }
+    }
+
+    private static void waitForProxyDecision(GlobalEndpointManager gem, Boolean expected, Duration timeout)
+        throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeout.toMillis();
+        while (System.currentTimeMillis() < deadline && !expected.equals(gem.getProxyProbeDecision())) {
             Thread.sleep(50);
         }
     }

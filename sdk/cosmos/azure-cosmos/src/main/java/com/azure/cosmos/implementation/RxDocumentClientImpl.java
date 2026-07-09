@@ -1756,7 +1756,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             userAgentFeatureFlags.remove(UserAgentFeatureFlags.PerPartitionCircuitBreaker);
         }
 
-        if (!Configs.isThinClientEnabled()) {
+        if (Boolean.FALSE.equals(Configs.isThinClientEnabled())) {
             userAgentFeatureFlags.remove(UserAgentFeatureFlags.ThinClient);
         }
 
@@ -9083,10 +9083,10 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         this.globalPartitionEndpointManagerForPerPartitionCircuitBreaker.resetCircuitBreakerConfig(partitionLevelCircuitBreakerConfig);
         this.globalPartitionEndpointManagerForPerPartitionCircuitBreaker.init();
 
-        // Populate the diagnostics client config with the effective per-partition circuit breaker
-        // configuration on every init path (both the unconditional client-side init and the
-        // PPAF-driven modifier path) so the "partitionLevelCircuitBreakerCfg" field is always
-        // reflected in CosmosDiagnostics, regardless of whether PPAF is service-mandated.
+        // Populate the circuit breaker config in the diagnostics client config here (rather than in
+        // initializePerPartitionFailover) so the "partitionLevelCircuitBreakerCfg" field appears in
+        // CosmosDiagnostics whenever the circuit breaker is configured client-side, not only when
+        // Per-Partition Automatic Failover is mandated by the service.
         this.diagnosticsClientConfig.withPartitionLevelCircuitBreakerConfig(this.globalPartitionEndpointManagerForPerPartitionCircuitBreaker.getCircuitBreakerConfig());
     }
 
@@ -9116,7 +9116,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         return ThinClientConnectivityConfig.shouldUseThinClientStoreModel(
             this.thinClientConnectivityConfig.canThinClientBeUsed(),
             this.globalEndpointManager.hasThinClientReadLocations(),
-            this.thinClientConnectivityConfig.isExplicitThinClientOptIn(),
+            Configs.isThinClientEnabled(),
             this.globalEndpointManager.getProxyProbeDecision(),
             request);
     }
