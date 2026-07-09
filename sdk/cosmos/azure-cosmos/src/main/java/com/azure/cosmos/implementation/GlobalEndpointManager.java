@@ -261,6 +261,7 @@ public class GlobalEndpointManager implements AutoCloseable {
         return Mono.<Void>defer(() -> {
             logger.debug("refreshLocationPrivateAsync() refreshing locations");
 
+            Mono<Void> probePrefix = Mono.empty();
             if (databaseAccount != null) {
                 this.databaseAccountWriteLock.lock();
 
@@ -269,71 +270,70 @@ public class GlobalEndpointManager implements AutoCloseable {
                 } finally {
                     this.databaseAccountWriteLock.unlock();
                 }
+
+                // Run the thin-client connectivity-probe cycle on every topology refresh so
+                // the routing gate (getProxyProbeDecision) can converge to the proxy fleet.
+                probePrefix = this.runThinClientProbeCycleMono();
             }
 
-            Utils.ValueHolder<Boolean> canRefreshInBackground = new Utils.ValueHolder<>();
-            if (this.locationCache.shouldRefreshEndpoints(canRefreshInBackground)) {
-                logger.debug("shouldRefreshEndpoints: true");
+            return probePrefix.then(Mono.defer(() -> {
+                Utils.ValueHolder<Boolean> canRefreshInBackground = new Utils.ValueHolder<>();
+                if (this.locationCache.shouldRefreshEndpoints(canRefreshInBackground)) {
+                    logger.debug("shouldRefreshEndpoints: true");
 
-                if (databaseAccount == null && !canRefreshInBackground.v) {
-                    logger.debug("shouldRefreshEndpoints: can't be done in background");
+                    if (databaseAccount == null && !canRefreshInBackground.v) {
+                        logger.debug("shouldRefreshEndpoints: can't be done in background");
 
-                    Mono<DatabaseAccount> databaseAccountObs = getDatabaseAccountFromAnyLocationsAsync(
-                            this.defaultEndpoint,
-                            new ArrayList<>(this.getEffectivePreferredRegions()),
-                            this::getDatabaseAccountAsync);
+                        Mono<DatabaseAccount> databaseAccountObs = getDatabaseAccountFromAnyLocationsAsync(
+                                this.defaultEndpoint,
+                                new ArrayList<>(this.getEffectivePreferredRegions()),
+                                this::getDatabaseAccountAsync);
 
-                    return databaseAccountObs.map(dbAccount -> {
-                        this.databaseAccountWriteLock.lock();
+                        return databaseAccountObs.flatMap(dbAccount -> {
+                            this.databaseAccountWriteLock.lock();
 
-                        try {
-                            this.locationCache.onDatabaseAccountRead(dbAccount);
-                        } finally {
-                            this.databaseAccountWriteLock.unlock();
-                        }
+                            try {
+                                this.locationCache.onDatabaseAccountRead(dbAccount);
+                            } finally {
+                                this.databaseAccountWriteLock.unlock();
+                            }
 
-                        this.isRefreshing.set(false);
-                        return dbAccount;
-                    }).flatMap(dbAccount -> {
-                        // trigger a startRefreshLocationTimerAsync don't wait on it.
-                        if (!this.refreshInBackground.get()) {
-                            this.startRefreshLocationTimerAsync();
-                        }
-                        return Mono.empty();
-                    });
+                            this.isRefreshing.set(false);
+                            return this.runThinClientProbeCycleMono();
+                        }).then(Mono.defer(() -> {
+                            // trigger a startRefreshLocationTimerAsync don't wait on it.
+                            if (!this.refreshInBackground.get()) {
+                                this.startRefreshLocationTimerAsync();
+                            }
+                            return Mono.<Void>empty();
+                        }));
+                    }
+
+                    // trigger a startRefreshLocationTimerAsync don't wait on it.
+                    if (!this.refreshInBackground.get()) {
+                        this.startRefreshLocationTimerAsync();
+                    }
+
+                    this.isRefreshing.set(false);
+                    return Mono.<Void>empty();
+                } else {
+                    logger.debug("shouldRefreshEndpoints: false, nothing to do.");
+
+                    // Even when no endpoint refresh is needed right now, we must keep the
+                    // background refresh timer running so that future database account
+                    // topology changes are detected — e.g., multi-write <-> single-write
+                    // transitions, failover priority changes, region add/remove.
+                    // This aligns with the .NET SDK behavior where the background loop
+                    // continues unconditionally as long as the client is alive.
+                    if (!this.refreshInBackground.get()) {
+                        this.startRefreshLocationTimerAsync();
+                    }
+
+                    this.isRefreshing.set(false);
+                    return Mono.<Void>empty();
                 }
-
-                // trigger a startRefreshLocationTimerAsync don't wait on it.
-                if (!this.refreshInBackground.get()) {
-                    this.startRefreshLocationTimerAsync();
-                }
-
-                this.isRefreshing.set(false);
-                return Mono.empty();
-            } else {
-                logger.debug("shouldRefreshEndpoints: false, nothing to do.");
-
-                // Even when no endpoint refresh is needed right now, we must keep the
-                // background refresh timer running so that future database account
-                // topology changes are detected — e.g., multi-write <-> single-write
-                // transitions, failover priority changes, region add/remove.
-                // This aligns with the .NET SDK behavior where the background loop
-                // continues unconditionally as long as the client is alive.
-                if (!this.refreshInBackground.get()) {
-                    this.startRefreshLocationTimerAsync();
-                }
-
-                this.isRefreshing.set(false);
-                return Mono.empty();
-            }
-        })
-        // Drive the thin-client connectivity-probe cycle on EVERY account refresh (initial
-        // topology read, background refresh, and non-force refresh all funnel through here).
-        // The cycle is delta-gated inside EndpointProbeClient#runProbeCycle: it only issues
-        // HTTP probes for thin-client regions not yet proven (e.g. newly-added regions) and is
-        // an inexpensive no-op when the region set is unchanged and already healthy. It is fully
-        // defensive (never errors) so it cannot fail or delay topology refresh.
-        .then(runThinClientProbeCycleMono());
+            }));
+        });
     }
 
     private void startRefreshLocationTimerAsync() {
