@@ -223,8 +223,12 @@ public class GlobalEndpointManager implements AutoCloseable {
 
                     return dbAccount;
                 }).flatMap(dbAccount -> {
-                    return Mono.empty();
-                });
+                    return Mono.<Void>empty();
+                })
+                // Force-refresh bypasses refreshLocationPrivateAsync but still updates topology
+                // (hasThinClientReadLocations / LocationCache), so drive the delta-gated probe
+                // cycle here too to honor "probe on every account refresh".
+                .then(runThinClientProbeCycleMono());
             }
 
             if (!isRefreshing.compareAndSet(false, true)) {
@@ -254,7 +258,7 @@ public class GlobalEndpointManager implements AutoCloseable {
     }
 
     private Mono<Void> refreshLocationPrivateAsync(DatabaseAccount databaseAccount) {
-        return Mono.defer(() -> {
+        return Mono.<Void>defer(() -> {
             logger.debug("refreshLocationPrivateAsync() refreshing locations");
 
             if (databaseAccount != null) {
@@ -322,7 +326,14 @@ public class GlobalEndpointManager implements AutoCloseable {
                 this.isRefreshing.set(false);
                 return Mono.empty();
             }
-        });
+        })
+        // Drive the thin-client connectivity-probe cycle on EVERY account refresh (initial
+        // topology read, background refresh, and non-force refresh all funnel through here).
+        // The cycle is delta-gated inside EndpointProbeClient#runProbeCycle: it only issues
+        // HTTP probes for thin-client regions not yet proven (e.g. newly-added regions) and is
+        // an inexpensive no-op when the region set is unchanged and already healthy. It is fully
+        // defensive (never errors) so it cannot fail or delay topology refresh.
+        .then(runThinClientProbeCycleMono());
     }
 
     private void startRefreshLocationTimerAsync() {
