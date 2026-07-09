@@ -27,18 +27,8 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
     protected static final String PARTITION_KEY_FIELD = "mypk";
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final String THINCLIENT_ENABLED_PROPERTY = "COSMOS.THINCLIENT_ENABLED";
-
     protected CosmosAsyncClient client;
     protected CosmosAsyncContainer container;
-
-    // Captures the ambient COSMOS.THINCLIENT_ENABLED value (typically supplied by the thin-client CI
-    // lane via -DCOSMOS.THINCLIENT_ENABLED=true) so teardown can restore it rather than unconditionally
-    // clearing it. Because the property is read lazily per client build and these classes share a JVM
-    // with property-dependent tests inherited from main (e.g. ThinClientQueryE2ETest, CosmosMultiHashTest),
-    // an unconditional clear here would disable thin client for later-running classes and route their
-    // requests to :443, breaking the thin-client endpoint assertions.
-    private String previousThinClientEnabled;
 
     protected ThinClientTestBase(CosmosClientBuilder clientBuilder) {
         super(clientBuilder);
@@ -46,8 +36,13 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
 
     @BeforeClass(groups = {"thinclient"}, timeOut = SETUP_TIMEOUT)
     public void before_ThinClientTest() {
+        // Thin client is enabled JVM-wide by the "thinclient" CI lane via
+        // -DCOSMOS.THINCLIENT_ENABLED=true (+ -DCOSMOS.HTTP2_ENABLED=true). Every test/lifecycle
+        // method in these classes is scoped to groups={"thinclient"}, so they only ever run in that
+        // lane. We therefore rely on the ambient flag rather than mutating the JVM-global property
+        // per class (which is read lazily per client build and would otherwise leak across the
+        // classes that share this JVM).
         assertThat(this.client).isNull();
-        enableThinClientForTest();
         this.client = getClientBuilder().buildAsyncClient();
         this.container = getSharedMultiPartitionCosmosContainer(this.client);
 
@@ -57,24 +52,8 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
 
     @AfterClass(groups = {"thinclient"}, timeOut = SHUTDOWN_TIMEOUT, alwaysRun = true)
     public void afterClass() {
-        clearThinClientForTest();
         if (this.client != null) {
             this.client.close();
-        }
-    }
-
-    protected void enableThinClientForTest() {
-        this.previousThinClientEnabled = System.getProperty(THINCLIENT_ENABLED_PROPERTY);
-        System.setProperty(THINCLIENT_ENABLED_PROPERTY, "true");
-    }
-
-    protected void clearThinClientForTest() {
-        // Restore the ambient value instead of clearing, so the -D-supplied flag survives for
-        // subsequent test classes running in the same JVM that rely on it.
-        if (this.previousThinClientEnabled == null) {
-            System.clearProperty(THINCLIENT_ENABLED_PROPERTY);
-        } else {
-            System.setProperty(THINCLIENT_ENABLED_PROPERTY, this.previousThinClientEnabled);
         }
     }
 
