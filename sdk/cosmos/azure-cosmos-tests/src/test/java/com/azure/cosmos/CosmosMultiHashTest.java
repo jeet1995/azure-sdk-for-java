@@ -75,11 +75,10 @@ public class CosmosMultiHashTest extends TestSuiteBase {
     // Enrolls the MULTI_HASH prefix over-span coverage into the thin-client (GatewayV2, proxy :10250) group.
     // The class-level @Factory yields a plain gateway builder without HTTP/2, which cannot route to the thin
     // client, so this lifecycle builds an explicit HTTP/2 gateway client (mirrors clientBuildersWithGatewayAndHttp2)
-    // and sets COSMOS.THINCLIENT_ENABLED (consumed by the connectivity-probe gate) so the same test bodies
-    // exercise the RNTBD prefix-EPK header path; thinClientEnabled drives the mode-aware routing assertions.
+    // so the same test bodies exercise the RNTBD prefix-EPK header path. COSMOS.THINCLIENT_ENABLED is supplied by
+    // the thin-client CI lane (see sdk/cosmos/tests.yml); IDE/standalone runs must pass -DCOSMOS.THINCLIENT_ENABLED=true.
     @BeforeClass(groups = {"thinclient"}, timeOut = SETUP_TIMEOUT)
     public void before_CosmosMultiHashTest_thinClient() {
-        System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
         thinClientEnabled = true;
         client = createGatewayRxDocumentClient(
             TestConfigurations.HOST, null, true, null, true, true, true).buildClient();
@@ -133,7 +132,6 @@ public class CosmosMultiHashTest extends TestSuiteBase {
         logger.info("starting cleanup (thin client)....");
         safeDeleteSyncDatabase(createdDatabase);
         safeCloseSyncClient(client);
-        System.clearProperty("COSMOS.THINCLIENT_ENABLED");
     }
 
     // Mode-aware endpoint routing assertion. Under the thinclient group every non-QueryPlan (data) request
