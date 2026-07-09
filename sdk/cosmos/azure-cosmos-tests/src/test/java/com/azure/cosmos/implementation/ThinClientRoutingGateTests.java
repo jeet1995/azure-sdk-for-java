@@ -8,7 +8,7 @@ import org.testng.annotations.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link ThinClientConnectivityConfig#shouldUseThinClientStoreModel(boolean, boolean, boolean, Boolean, RxDocumentServiceRequest)}.
+ * Unit tests for {@link ThinClientConnectivityConfig#shouldUseThinClientStoreModel(boolean, boolean, Boolean, Boolean, RxDocumentServiceRequest)}.
  *
  * <p>These tests pin the exact wiring of the routing gate so that the probe-health bit
  * actually flips traffic between the thin-client store model and the gateway-V1 store model.
@@ -30,7 +30,7 @@ public class ThinClientRoutingGateTests {
     @Test(groups = "unit")
     public void allConditionsTrue_routesToThinClient() {
         RxDocumentServiceRequest request = mockDocumentRequest(OperationType.Read);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isTrue();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isTrue();
     }
 
     @Test(groups = "unit")
@@ -38,7 +38,7 @@ public class ThinClientRoutingGateTests {
         RxDocumentServiceRequest request = mockDocumentRequest(OperationType.Read);
         // Probe says proxy is down — even with thin-client enabled and read locations present,
         // the SDK must fall back to Gateway V1 until the next GREEN cycle restores routing.
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.FALSE, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.FALSE, request)).isFalse();
     }
 
     @Test(groups = "unit")
@@ -48,7 +48,7 @@ public class ThinClientRoutingGateTests {
         // has not yet rendered a verdict (not wired / no cycle completed). Without an affirmative
         // GREEN verdict the SDK must NOT route to Gateway V2 -- traffic stays on Gateway V1 until
         // the probe greenlights.
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, null, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, null, request)).isFalse();
     }
 
     @Test(groups = "unit")
@@ -62,13 +62,13 @@ public class ThinClientRoutingGateTests {
     @Test(groups = "unit")
     public void thinClientDisabled_routesToGatewayV1() {
         RxDocumentServiceRequest request = mockDocumentRequest(OperationType.Read);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(false, true, false, Boolean.TRUE, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(false, true, null, Boolean.TRUE, request)).isFalse();
     }
 
     @Test(groups = "unit")
     public void noThinClientReadLocations_routesToGatewayV1() {
         RxDocumentServiceRequest request = mockDocumentRequest(OperationType.Read);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, false, false, Boolean.TRUE, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, false, null, Boolean.TRUE, request)).isFalse();
     }
 
     @Test(groups = "unit")
@@ -78,19 +78,19 @@ public class ThinClientRoutingGateTests {
         Mockito.when(request.getOperationType()).thenReturn(OperationType.Read);
         // Metadata-style reads (DocumentCollection, etc.) must continue through gateway V1
         // even when probe is GREEN and thin-client is enabled.
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isFalse();
     }
 
     @Test(groups = "unit")
     public void documentQuery_routesToThinClient() {
         RxDocumentServiceRequest request = mockDocumentRequest(OperationType.Query);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isTrue();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isTrue();
     }
 
     @Test(groups = "unit")
     public void batchOperation_routesToThinClient() {
         RxDocumentServiceRequest request = mockDocumentRequest(OperationType.Batch);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isTrue();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isTrue();
     }
 
     @Test(groups = "unit")
@@ -101,7 +101,7 @@ public class ThinClientRoutingGateTests {
         Mockito.when(request.isChangeFeedRequest()).thenReturn(true);
         Mockito.when(request.isAllVersionsAndDeletesChangeFeedMode()).thenReturn(true);
         // AllVersionsAndDeletes change feed must NOT go through the proxy.
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isFalse();
     }
 
     @Test(groups = "unit")
@@ -111,7 +111,7 @@ public class ThinClientRoutingGateTests {
         Mockito.when(request.getOperationType()).thenReturn(OperationType.ReadFeed);
         Mockito.when(request.isChangeFeedRequest()).thenReturn(true);
         Mockito.when(request.isAllVersionsAndDeletesChangeFeedMode()).thenReturn(false);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isTrue();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isTrue();
     }
 
     // --- QueryPlan + Stored Procedure routing to Gateway V2 (PR #47759) ---
@@ -125,7 +125,7 @@ public class ThinClientRoutingGateTests {
         Mockito.when(request.getResourceType()).thenReturn(ResourceType.StoredProcedure);
         Mockito.when(request.getOperationType()).thenReturn(OperationType.ExecuteJavaScript);
         Mockito.when(request.isExecuteStoredProcedureBasedRequest()).thenReturn(true);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isTrue();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isTrue();
     }
 
     @Test(groups = "unit")
@@ -136,7 +136,7 @@ public class ThinClientRoutingGateTests {
         Mockito.when(request.getResourceType()).thenReturn(ResourceType.StoredProcedure);
         Mockito.when(request.getOperationType()).thenReturn(OperationType.Create);
         Mockito.when(request.isExecuteStoredProcedureBasedRequest()).thenReturn(false);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isFalse();
     }
 
     @Test(groups = "unit")
@@ -147,7 +147,7 @@ public class ThinClientRoutingGateTests {
         Mockito.when(request.getResourceType()).thenReturn(ResourceType.Document);
         Mockito.when(request.getOperationType()).thenReturn(OperationType.QueryPlan);
         Mockito.when(request.isExecuteStoredProcedureBasedRequest()).thenReturn(false);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.TRUE, request)).isTrue();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.TRUE, request)).isTrue();
     }
 
     @Test(groups = "unit")
@@ -157,7 +157,7 @@ public class ThinClientRoutingGateTests {
         RxDocumentServiceRequest request = Mockito.mock(RxDocumentServiceRequest.class);
         Mockito.when(request.getResourceType()).thenReturn(ResourceType.Document);
         Mockito.when(request.getOperationType()).thenReturn(OperationType.QueryPlan);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.FALSE, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.FALSE, request)).isFalse();
     }
 
     @Test(groups = "unit")
@@ -168,6 +168,6 @@ public class ThinClientRoutingGateTests {
         Mockito.when(request.getResourceType()).thenReturn(ResourceType.StoredProcedure);
         Mockito.when(request.getOperationType()).thenReturn(OperationType.ExecuteJavaScript);
         Mockito.when(request.isExecuteStoredProcedureBasedRequest()).thenReturn(true);
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, Boolean.FALSE, request)).isFalse();
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.FALSE, request)).isFalse();
     }
 }

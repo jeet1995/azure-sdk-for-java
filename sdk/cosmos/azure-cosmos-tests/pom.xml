@@ -944,8 +944,8 @@ Licensed under the MIT License.
     <profile>
       <!-- thin client integration tests exercising the connectivity-probe (implicit) path.
            Identical to the 'thinclient' profile EXCEPT COSMOS.THINCLIENT_ENABLED is deliberately
-           left unset: leaving it unset makes Configs.hasUserExplicitlyEnabledThinClient() false while
-           Configs.isThinClientEnabledExplicitly() stays null (not hard-disabled), so
+           left unset: leaving it unset keeps Configs.isThinClientEnabled() null (neither
+           hard-enabled nor hard-disabled), so
            ThinClientConnectivityConfig.canThinClientBeImplicitlyEnabled() is true and the
            endpoint-probe HttpClient is wired. Routing is then gated on the probe verdict with
            fallback to Gateway V1, rather than a hard opt-in. HTTP2_ENABLED must stay true because

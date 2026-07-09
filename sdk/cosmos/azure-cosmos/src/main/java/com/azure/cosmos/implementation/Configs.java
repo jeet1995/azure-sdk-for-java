@@ -598,7 +598,7 @@ public class Configs {
      *       otherwise it stays on Gateway V1.</li>
      * </ul>
      */
-    public static Boolean isThinClientEnabledExplicitly() {
+    public static Boolean isThinClientEnabled() {
         String valueFromSystemProperty = System.getProperty(THINCLIENT_ENABLED);
         if (valueFromSystemProperty != null && !valueFromSystemProperty.isEmpty()) {
             return Boolean.parseBoolean(valueFromSystemProperty);
@@ -610,17 +610,6 @@ public class Configs {
         }
 
         return DEFAULT_THINCLIENT_ENABLED;
-    }
-
-    /**
-     * @return whether thin-client was <em>explicitly enabled</em> — {@code COSMOS.THINCLIENT_ENABLED}
-     * (or {@code COSMOS_THINCLIENT_ENABLED}) explicitly set to {@code true}. This is distinct from
-     * the probe-gated case where the flag is left unset (see {@link #isThinClientEnabledExplicitly()}
-     * for the underlying nullable value); an explicit {@code true} is a hard opt-in that bypasses
-     * the connectivity-probe gate.
-     */
-    public static boolean hasUserExplicitlyEnabledThinClient() {
-        return Boolean.TRUE.equals(isThinClientEnabledExplicitly());
     }
 
     public static boolean isThinClientQueryPlanEnabled() {

@@ -1711,7 +1711,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             userAgentFeatureFlags.remove(UserAgentFeatureFlags.PerPartitionCircuitBreaker);
         }
 
-        if (Boolean.FALSE.equals(Configs.isThinClientEnabledExplicitly())) {
+        if (Boolean.FALSE.equals(Configs.isThinClientEnabled())) {
             userAgentFeatureFlags.remove(UserAgentFeatureFlags.ThinClient);
         }
 
@@ -9071,7 +9071,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
         return ThinClientConnectivityConfig.shouldUseThinClientStoreModel(
             this.thinClientConnectivityConfig.canThinClientBeUsed(),
             this.globalEndpointManager.hasThinClientReadLocations(),
-            this.thinClientConnectivityConfig.isExplicitThinClientOptIn(),
+            Configs.isThinClientEnabled(),
             this.globalEndpointManager.getProxyProbeDecision(),
             request);
     }
