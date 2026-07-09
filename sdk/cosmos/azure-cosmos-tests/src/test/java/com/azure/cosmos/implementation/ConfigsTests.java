@@ -12,7 +12,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.EnumSet;
 
-import static com.azure.cosmos.implementation.Configs.isThinClientEnabled;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConfigsTests {
@@ -230,25 +229,12 @@ public class ConfigsTests {
         }
     }
 
-    @Test(groups = { "emulator" })
-    public void thinClientEnabledTest() {
-        assertThat(isThinClientEnabled()).isFalse();
-        System.clearProperty("COSMOS.THINCLIENT_ENABLED");
-        System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
-        try {
-            assertThat(isThinClientEnabled()).isTrue();
-        } finally {
-            System.clearProperty("COSMOS.THINCLIENT_ENABLED");
-        }
-    }
-
     @Test(groups = { "unit" })
     public void thinClientEnabledExplicitlyDefaultTest() {
         System.clearProperty("COSMOS.THINCLIENT_ENABLED");
         try {
             // Not set -> null, so the probe may run and gates routing.
             assertThat(Configs.isThinClientEnabledExplicitly()).isNull();
-            assertThat(Configs.isThinClientEnabled()).isTrue();
         } finally {
             System.clearProperty("COSMOS.THINCLIENT_ENABLED");
         }
@@ -260,7 +246,6 @@ public class ConfigsTests {
         System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
         try {
             assertThat(Configs.isThinClientEnabledExplicitly()).isTrue();
-            assertThat(Configs.isThinClientEnabled()).isTrue();
         } finally {
             System.clearProperty("COSMOS.THINCLIENT_ENABLED");
         }
@@ -268,7 +253,6 @@ public class ConfigsTests {
         System.setProperty("COSMOS.THINCLIENT_ENABLED", "false");
         try {
             assertThat(Configs.isThinClientEnabledExplicitly()).isFalse();
-            assertThat(Configs.isThinClientEnabled()).isFalse();
         } finally {
             System.clearProperty("COSMOS.THINCLIENT_ENABLED");
         }

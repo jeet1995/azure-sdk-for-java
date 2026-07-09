@@ -17,8 +17,9 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
  * Base class for thin-client E2E tests that exercise the connectivity-probe (implicit) enablement path.
  *
  * <p>Unlike {@link ThinClientTestBase}, this base deliberately does <b>not</b> set
- * {@code COSMOS.THINCLIENT_ENABLED=true}. Leaving it unset (default-on) keeps
- * {@code Configs.isThinClientEnabled()} true while {@code Configs.hasUserExplicitlyEnabledThinClient()}
+ * {@code COSMOS.THINCLIENT_ENABLED=true}. Leaving it unset keeps
+ * {@code Configs.isThinClientEnabledExplicitly()} null (not hard-disabled) while
+ * {@code Configs.hasUserExplicitlyEnabledThinClient()}
  * stays false, so {@code ThinClientConnectivityConfig.canThinClientBeImplicitlyEnabled()} is true and the
  * endpoint-probe HttpClient is wired. Routing is then gated on the probe verdict (with fallback to
  * Gateway V1) rather than a hard opt-in. HTTP/2 must still be effectively enabled (supplied by the

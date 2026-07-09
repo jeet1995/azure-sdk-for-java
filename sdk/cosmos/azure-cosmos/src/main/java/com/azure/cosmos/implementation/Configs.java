@@ -579,18 +579,6 @@ public class Configs {
     }
 
     /**
-     * @return whether thin-client is <em>effectively enabled</em>: {@code true} unless the customer
-     * explicitly opted out via {@code COSMOS.THINCLIENT_ENABLED=false}. This is a derived
-     * convenience over the tri-state {@link #isThinClientEnabledExplicitly()} for the many observers
-     * (diagnostics, user-agent, tests) that only need the effective on/off bit; the unset
-     * ({@code null}) default is treated as enabled. The probe-bypass decision instead consumes the
-     * raw tri-state via {@link #hasUserExplicitlyEnabledThinClient()}.
-     */
-    public static boolean isThinClientEnabled() {
-        return !Boolean.FALSE.equals(isThinClientEnabledExplicitly());
-    }
-
-    /**
      * Reads the raw thin-client enablement configuration from the
      * {@code COSMOS.THINCLIENT_ENABLED} system property or {@code COSMOS_THINCLIENT_ENABLED}
      * environment variable as a <em>nullable</em> {@link Boolean}. The {@code null} vs
@@ -604,9 +592,10 @@ public class Configs {
      *   <li>{@code Boolean.FALSE} — explicitly disabled. Hard opt-out: thin-client is not used and
      *       no probe runs.</li>
      *   <li>{@code null}          — not set: neither opt-in nor opt-out
-     *       ({@link #DEFAULT_THINCLIENT_ENABLED}). Thin-client is still treated as enabled (the
-     *       default-on behavior is the absence of an explicit opt-out) and the connectivity probe
-     *       gates routing (provided HTTP/2 is opted into).</li>
+     *       ({@link #DEFAULT_THINCLIENT_ENABLED}). Thin-client is <em>eligible</em> but not routed
+     *       by default — the connectivity probe gates routing and traffic is sent to Gateway V2
+     *       only on an affirmative probe verdict (provided GATEWAY mode + HTTP/2 are in effect);
+     *       otherwise it stays on Gateway V1.</li>
      * </ul>
      */
     public static Boolean isThinClientEnabledExplicitly() {
@@ -626,7 +615,7 @@ public class Configs {
     /**
      * @return whether thin-client was <em>explicitly enabled</em> — {@code COSMOS.THINCLIENT_ENABLED}
      * (or {@code COSMOS_THINCLIENT_ENABLED}) explicitly set to {@code true}. This is distinct from
-     * the default-on case where the flag is left unset (see {@link #isThinClientEnabledExplicitly()}
+     * the probe-gated case where the flag is left unset (see {@link #isThinClientEnabledExplicitly()}
      * for the underlying nullable value); an explicit {@code true} is a hard opt-in that bypasses
      * the connectivity-probe gate.
      */

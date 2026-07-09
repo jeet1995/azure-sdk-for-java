@@ -1711,7 +1711,7 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             userAgentFeatureFlags.remove(UserAgentFeatureFlags.PerPartitionCircuitBreaker);
         }
 
-        if (!Configs.isThinClientEnabled()) {
+        if (Boolean.FALSE.equals(Configs.isThinClientEnabledExplicitly())) {
             userAgentFeatureFlags.remove(UserAgentFeatureFlags.ThinClient);
         }
 

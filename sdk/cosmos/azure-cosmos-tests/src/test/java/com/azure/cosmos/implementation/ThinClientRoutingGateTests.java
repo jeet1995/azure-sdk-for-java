@@ -42,12 +42,13 @@ public class ThinClientRoutingGateTests {
     }
 
     @Test(groups = "unit")
-    public void probeRenderedNoDecision_routesToThinClient() {
+    public void probeRenderedNoDecision_routesToGatewayV1() {
         RxDocumentServiceRequest request = mockDocumentRequest(OperationType.Read);
-        // A null probe decision means the probe is not wired or the kill switch is off, so it
-        // renders no verdict and is NOT a clause in the routing condition — routing proceeds on
-        // the remaining (enabled + read-locations + eligible) gates.
-        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, null, request)).isTrue();
+        // Implicit path (COSMOS.THINCLIENT_ENABLED unset): a null probe decision means the probe
+        // has not yet rendered a verdict (not wired / no cycle completed). Without an affirmative
+        // GREEN verdict the SDK must NOT route to Gateway V2 -- traffic stays on Gateway V1 until
+        // the probe greenlights.
+        assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, false, null, request)).isFalse();
     }
 
     @Test(groups = "unit")
