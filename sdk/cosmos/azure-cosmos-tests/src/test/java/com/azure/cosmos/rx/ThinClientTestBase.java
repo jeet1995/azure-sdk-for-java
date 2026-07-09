@@ -27,8 +27,18 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
     protected static final String PARTITION_KEY_FIELD = "mypk";
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static final String THINCLIENT_ENABLED_PROPERTY = "COSMOS.THINCLIENT_ENABLED";
+
     protected CosmosAsyncClient client;
     protected CosmosAsyncContainer container;
+
+    // Captures the ambient COSMOS.THINCLIENT_ENABLED value (typically supplied by the thin-client CI
+    // lane via -DCOSMOS.THINCLIENT_ENABLED=true) so teardown can restore it rather than unconditionally
+    // clearing it. Because the property is read lazily per client build and these classes share a JVM
+    // with property-dependent tests inherited from main (e.g. ThinClientQueryE2ETest, CosmosMultiHashTest),
+    // an unconditional clear here would disable thin client for later-running classes and route their
+    // requests to :443, breaking the thin-client endpoint assertions.
+    private String previousThinClientEnabled;
 
     protected ThinClientTestBase(CosmosClientBuilder clientBuilder) {
         super(clientBuilder);
@@ -53,12 +63,19 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
         }
     }
 
-    protected static void enableThinClientForTest() {
-        System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
+    protected void enableThinClientForTest() {
+        this.previousThinClientEnabled = System.getProperty(THINCLIENT_ENABLED_PROPERTY);
+        System.setProperty(THINCLIENT_ENABLED_PROPERTY, "true");
     }
 
-    protected static void clearThinClientForTest() {
-        System.clearProperty("COSMOS.THINCLIENT_ENABLED");
+    protected void clearThinClientForTest() {
+        // Restore the ambient value instead of clearing, so the -D-supplied flag survives for
+        // subsequent test classes running in the same JVM that rely on it.
+        if (this.previousThinClientEnabled == null) {
+            System.clearProperty(THINCLIENT_ENABLED_PROPERTY);
+        } else {
+            System.setProperty(THINCLIENT_ENABLED_PROPERTY, this.previousThinClientEnabled);
+        }
     }
 
     /**
