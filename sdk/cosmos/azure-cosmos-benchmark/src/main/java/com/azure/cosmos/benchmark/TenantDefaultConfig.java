@@ -137,18 +137,6 @@ class TenantDefaultConfig {
     @JsonProperty("http2MaxConcurrentStreams")
     protected Integer http2MaxConcurrentStreams;
 
-    /**
-     * Endpoint flavor for the HTTP/2 GATEWAY path: {@code ComputeGateway} (Gateway V1, thin-client
-     * hard-disabled) or {@code ThinClient} (Gateway V2, thin-client hard-enabled). Only meaningful
-     * in GATEWAY mode. Drives the {@code COSMOS.THINCLIENT_ENABLED} system property at client build.
-     */
-    @JsonProperty("endpointFlavor")
-    protected String endpointFlavor;
-
-    /** Optional thin-client proxy endpoint override ({@code COSMOS.THINCLIENT_ENDPOINT}). */
-    @JsonProperty("thinClientEndpoint")
-    protected String thinClientEndpoint;
-
     @JsonProperty("preferredRegionsList")
     protected String preferredRegionsList;
 
@@ -241,14 +229,6 @@ class TenantDefaultConfig {
     public boolean isHttp2Enabled() { return http2Enabled != null && http2Enabled; }
     public Integer getHttp2MaxConcurrentStreams() { return http2MaxConcurrentStreams; }
 
-    /**
-     * Endpoint flavor for the HTTP/2 GATEWAY path. Defaults to {@code ComputeGateway} (Gateway V1).
-     */
-    public String getEndpointFlavor() { return endpointFlavor != null ? endpointFlavor : "ComputeGateway"; }
-    public String getThinClientEndpoint() { return thinClientEndpoint; }
-    /** True when the configured endpoint flavor selects the ThinClient (Gateway V2) proxy path. */
-    public boolean isThinClientFlavor() { return "ThinClient".equalsIgnoreCase(getEndpointFlavor()); }
-
     public List<String> getPreferredRegionsList() {
         if (preferredRegionsList == null || preferredRegionsList.isEmpty()) return null;
         List<String> regions = new ArrayList<>();
@@ -307,8 +287,6 @@ class TenantDefaultConfig {
         if (connectionSharingAcrossClientsEnabled != null && tenant.connectionSharingAcrossClientsEnabled == null) tenant.connectionSharingAcrossClientsEnabled = connectionSharingAcrossClientsEnabled;
         if (http2Enabled != null && tenant.http2Enabled == null) tenant.http2Enabled = http2Enabled;
         if (http2MaxConcurrentStreams != null && tenant.http2MaxConcurrentStreams == null) tenant.http2MaxConcurrentStreams = http2MaxConcurrentStreams;
-        if (endpointFlavor != null && tenant.endpointFlavor == null) tenant.endpointFlavor = endpointFlavor;
-        if (thinClientEndpoint != null && tenant.thinClientEndpoint == null) tenant.thinClientEndpoint = thinClientEndpoint;
         if (preferredRegionsList != null && tenant.preferredRegionsList == null) tenant.preferredRegionsList = preferredRegionsList;
         if (excludedRegionsList != null && tenant.excludedRegionsList == null) tenant.excludedRegionsList = excludedRegionsList;
         if (manageDatabase != null && tenant.manageDatabase == null) tenant.manageDatabase = manageDatabase;

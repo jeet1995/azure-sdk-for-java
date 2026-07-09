@@ -45,16 +45,6 @@ Licensed under the MIT License.
     <!-- TODO: Remove this once all Javadoc warnings and errors are resolved -->
     <doclintMissingInclusion>-</doclintMissingInclusion>
     <spotless.skip>true</spotless.skip>
-
-    <!-- SDK-under-test version. Override at build time to benchmark a specific azure-cosmos
-         release, e.g. -Dazure-cosmos.version=4.81.0 (GA on Maven Central) or a locally-built
-         probe branch installed to ~/.m2. -->
-    <azure-cosmos.version>4.82.0-beta.1</azure-cosmos.version> <!-- {x-version-update;com.azure:azure-cosmos;current} -->
-    <!-- azure-cosmos-encryption moves in lockstep with azure-cosmos. GA pairing:
-         2.30.0<->4.81.0, 2.29.0<->4.80.0, 2.28.0<->4.79.0; 2.31.0-beta.1<->4.82.0-beta.1 (probe).
-         Override alongside azure-cosmos.version, e.g. -Dazure-cosmos.version=4.81.0
-         -Dazure-cosmos-encryption.version=2.30.0. -->
-    <azure-cosmos-encryption.version>2.31.0-beta.1</azure-cosmos-encryption.version> <!-- {x-version-update;com.azure:azure-cosmos-encryption;current} -->
   </properties>
 
   <dependencies>
@@ -62,13 +52,13 @@ Licensed under the MIT License.
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-cosmos</artifactId>
-      <version>${azure-cosmos.version}</version>
+      <version>4.82.0-beta.1</version> <!-- {x-version-update;com.azure:azure-cosmos;current} -->
     </dependency>
 
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-cosmos-encryption</artifactId>
-      <version>${azure-cosmos-encryption.version}</version>
+      <version>2.31.0-beta.1</version> <!-- {x-version-update;com.azure:azure-cosmos-encryption;current} -->
     </dependency>
 
     <dependency>

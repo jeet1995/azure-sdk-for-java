@@ -10,7 +10,6 @@ import com.azure.cosmos.benchmark.encryption.AsyncEncryptionReadBenchmark;
 import com.azure.cosmos.benchmark.encryption.AsyncEncryptionWriteBenchmark;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
-import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
@@ -44,14 +43,8 @@ public class BenchmarkOrchestrator {
     private static final Logger logger = LoggerFactory.getLogger(BenchmarkOrchestrator.class);
 
     public void run(BenchmarkConfig config) throws Exception {
-        // RunId: allow the workload config (appInsights.runId) to pin a stable identifier so that
-        // matrix runs across SDK versions / endpoint flavors can be distinguished on a shared
-        // dashboard. Fall back to a generated bench-<Instant> id when not provided.
-        String configuredRunId = config.getAppInsightsReporterConfig() != null
-            ? config.getAppInsightsReporterConfig().getRunId() : null;
-        String testRunId = (configuredRunId != null && !configuredRunId.isEmpty())
-            ? configuredRunId
-            : String.format("bench-%s", Instant.now().toString().replace(':', '-'));
+        String testRunId = String.format("bench-%s",
+            Instant.now().toString().replace(':', '-'));
 
         logger.info("=== Benchmark Orchestrator ===");
         logger.info("  Cycles:    {}", config.getCycles());
@@ -80,12 +73,6 @@ public class BenchmarkOrchestrator {
         logger.info("Console reporter started (LoggingMeterRegistry, interval={}s)",
             config.getPrintingInterval());
 
-        // Common tags applied to every metric (console + destination) so runs can be sliced by
-        // RunId / SdkVersion / ConnectionMode / Phase on a shared dashboard.
-        List<Tag> benchmarkCommonTags = buildBenchmarkCommonTags(config, testRunId);
-        loggingRegistry.config().commonTags(benchmarkCommonTags);
-        logger.info("Benchmark common tags: {}", benchmarkCommonTags);
-
         JvmGcMetrics gcMetrics = null;
         ThreadPrefixGaugeSet threadPrefixGaugeSet = null;
 
@@ -110,7 +97,7 @@ public class BenchmarkOrchestrator {
         // registry.close() when a CosmosClient is destroyed; by giving each cycle
         // its own registry we avoid cross-cycle contamination.
         try {
-            runLifecycleLoop(config, loggingRegistry, benchmarkCommonTags);
+            runLifecycleLoop(config, loggingRegistry);
         } finally {
             loggingRegistry.close();
             if (gcMetrics != null) {
@@ -126,8 +113,7 @@ public class BenchmarkOrchestrator {
     // ======== Lifecycle loop (create -> run -> close -> settle x N) ========
 
     private void runLifecycleLoop(BenchmarkConfig config,
-                                  LoggingMeterRegistry loggingRegistry,
-                                  List<Tag> benchmarkCommonTags) throws Exception {
+                                  LoggingMeterRegistry loggingRegistry) throws Exception {
         int totalCycles = config.getCycles();
         List<TenantWorkloadConfig> tenants = config.getTenantWorkloads();
 
@@ -182,7 +168,7 @@ public class BenchmarkOrchestrator {
 
                             case APPLICATION_INSIGHTS:
                                 appInsightsRegistry = buildAppInsightsMeterRegistry(
-                                    config.getAppInsightsReporterConfig(), benchmarkCommonTags);
+                                    config.getAppInsightsReporterConfig());
                                 if (appInsightsRegistry != null) {
                                     cycleRegistry.add(appInsightsRegistry);
                                 } else {
@@ -456,8 +442,7 @@ public class BenchmarkOrchestrator {
 
     // ======== Application Insights registry ========
 
-    private MeterRegistry buildAppInsightsMeterRegistry(AppInsightsReporterConfig config,
-                                                        List<Tag> extraCommonTags) {
+    private MeterRegistry buildAppInsightsMeterRegistry(AppInsightsReporterConfig config) {
         String connStr = config.getConnectionString();
 
         if (connStr == null) {
@@ -490,9 +475,6 @@ public class BenchmarkOrchestrator {
         MeterRegistry registry = new io.micrometer.azuremonitor.AzureMonitorMeterRegistry(
             amConfig, io.micrometer.core.instrument.Clock.SYSTEM);
         java.util.List<io.micrometer.core.instrument.Tag> globalTags = new java.util.ArrayList<>();
-        if (extraCommonTags != null) {
-            globalTags.addAll(extraCommonTags);
-        }
         if (testCategoryTag != null && !testCategoryTag.isEmpty()) {
             globalTags.add(io.micrometer.core.instrument.Tag.of("TestCategory", testCategoryTag));
         }
@@ -504,51 +486,6 @@ public class BenchmarkOrchestrator {
 
         registry.config().commonTags(globalTags);
         return registry;
-    }
-
-    /**
-     * Builds the run-level common tags applied to every emitted metric. These let a shared Grafana
-     * dashboard slice results by run and configuration:
-     * <ul>
-     *   <li>{@code RunId} — pinned via {@code appInsights.runId} or a generated {@code bench-<Instant>} id.</li>
-     *   <li>{@code SdkVersion} — auto-detected from the azure-cosmos SDK actually on the classpath.</li>
-     *   <li>{@code ConnectionMode} — derived from the first tenant's connection mode (GATEWAY/DIRECT).</li>
-     *   <li>{@code EndpointFlavor} — {@code ComputeGateway} (Gateway V1) or {@code ThinClient} (Gateway V2).</li>
-     *   <li>{@code Phase} — optional free-form label (e.g. {@code coldstart}) from {@code appInsights.phase}.</li>
-     * </ul>
-     */
-    private List<Tag> buildBenchmarkCommonTags(BenchmarkConfig config, String runId) {
-        List<Tag> tags = new ArrayList<>();
-        if (runId != null && !runId.isEmpty()) {
-            tags.add(Tag.of("RunId", runId));
-        }
-
-        String sdkVersion = com.azure.cosmos.implementation.HttpConstants.Versions.getSdkVersion();
-        if (sdkVersion != null && !sdkVersion.isEmpty()) {
-            tags.add(Tag.of("SdkVersion", sdkVersion));
-        }
-
-        List<TenantWorkloadConfig> tenants = config.getTenantWorkloads();
-        if (tenants != null && !tenants.isEmpty() && tenants.get(0).getConnectionMode() != null) {
-            tags.add(Tag.of("ConnectionMode", tenants.get(0).getConnectionMode().toString()));
-        }
-
-        // EndpointFlavor distinguishes ComputeGateway (Gateway V1) from ThinClient (Gateway V2) on
-        // the HTTP/2 GATEWAY path — the primary axis for the cold-start comparison dashboard.
-        if (tenants != null && !tenants.isEmpty()) {
-            String endpointFlavor = tenants.get(0).getEndpointFlavor();
-            if (endpointFlavor != null && !endpointFlavor.isEmpty()) {
-                tags.add(Tag.of("EndpointFlavor", endpointFlavor));
-            }
-        }
-
-        String phase = config.getAppInsightsReporterConfig() != null
-            ? config.getAppInsightsReporterConfig().getPhase() : null;
-        if (phase != null && !phase.isEmpty()) {
-            tags.add(Tag.of("Phase", phase));
-        }
-
-        return tags;
     }
 
     // ======== Global system properties ========
