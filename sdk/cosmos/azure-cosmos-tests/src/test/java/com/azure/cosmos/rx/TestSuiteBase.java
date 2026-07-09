@@ -1988,22 +1988,6 @@ public abstract class TestSuiteBase extends CosmosAsyncClientTest {
         };
     }
 
-    /**
-     * Data provider for thin client tests. Returns a gateway + HTTP/2 builder.
-     * Tests using this provider should enable thin client mode in their @BeforeClass
-     * by calling {@code System.setProperty("COSMOS.THINCLIENT_ENABLED", "true")} and
-     * clean up in @AfterClass with {@code System.clearProperty("COSMOS.THINCLIENT_ENABLED")}.
-     *
-     * <p>This provider can be adopted by existing test classes (e.g., query, stored procedure tests)
-     * to gradually add thin client coverage using the same test logic.</p>
-     */
-    @DataProvider
-    public static Object[][] clientBuildersWithThinClient() {
-        return new Object[][]{
-            {createGatewayRxDocumentClient(TestConfigurations.HOST, null, true, null, true, true, true)},
-        };
-    }
-
     @DataProvider
     public static Object[][] clientBuildersWithSessionConsistency() {
         return new Object[][]{
@@ -2727,22 +2711,36 @@ public abstract class TestSuiteBase extends CosmosAsyncClientTest {
         assertThat(requests).isNotNull();
         assertThat(requests.size()).isPositive();
 
-        // Validate every request rather than early-returning on the first thin-client match: a mixed
-        // scenario (some data requests via the thin-client endpoint, some via the classic gateway) must
-        // fail. Every non-QueryPlan (data) request must route through the thin-client proxy endpoint;
-        // QueryPlan calls are resolved via the classic gateway in thin-client mode, so they are the only
-        // requests allowed to target a non-thin-client endpoint.
+        // When thin client is opted in with HTTP/2, QueryPlan calls are routed to Gateway V2 as well
+        // (Configs.isThinClientQueryPlanEnabled() defaults to true), so every request -- including
+        // QueryPlan -- must target the thin-client proxy endpoint.
+        //
+        // The kill-switch (COSMOS.THINCLIENT_QUERY_PLAN_ENABLED / COSMOS_THINCLIENT_QUERY_PLAN_ENABLED)
+        // flips only the QueryPlan routing: when disabled, QueryPlan requests are forced back onto
+        // Gateway V1 while all data-plane requests continue through the thin-client proxy. In that mixed
+        // state QueryPlan requests are exempt from the :10250 requirement (and are asserted to NOT use it),
+        // whereas every non-QueryPlan request must still target the thin-client endpoint.
+        //
+        // Validate every request rather than early-returning on the first thin-client match: an
+        // unexpected mixed scenario (some data requests via the classic gateway) must still fail.
+        boolean queryPlanRoutedToThinClient = Configs.isThinClientQueryPlanEnabled();
         for (CosmosDiagnosticsRequestInfo requestInfo : requests) {
-            // requestType has the form "<ResourceType>:<OperationType>" (OperationType.QueryPlan
-            // stringifies to "QueryPlan").
             String requestType = requestInfo.getRequestType();
-            if (requestType != null && requestType.endsWith(":QueryPlan")) {
+            String endpoint = requestInfo.getEndpoint();
+            boolean isQueryPlan = requestType != null && requestType.endsWith(":QueryPlan");
+            boolean usesThinClient = endpoint != null && endpoint.contains(THIN_CLIENT_ENDPOINT_INDICATOR);
+
+            if (isQueryPlan && !queryPlanRoutedToThinClient) {
+                assertThat(usesThinClient)
+                    .as("QueryPlan request must be forced onto Gateway V1 (NOT the thin-client proxy "
+                        + THIN_CLIENT_ENDPOINT_INDICATOR + ") when the thin-client query-plan kill-switch "
+                        + "is disabled, but endpoint was: " + endpoint)
+                    .isFalse();
                 continue;
             }
 
-            String endpoint = requestInfo.getEndpoint();
-            assertThat(endpoint != null && endpoint.contains(THIN_CLIENT_ENDPOINT_INDICATOR))
-                .as("Non-QueryPlan request must target the thin client proxy endpoint ("
+            assertThat(usesThinClient)
+                .as("Request must target the thin client proxy endpoint ("
                     + THIN_CLIENT_ENDPOINT_INDICATOR + "), but was: " + endpoint
                     + " (requestType: " + requestType + ")")
                 .isTrue();

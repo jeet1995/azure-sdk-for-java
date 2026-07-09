@@ -433,6 +433,20 @@ public class Configs {
     private static final String HTTP2_MAX_CONCURRENT_STREAMS = "COSMOS.HTTP2_MAX_CONCURRENT_STREAMS";
     private static final String HTTP2_MAX_CONCURRENT_STREAMS_VARIABLE = "COSMOS_HTTP2_MAX_CONCURRENT_STREAMS";
 
+    // Opt-in eager HTTP/2 connection pre-warm for the gateway/thin-client path. When enabled, the SDK
+    // dials the resolved thin-client regional endpoints at client-build time (end of init()) so the
+    // first data-plane request does not pay the cold TLS+HTTP/2 handshake burst. OFF by default for a
+    // safe rollout; the pre-warm is best-effort and never fails client construction.
+    private static final boolean DEFAULT_HTTP2_EAGER_CONNECTION_WARMUP_ENABLED = false;
+    private static final String HTTP2_EAGER_CONNECTION_WARMUP_ENABLED = "COSMOS.HTTP2_EAGER_CONNECTION_WARMUP_ENABLED";
+    private static final String HTTP2_EAGER_CONNECTION_WARMUP_ENABLED_VARIABLE = "COSMOS_HTTP2_EAGER_CONNECTION_WARMUP_ENABLED";
+
+    // Bounded wall-clock budget (seconds) the eager pre-warm may block client init while the HTTP/2
+    // pool establishes connections. Keeps a slow/unreachable endpoint from stalling construction.
+    private static final int DEFAULT_HTTP2_EAGER_CONNECTION_WARMUP_TIMEOUT_IN_SECONDS = 10;
+    private static final String HTTP2_EAGER_CONNECTION_WARMUP_TIMEOUT_IN_SECONDS = "COSMOS.HTTP2_EAGER_CONNECTION_WARMUP_TIMEOUT_IN_SECONDS";
+    private static final String HTTP2_EAGER_CONNECTION_WARMUP_TIMEOUT_IN_SECONDS_VARIABLE = "COSMOS_HTTP2_EAGER_CONNECTION_WARMUP_TIMEOUT_IN_SECONDS";
+
     // Config to indicate the SETTINGS_MAX_FRAME_SIZE advertised by the HTTP/2 client to the remote peer.
     // The value is expressed in kilobytes (KB) and is clamped to [64 KB, 16383 KB] — the lower bound matches
     // the SDK's historical default so users can only grow the frame size, and the upper bound is the
@@ -579,18 +593,6 @@ public class Configs {
     }
 
     /**
-     * @return whether thin-client is <em>effectively enabled</em>: {@code true} unless the customer
-     * explicitly opted out via {@code COSMOS.THINCLIENT_ENABLED=false}. This is a derived
-     * convenience over the tri-state {@link #isThinClientEnabledExplicitly()} for the many observers
-     * (diagnostics, user-agent, tests) that only need the effective on/off bit; the unset
-     * ({@code null}) default is treated as enabled. The probe-bypass decision instead consumes the
-     * raw tri-state via {@link #hasUserExplicitlyEnabledThinClient()}.
-     */
-    public static boolean isThinClientEnabled() {
-        return !Boolean.FALSE.equals(isThinClientEnabledExplicitly());
-    }
-
-    /**
      * Reads the raw thin-client enablement configuration from the
      * {@code COSMOS.THINCLIENT_ENABLED} system property or {@code COSMOS_THINCLIENT_ENABLED}
      * environment variable as a <em>nullable</em> {@link Boolean}. The {@code null} vs
@@ -604,12 +606,13 @@ public class Configs {
      *   <li>{@code Boolean.FALSE} — explicitly disabled. Hard opt-out: thin-client is not used and
      *       no probe runs.</li>
      *   <li>{@code null}          — not set: neither opt-in nor opt-out
-     *       ({@link #DEFAULT_THINCLIENT_ENABLED}). Thin-client is still treated as enabled (the
-     *       default-on behavior is the absence of an explicit opt-out) and the connectivity probe
-     *       gates routing (provided HTTP/2 is opted into).</li>
+     *       ({@link #DEFAULT_THINCLIENT_ENABLED}). Thin-client is <em>eligible</em> but not routed
+     *       by default — the connectivity probe gates routing and traffic is sent to Gateway V2
+     *       only on an affirmative probe verdict (provided GATEWAY mode + HTTP/2 are in effect);
+     *       otherwise it stays on Gateway V1.</li>
      * </ul>
      */
-    public static Boolean isThinClientEnabledExplicitly() {
+    public static Boolean isThinClientEnabled() {
         String valueFromSystemProperty = System.getProperty(THINCLIENT_ENABLED);
         if (valueFromSystemProperty != null && !valueFromSystemProperty.isEmpty()) {
             return Boolean.parseBoolean(valueFromSystemProperty);
@@ -621,17 +624,6 @@ public class Configs {
         }
 
         return DEFAULT_THINCLIENT_ENABLED;
-    }
-
-    /**
-     * @return whether thin-client was <em>explicitly enabled</em> — {@code COSMOS.THINCLIENT_ENABLED}
-     * (or {@code COSMOS_THINCLIENT_ENABLED}) explicitly set to {@code true}. This is distinct from
-     * the default-on case where the flag is left unset (see {@link #isThinClientEnabledExplicitly()}
-     * for the underlying nullable value); an explicit {@code true} is a hard opt-in that bypasses
-     * the connectivity-probe gate.
-     */
-    public static boolean hasUserExplicitlyEnabledThinClient() {
-        return Boolean.TRUE.equals(isThinClientEnabledExplicitly());
     }
 
     public static boolean isThinClientQueryPlanEnabled() {
@@ -1556,6 +1548,26 @@ public class Configs {
                 String.valueOf(DEFAULT_HTTP2_MAX_CONCURRENT_STREAMS)));
 
         return Integer.parseInt(http2MaxConcurrentStreams);
+    }
+
+    public static boolean isHttp2EagerConnectionWarmupEnabled() {
+        String value = System.getProperty(
+            HTTP2_EAGER_CONNECTION_WARMUP_ENABLED,
+            firstNonNull(
+                emptyToNull(System.getenv().get(HTTP2_EAGER_CONNECTION_WARMUP_ENABLED_VARIABLE)),
+                String.valueOf(DEFAULT_HTTP2_EAGER_CONNECTION_WARMUP_ENABLED)));
+
+        return Boolean.parseBoolean(value);
+    }
+
+    public static int getHttp2EagerConnectionWarmupTimeoutInSeconds() {
+        String value = System.getProperty(
+            HTTP2_EAGER_CONNECTION_WARMUP_TIMEOUT_IN_SECONDS,
+            firstNonNull(
+                emptyToNull(System.getenv().get(HTTP2_EAGER_CONNECTION_WARMUP_TIMEOUT_IN_SECONDS_VARIABLE)),
+                String.valueOf(DEFAULT_HTTP2_EAGER_CONNECTION_WARMUP_TIMEOUT_IN_SECONDS)));
+
+        return Integer.parseInt(value);
     }
 
     /**

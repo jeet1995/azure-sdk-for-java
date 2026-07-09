@@ -19,7 +19,8 @@ import com.azure.cosmos.ConnectionMode;
  * <ul>
  *   <li>explicit {@code true}  — thin-client enabled, probe skipped (hard opt-in).</li>
  *   <li>explicit {@code false} — thin-client disabled, probe skipped (hard opt-out).</li>
- *   <li>not set                — thin-client enabled by default, probe gates routing.</li>
+ *   <li>not set                — connectivity probe gates routing; thin-client is used only when
+ *       the probe affirmatively greenlights the proxy, otherwise traffic stays on Gateway V1.</li>
  * </ul>
  * Direct connection mode is excluded because thin-client routing requires GATEWAY mode.
  */
@@ -41,7 +42,7 @@ public final class ThinClientConnectivityConfig {
      * Evaluated lazily on each call.
      */
     public boolean canThinClientBeUsed() {
-        return Configs.isThinClientEnabled()
+        return !Boolean.FALSE.equals(Configs.isThinClientEnabled())
             && this.connectionPolicy.getConnectionMode() == ConnectionMode.GATEWAY
             && this.connectionPolicy.getHttp2ConnectionConfig() != null
             && ImplementationBridgeHelpers.Http2ConnectionConfigHelper
@@ -51,23 +52,14 @@ public final class ThinClientConnectivityConfig {
 
     /**
      * @return whether thin-client can be <em>implicitly</em> enabled for this client — thin-client
-     * is enabled and the customer did <em>not</em> explicitly enable it via
-     * {@code COSMOS.THINCLIENT_ENABLED}. This is exactly when the connectivity-probe client should
-     * be wired: thin-client is on by default and routing is gated on probe health, rather than the
-     * customer having made a hard opt-in decision. Evaluated lazily on each call.
+     * is usable and the customer did <em>not</em> set {@code COSMOS.THINCLIENT_ENABLED} at all
+     * (the tri-state value is {@code null}). This is exactly when the connectivity-probe client
+     * should be wired: thin-client is eligible but routing is gated on probe health, rather than
+     * the customer having made a hard opt-in/opt-out decision. Evaluated lazily on each call.
      */
     public boolean canThinClientBeImplicitlyEnabled() {
         return canThinClientBeUsed()
-            && !Configs.hasUserExplicitlyEnabledThinClient();
-    }
-
-    /**
-     * @return whether the customer <em>explicitly</em> opted into thin-client via
-     * {@code COSMOS.THINCLIENT_ENABLED=true}. An explicit opt-in is a hard contract that bypasses
-     * the connectivity-probe routing gate entirely. Evaluated lazily on each call.
-     */
-    public boolean isExplicitThinClientOptIn() {
-        return Configs.hasUserExplicitlyEnabledThinClient();
+            && Configs.isThinClientEnabled() == null;
     }
 
     /**
@@ -78,21 +70,24 @@ public final class ThinClientConnectivityConfig {
      *   <li>{@code canThinClientBeUsed} — see {@link #canThinClientBeUsed()};</li>
      *   <li>{@code hasThinClientReadLocations} — whether the service is still returning thin-client
      *       regional endpoints (a previously-eligible account can stop advertising them);</li>
-     *   <li>{@code explicitThinClientOptIn} — see {@link #isExplicitThinClientOptIn()}; an explicit
-     *       opt-in ({@code COSMOS.THINCLIENT_ENABLED=true}) is a hard contract that bypasses the
-     *       connectivity-probe gate entirely;</li>
+     *   <li>{@code isThinClientEnabled} — the tri-state {@code COSMOS.THINCLIENT_ENABLED} value from
+     *       {@link Configs#isThinClientEnabled()}: a non-{@code null} value is a hard contract that
+     *       bypasses the connectivity-probe gate entirely ({@code TRUE} routes to Gateway V2,
+     *       {@code FALSE} pins to Gateway V1 — though {@code FALSE} is already excluded upstream by
+     *       {@code canThinClientBeUsed}). {@code null} means unset: defer to {@code proxyProbeDecision};</li>
      *   <li>{@code proxyProbeDecision} — the tri-state connectivity-probe verdict from
-     *       {@link GlobalEndpointManager#getProxyProbeDecision()}: {@code null} = no decision
-     *       rendered (probe not wired or kill switch off), and therefore <em>not a participant</em>
-     *       in the routing condition; {@code TRUE} = proxy routable; {@code FALSE} = gate to
-     *       Gateway V1.</li>
+     *       {@link GlobalEndpointManager#getProxyProbeDecision()}: {@code TRUE} = proxy proven
+     *       routable, so thin-client is used; {@code FALSE} = gate to Gateway V1; {@code null} =
+     *       no verdict yet (probe not wired / not yet completed a cycle), also treated as
+     *       "not routable" so traffic stays on Gateway V1 until the probe greenlights. Only
+     *       consulted when {@code isThinClientEnabled} is {@code null}.</li>
      * </ul>
      * The remaining checks are request-level (operation type + resource type).
      */
     public static boolean shouldUseThinClientStoreModel(
         boolean canThinClientBeUsed,
         boolean hasThinClientReadLocations,
-        boolean explicitThinClientOptIn,
+        Boolean isThinClientEnabled,
         Boolean proxyProbeDecision,
         RxDocumentServiceRequest request) {
 
@@ -102,19 +97,18 @@ public final class ThinClientConnectivityConfig {
             return false;
         }
 
-        // An explicit opt-in (COSMOS.THINCLIENT_ENABLED=true) is a hard contract: the
-        // connectivity-probe gate is bypassed entirely.
-        if (explicitThinClientOptIn) {
-            return true;
+        // An explicit COSMOS.THINCLIENT_ENABLED setting is a hard contract that bypasses the
+        // connectivity-probe gate entirely: TRUE routes straight to Gateway V2, FALSE pins to
+        // Gateway V1 (FALSE is already filtered out upstream by canThinClientBeUsed).
+        if (isThinClientEnabled != null) {
+            return isThinClientEnabled;
         }
 
-        // Tri-state probe gate. A null decision means the probe rendered no verdict (no probe wired,
-        // or kill switch off) and is therefore NOT a clause in the routing condition, so routing
-        // proceeds on the gates above. Only an explicit FALSE pins traffic to Gateway V1.
-        if (proxyProbeDecision == null) {
-            return true;
-        }
-        return proxyProbeDecision;
+        // Unset (null): defer to the connectivity-probe verdict. Thin-client is used only when the
+        // probe has affirmatively greenlit the proxy (verdict == TRUE). A null verdict (probe not
+        // wired / not yet completed a cycle) or an explicit FALSE both pin traffic to Gateway V1 --
+        // we never route to Gateway V2 without a positive probe result.
+        return Boolean.TRUE.equals(proxyProbeDecision);
     }
 
     /**
