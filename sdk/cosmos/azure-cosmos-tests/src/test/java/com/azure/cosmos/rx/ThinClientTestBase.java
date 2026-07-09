@@ -36,8 +36,13 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
 
     @BeforeClass(groups = {"thinclient"}, timeOut = SETUP_TIMEOUT)
     public void before_ThinClientTest() {
+        // Thin client is enabled JVM-wide by the "thinclient" CI lane via
+        // -DCOSMOS.THINCLIENT_ENABLED=true (+ -DCOSMOS.HTTP2_ENABLED=true). Every test/lifecycle
+        // method in these classes is scoped to groups={"thinclient"}, so they only ever run in that
+        // lane. We therefore rely on the ambient flag rather than mutating the JVM-global property
+        // per class (which is read lazily per client build and would otherwise leak across the
+        // classes that share this JVM).
         assertThat(this.client).isNull();
-        enableThinClientForTest();
         this.client = getClientBuilder().buildAsyncClient();
         this.container = getSharedMultiPartitionCosmosContainer(this.client);
 
@@ -47,18 +52,9 @@ public abstract class ThinClientTestBase extends TestSuiteBase {
 
     @AfterClass(groups = {"thinclient"}, timeOut = SHUTDOWN_TIMEOUT, alwaysRun = true)
     public void afterClass() {
-        clearThinClientForTest();
         if (this.client != null) {
             this.client.close();
         }
-    }
-
-    protected static void enableThinClientForTest() {
-        System.setProperty("COSMOS.THINCLIENT_ENABLED", "true");
-    }
-
-    protected static void clearThinClientForTest() {
-        System.clearProperty("COSMOS.THINCLIENT_ENABLED");
     }
 
     /**
