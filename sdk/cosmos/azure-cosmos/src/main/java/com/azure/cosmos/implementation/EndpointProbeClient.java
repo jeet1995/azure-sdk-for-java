@@ -44,9 +44,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * topology is non-empty and every region in it is proven. A vanished region (absent from the supplied
  * set) stops gating. Conservative at startup: {@code false} (route to Gateway V1) until a non-empty
  * topology is fully proven. Whether a probe client exists at all is a wiring decision
- * (see {@link ThinClientConnectivityConfig#canThinClientBeImplicitlyEnabled()}) — only when
- * thin-client is default-enabled (neither opted in nor out) with GATEWAY mode + HTTP/2; an explicit
- * opt-in/opt-out skips the probe.
+ * (see {@link ThinClientConnectivityConfig#canThinClientBeUsed()}): the probe is wired whenever
+ * thin-client is usable (GATEWAY mode + HTTP/2 and {@code COSMOS.THINCLIENT_ENABLED} not an explicit
+ * {@code false}). An explicit opt-in still wires the probe, but the routing site bypasses it; only a
+ * hard opt-out ({@code false}) skips the probe entirely.
  *
  * <p>Decisions are made only at refresh boundaries (no per-request circuit-breaker). The routing
  * site {@link ThinClientConnectivityConfig#shouldUseThinClientStoreModel(boolean, boolean, Boolean, Boolean, RxDocumentServiceRequest)}

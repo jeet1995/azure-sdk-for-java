@@ -43,16 +43,6 @@ public final class ThinClientConnectivityConfig {
     }
 
     /**
-     * @return whether thin-client can be <em>implicitly</em> enabled: usable AND
-     * {@code COSMOS.THINCLIENT_ENABLED} unset ({@code null}). This is exactly when the
-     * connectivity-probe client should be wired (eligible but probe-gated, no hard opt-in/out).
-     */
-    public boolean canThinClientBeImplicitlyEnabled() {
-        return canThinClientBeUsed()
-            && Configs.isThinClientEnabled() == null;
-    }
-
-    /**
      * Per-request routing gate for the thin-client (Gateway V2) store model. Pure function of its
      * inputs (unit-testable without a live client). Client-level signals supplied by the caller:
      * <ul>

@@ -363,6 +363,13 @@ public class EndpointProbeClientTests {
         assertThat(cycleOne.get(5, TimeUnit.SECONDS)).isTrue();
         assertThat(probeClient.isThinClientRoutable()).isTrue();
         assertThat(sendCount.get()).isEqualTo(1);
+
+        // Cycle #3 (after the CAS was released): a fresh topology with a new region (WEST) must win
+        // the single-flight CAS and probe the delta again — proving the guard freed the flag when
+        // cycle #1 completed rather than pinning the client to a single lifetime cycle.
+        assertThat(probeClient.runProbeCycle(Arrays.asList(REGION_EAST, REGION_WEST)).block()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(2); // WEST (the delta) was probed
+        assertThat(probeClient.isThinClientRoutable()).isTrue();
     }
 
     @Test(groups = { "unit" })

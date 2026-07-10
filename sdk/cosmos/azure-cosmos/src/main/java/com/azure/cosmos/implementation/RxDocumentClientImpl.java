@@ -924,13 +924,19 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             // Wire thin-client HttpClient into GEM so the connectivity-probe orchestrator
             // can fan out probes after every topology refresh. Must happen BEFORE
             // globalEndpointManager.init() so the first refresh probes immediately.
-            // The probe client is wired whenever thin-client is enabled by default — i.e.
-            // COSMOS.THINCLIENT_ENABLED is unset (an explicit true/false skips the probe entirely);
-            // see ThinClientConnectivityConfig.canThinClientBeImplicitlyEnabled(). When the probe is
-            // not wired, GEM's probeClient stays null and `getProxyProbeDecision()` renders no
-            // decision (null), so thin-client (if enabled) is used without gating. Wiring itself is
-            // guarded inside GEM so any failure cannot trip client init.
-            if (this.thinClientConnectivityConfig.canThinClientBeImplicitlyEnabled()) {
+            // The probe client is wired whenever thin-client is usable — GATEWAY mode + HTTP/2 and
+            // COSMOS.THINCLIENT_ENABLED not an explicit false (a hard opt-out); see
+            // ThinClientConnectivityConfig.canThinClientBeUsed(). We deliberately wire even on an
+            // explicit true: the wiring decision is made once here at init, but the tri-state flag is
+            // re-read lazily per request, so a runtime transition of COSMOS.THINCLIENT_ENABLED from
+            // true back to unset (an operator dropping the opt-in to rely on probe-based rollout)
+            // must still have a live probe to consult instead of silently pinning to Gateway V1.
+            // Wiring the probe for an explicit opt-in is otherwise free: shouldUseThinClientStoreModel
+            // returns the explicit verdict directly and never consults the probe. When the probe is
+            // NOT wired (hard opt-out), GEM's probeClient stays null and `getProxyProbeDecision()`
+            // renders no decision (null). Wiring itself is guarded inside GEM so any failure cannot
+            // trip client init.
+            if (this.thinClientConnectivityConfig.canThinClientBeUsed()) {
                 try {
                     this.globalEndpointManager.setThinClientHttpClient(this.reactorHttpClient);
                 } catch (Throwable t) {
