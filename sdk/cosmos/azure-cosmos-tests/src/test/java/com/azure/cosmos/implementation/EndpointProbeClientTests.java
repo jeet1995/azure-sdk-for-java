@@ -29,20 +29,25 @@ import static org.mockito.ArgumentMatchers.any;
  * <p>The legacy global circuit-breaker (failure/recovery hysteresis thresholds) has been
  * replaced by a model where:
  * <ul>
- *   <li>each region is probed only until it records a success, then cached forever (delta
- *       probing); a successful region is never re-probed;</li>
+ *   <li>each region is probed only until it records a success, then cached in an <em>add-only</em>
+ *       proven set forever (delta probing); a proven region is never re-probed — not even if it
+ *       vanishes from the topology and later re-appears (matching .NET's permanent-cache
+ *       semantics);</li>
  *   <li>a region that fails is left un-cached and naturally re-probed on the next refresh
  *       (across-refresh re-probing is the only retry mechanism; each region is attempted exactly
  *       once per cycle);</li>
- *   <li>the routing gate ({@link EndpointProbeClient#isThinClientRoutable()}) is conservative: it is
- *       {@code false} until a non-empty topology is observed and every known region has a cached
- *       success.</li>
+ *   <li>the routing gate ({@link EndpointProbeClient#isThinClientRoutable()}) is conservative and is
+ *       evaluated against the <em>current topology snapshot</em>: it is {@code true} only when that
+ *       snapshot is non-empty and every region in it is present in the add-only proven set. A proven
+ *       region that has since vanished is not in the snapshot, so it neither helps nor blocks the
+ *       gate.</li>
  * </ul>
  */
 public class EndpointProbeClientTests {
 
     private static final URI REGION_EAST = URI.create("https://probe-east.example.com:10250");
     private static final URI REGION_WEST = URI.create("https://probe-west.example.com:10250");
+    private static final URI REGION_CENTRAL = URI.create("https://probe-central.example.com:10250");
 
     @Test(groups = { "unit" })
     public void allGreen_allKnownRegionsProven_gateHealthy() {
@@ -206,18 +211,111 @@ public class EndpointProbeClientTests {
     public void emptyEndpoints_recoverOnNextNonEmptyCycle() {
         Map<URI, Integer> greenByEndpoint = new HashMap<>();
         greenByEndpoint.put(REGION_EAST, 200);
+        AtomicInteger sendCount = new AtomicInteger();
         EndpointProbeClient probeClient =
-            new EndpointProbeClient(mockClient(greenByEndpoint, new AtomicInteger(), false));
+            new EndpointProbeClient(mockClient(greenByEndpoint, sendCount, false));
 
         // Prove healthy, then collapse the topology to empty -> gate RED.
         probeClient.runProbeCycle(Collections.singletonList(REGION_EAST)).block();
+        assertThat(sendCount.get()).isEqualTo(1);
         assertThat(probeClient.runProbeCycle(Collections.emptyList()).block()).isFalse();
         assertThat(probeClient.isThinClientRoutable()).isFalse();
 
         // A subsequent non-empty cycle restores the gate; the already-cached region keeps it
-        // healthy without re-probing.
+        // healthy WITHOUT re-probing (add-only cache: the proven entry survived the empty cycle).
         assertThat(probeClient.runProbeCycle(Collections.singletonList(REGION_EAST)).block()).isTrue();
         assertThat(probeClient.isThinClientRoutable()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(1);
+    }
+
+    @Test(groups = { "unit" })
+    public void vanishedProvenRegion_reAppears_isNotReprobed() {
+        // Core add-only semantic: a region proven healthy stays proven for the client's lifetime.
+        // When it vanishes from the topology and later re-appears it must be treated as already
+        // proven (skipped by the delta filter), so NO additional probe traffic is issued and the
+        // gate is healthy immediately on re-appearance.
+        Map<URI, Integer> statusByEndpoint = new HashMap<>();
+        statusByEndpoint.put(REGION_EAST, 200);
+        statusByEndpoint.put(REGION_WEST, 200);
+        AtomicInteger sendCount = new AtomicInteger(0);
+        EndpointProbeClient probeClient =
+            new EndpointProbeClient(mockClient(statusByEndpoint, sendCount, false));
+
+        // Cycle 1: prove both regions.
+        assertThat(probeClient.runProbeCycle(Arrays.asList(REGION_EAST, REGION_WEST)).block()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(2);
+
+        // Cycle 2: WEST vanishes -> topology is {EAST}. Gate stays healthy (EAST still proven),
+        // and no probe fires (EAST already proven).
+        assertThat(probeClient.runProbeCycle(Collections.singletonList(REGION_EAST)).block()).isTrue();
+        assertThat(probeClient.isThinClientRoutable()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(2);
+
+        // Cycle 3: WEST re-appears -> topology is {EAST, WEST}. WEST is already in the add-only
+        // proven set, so it is NOT re-probed and the gate is healthy immediately.
+        assertThat(probeClient.runProbeCycle(Arrays.asList(REGION_EAST, REGION_WEST)).block()).isTrue();
+        assertThat(probeClient.isThinClientRoutable()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(2);
+    }
+
+    @Test(groups = { "unit" })
+    public void vanishedProvenRegion_doesNotGateCurrentTopology() {
+        // A retained proven entry for a vanished region must not falsely satisfy the gate for a
+        // different, not-yet-proven region that is now current. The gate is evaluated via
+        // containsAll(currentSnapshot), so only the CURRENT regions matter.
+        Map<URI, Integer> statusByEndpoint = new HashMap<>();
+        statusByEndpoint.put(REGION_EAST, 200);
+        statusByEndpoint.put(REGION_WEST, 503); // WEST never succeeds
+        AtomicInteger sendCount = new AtomicInteger(0);
+        EndpointProbeClient probeClient =
+            new EndpointProbeClient(mockClient(statusByEndpoint, sendCount, false));
+
+        // Cycle 1: topology is {EAST} -> proven -> gate healthy.
+        assertThat(probeClient.runProbeCycle(Collections.singletonList(REGION_EAST)).block()).isTrue();
+        assertThat(probeClient.isThinClientRoutable()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(1);
+
+        // Cycle 2: EAST vanishes and WEST (unhealthy) appears -> topology is {WEST}. EAST's retained
+        // proven entry must NOT make the gate healthy; WEST is current and unproven -> gate RED.
+        assertThat(probeClient.runProbeCycle(Collections.singletonList(REGION_WEST)).block()).isFalse();
+        assertThat(probeClient.isThinClientRoutable()).isFalse();
+        assertThat(sendCount.get()).isEqualTo(2); // WEST was probed (delta), EAST was not re-probed
+    }
+
+    @Test(groups = { "unit" })
+    public void unsupportedNewRegion_blocksGate_removalRestoresGate() {
+        // Scenario from the field: two supported regions are proven and the gate is healthy. A new
+        // region C is then added whose endpoint does NOT support thin-client (probe never returns
+        // 200). Because the gate is evaluated against the CURRENT topology snapshot via
+        // containsAll(...), the presence of the unproven C flips the gate to UNHEALTHY even though
+        // A and B remain proven. When C is later removed from the topology, the snapshot shrinks
+        // back to {A, B} — both still proven (add-only) — so the gate becomes usable again without
+        // any re-probing of A or B.
+        Map<URI, Integer> statusByEndpoint = new HashMap<>();
+        statusByEndpoint.put(REGION_EAST, 200);     // A: supported
+        statusByEndpoint.put(REGION_WEST, 200);     // B: supported
+        statusByEndpoint.put(REGION_CENTRAL, 503);  // C: no thin-client support
+        AtomicInteger sendCount = new AtomicInteger(0);
+        EndpointProbeClient probeClient =
+            new EndpointProbeClient(mockClient(statusByEndpoint, sendCount, false));
+
+        // Cycle 1: {A, B} both proven -> gate healthy.
+        assertThat(probeClient.runProbeCycle(Arrays.asList(REGION_EAST, REGION_WEST)).block()).isTrue();
+        assertThat(probeClient.isThinClientRoutable()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(2);
+
+        // Cycle 2: unsupported C is added -> {A, B, C}. Only C is in the delta and it fails (503),
+        // staying uncached. The current snapshot now includes C, which is not proven -> gate RED.
+        assertThat(probeClient.runProbeCycle(Arrays.asList(REGION_EAST, REGION_WEST, REGION_CENTRAL)).block())
+            .isFalse();
+        assertThat(probeClient.isThinClientRoutable()).isFalse();
+        assertThat(sendCount.get()).isEqualTo(3); // only C probed; A/B already proven
+
+        // Cycle 3: C is removed -> snapshot shrinks back to {A, B}. Both are still proven, so the
+        // gate is usable again, and neither A nor B is re-probed.
+        assertThat(probeClient.runProbeCycle(Arrays.asList(REGION_EAST, REGION_WEST)).block()).isTrue();
+        assertThat(probeClient.isThinClientRoutable()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(3);
     }
 
     // --- Mock helpers ---

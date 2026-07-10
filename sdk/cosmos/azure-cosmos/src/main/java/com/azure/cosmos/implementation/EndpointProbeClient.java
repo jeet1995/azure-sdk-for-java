@@ -18,8 +18,10 @@ import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -37,15 +39,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   <li>Connection error / TLS failure / HTTP/2 negotiation failure / timeout &rarr; failed.</li>
  * </ul>
  *
- * <p><b>Per-region cache (delta probing).</b> A successful probe is recorded against its region
- * and that region is skipped on subsequent cycles for as long as it remains in the topology. Each
- * cycle only probes the <em>delta</em> &mdash; the currently-known endpoints not yet proven. A
- * failed region is left un-proven and is naturally re-probed on the next topology refresh; this
- * across-refresh re-probing is the only retry mechanism (there is no in-cycle retry &mdash; each
- * region is attempted exactly once per cycle).
+ * <p><b>Add-only proven cache (delta probing).</b> A successful probe records its region in an
+ * <em>add-only</em> proven set that only ever grows: once a region returns HTTP 200 it is
+ * considered proven for the lifetime of the client and is never re-probed &mdash; even if it later
+ * vanishes from the topology and subsequently re-appears (matching the .NET permanent-cache
+ * semantics). Each cycle only probes the <em>delta</em> &mdash; the currently-known endpoints not
+ * yet in the proven set. A failed region is simply left out of the proven set and is naturally
+ * re-probed on the next topology refresh; this across-refresh re-probing is the only retry
+ * mechanism (there is no in-cycle retry &mdash; each region is attempted exactly once per cycle).
  *
  * <p><b>Routing gate.</b> {@link #isThinClientRoutable()} returns {@code true} only when every
- * currently-known thin-client endpoint has a cached success. The startup default is
+ * endpoint in the most recently observed topology snapshot is present in the add-only proven set.
+ * Because the gate is evaluated against the current topology snapshot (not the proven set), a
+ * region that vanishes stops gating even though its proven entry is retained. The startup default is
  * <em>conservative</em>: until at least one non-empty topology has been observed and all of
  * its regions have succeeded, the gate is {@code false} and the SDK routes data-plane traffic
  * to Gateway V1. Whether a probe client exists at all is governed solely by the wiring decision
@@ -71,12 +77,19 @@ public class EndpointProbeClient implements Closeable {
     private final HttpClient httpClient;
     private final Duration perProbeTimeout;
 
-    // Single source of truth: every currently-known thin-client endpoint mapped to its probe
-    // success state (TRUE = proven reachable, FALSE = known but not yet proven). Keys are the
-    // current topology — reconciled on each cycle so vanished regions are dropped; values flip to
-    // TRUE as probes succeed. The routing gate is simply "non-empty AND every value TRUE". A single
-    // ConcurrentHashMap keeps reads lock-free without a second structure to keep in sync.
-    private final ConcurrentHashMap<URI, Boolean> probeEndpointToProbeSuccessState = new ConcurrentHashMap<>();
+    // Add-only set of thin-client regional endpoints that have recorded a successful (HTTP 200)
+    // probe. This set only ever grows: once a region is proven reachable it stays proven for the
+    // client's lifetime and is never removed — even if the region later vanishes from the topology
+    // and re-appears (matching .NET's permanent-cache semantics, so a re-added region is NOT
+    // re-probed). Backed by a ConcurrentHashMap key-set for lock-free reads/writes.
+    private final Set<URI> provenHealthyEndpoints = ConcurrentHashMap.newKeySet();
+
+    // Immutable snapshot of the most recently observed thin-client topology (the endpoints supplied
+    // to the last runProbeCycle). The routing gate is evaluated against THIS set, so a vanished
+    // region stops gating even though its proven-state entry is retained in provenHealthyEndpoints.
+    // Replaced atomically (single volatile assignment) each cycle — no transient over-/under-healthy
+    // window. Defaults to empty so the gate is conservatively false until a topology is observed.
+    private volatile Set<URI> currentEndpoints = Collections.emptySet();
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicBoolean cycleInProgress = new AtomicBoolean(false);
@@ -95,8 +108,10 @@ public class EndpointProbeClient implements Closeable {
      * post-cycle value of {@link #isThinClientRoutable()}.
      *
      * <p>When the endpoint collection is {@code null} or empty (no thin-client regions resolved),
-     * the reconciled map empties and the gate falls to its conservative {@code false} (route to
-     * Gateway V1); the probe Flux then iterates nothing, so no HTTP traffic is issued.
+     * the current-topology snapshot becomes empty and the gate falls to its conservative {@code false}
+     * (route to Gateway V1); the probe Flux then iterates nothing, so no HTTP traffic is issued. Note
+     * the add-only proven set is never pruned, so regions proven earlier remain proven if they later
+     * re-appear.
      *
      * <p>There are no short-circuit fast paths: every cycle iterates the provided collection and
      * probes only the not-yet-proven endpoints. When all are already proven the filter yields
@@ -120,33 +135,38 @@ public class EndpointProbeClient implements Closeable {
             // Normalize a null topology to an empty iteration (reference only — no copy).
             Collection<URI> endpoints = regionalEndpoints == null ? Collections.emptyList() : regionalEndpoints;
 
-            // Reconcile the single source of truth directly against the provided collection — no
-            // intermediate copies. Register newly-seen endpoints as not-yet-proven (preserving any
-            // existing TRUE), then drop the ones that have vanished. Add-before-remove so a concurrent
-            // gate read never transiently observes an over-healthy state. When the collection is
-            // null/empty the map empties and the gate is false, so the SDK falls back to Gateway V1 —
-            // no separate force-unhealthy latch needed.
+            // Publish an immutable, null-free snapshot of the current topology as the gate's
+            // reference set. This is a single atomic volatile assignment, so a concurrent gate read
+            // never observes a transient over-/under-healthy state: growing the snapshot (a new
+            // region) immediately makes the gate stricter until that region is proven, and shrinking
+            // it (a vanished region) simply stops that region from gating. The proven set is add-only
+            // and is NOT reconciled/pruned here — vanished regions keep their proven entry so a
+            // re-added region is never re-probed. When the collection is null/empty the snapshot is
+            // empty and the gate is false, so the SDK falls back to Gateway V1.
+            Set<URI> snapshot = new HashSet<>();
             for (URI endpoint : endpoints) {
                 if (endpoint != null) {
-                    this.probeEndpointToProbeSuccessState.putIfAbsent(endpoint, Boolean.FALSE);
+                    snapshot.add(endpoint);
                 }
             }
-            this.probeEndpointToProbeSuccessState.keySet().retainAll(endpoints);
+            snapshot = Collections.unmodifiableSet(snapshot);
+            this.currentEndpoints = snapshot;
+            final Set<URI> currentSnapshot = snapshot;
 
-            // Single-flight: skip if a cycle is already running. The map was reconciled above so the
-            // gate already reflects the latest topology regardless of whether we probe this round.
+            // Single-flight: skip if a cycle is already running. The snapshot was published above so
+            // the gate already reflects the latest topology regardless of whether we probe this round.
             if (!this.cycleInProgress.compareAndSet(false, true)) {
                 logger.debug("Thin-client probe cycle already in progress; skipping overlapping trigger.");
                 return currentGate;
             }
 
-            // No fast paths: always iterate the provided collection and probe only the not-yet-proven
-            // endpoints. When everything is already proven (or the collection is empty) the filter
-            // yields nothing and the cycle is an inexpensive no-op that re-emits the current gate.
+            // No fast paths: always iterate the current snapshot and probe only the endpoints not yet
+            // in the add-only proven set (the delta of new regions). When everything is already proven
+            // (or the snapshot is empty) the filter yields nothing and the cycle is an inexpensive
+            // no-op that re-emits the current gate.
             return Flux
-                .fromIterable(endpoints)
-                .filter(endpoint -> endpoint != null
-                    && !Boolean.TRUE.equals(this.probeEndpointToProbeSuccessState.get(endpoint)))
+                .fromIterable(currentSnapshot)
+                .filter(endpoint -> !this.provenHealthyEndpoints.contains(endpoint))
                 .flatMap(this::probeEndpointOnce)
                 .collectList()
                 .map(this::applyCycleResult)
@@ -161,21 +181,19 @@ public class EndpointProbeClient implements Closeable {
 
     /**
      * @return current routing-gate value. {@code true} means the SDK may route the data plane to the
-     * thin-client proxy: {@code true} only when at least one thin-client region is currently known and
-     * every currently-known region has a proven (HTTP 200) probe.
+     * thin-client proxy: {@code true} only when the most recently observed topology snapshot is
+     * non-empty and every endpoint in it is present in the add-only proven set.
      */
     public boolean isThinClientRoutable() {
-        if (this.probeEndpointToProbeSuccessState.isEmpty()) {
+        Set<URI> snapshot = this.currentEndpoints;
+        if (snapshot.isEmpty()) {
             // No known thin-client regions (conservative startup, or regions vanished): route to
             // Gateway V1 until a region is proven reachable.
             return false;
         }
-        for (Boolean proven : this.probeEndpointToProbeSuccessState.values()) {
-            if (!Boolean.TRUE.equals(proven)) {
-                return false;
-            }
-        }
-        return true;
+        // Every current region must be in the add-only proven set. A proven region that has since
+        // vanished is absent from the snapshot, so it neither helps nor blocks this decision.
+        return this.provenHealthyEndpoints.containsAll(snapshot);
     }
 
     /**
@@ -269,9 +287,11 @@ public class EndpointProbeClient implements Closeable {
         int successCount = 0;
         for (EndpointProbeResult r : results) {
             if (r.success && r.endpoint != null) {
-                // Flip to proven, but only if the region is still current: replace() is a no-op when
-                // a concurrent reconcile has already dropped it, so vanished regions aren't resurrected.
-                this.probeEndpointToProbeSuccessState.replace(r.endpoint, Boolean.TRUE);
+                // Add-only: record the region as permanently proven. The proven set is never pruned,
+                // so this is a no-op if the region was already proven, and a vanished region is left
+                // proven (harmless — the gate only checks the current topology snapshot, and a
+                // re-added region will be skipped by the delta filter rather than re-probed).
+                this.provenHealthyEndpoints.add(r.endpoint);
                 successCount++;
             }
         }
