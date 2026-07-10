@@ -103,7 +103,7 @@ public class ThinClientProbeWiringTests {
         GlobalEndpointManager gem = newGemWithAccount(DB_ACCOUNT_WITH_THINCLIENT_LOCATIONS);
         try {
             LocationCache locationCache = getLocationCache(gem);
-            Set<URI> thinclientEndpoints = locationCache.getThinClientRegionalEndpoints();
+            Set<URI> thinclientEndpoints = locationCache.getThinClientRegionalEndpointsEligibleForProbe();
 
             assertThat(thinclientEndpoints).hasSize(2);
             assertThat(thinclientEndpoints).contains(
@@ -119,7 +119,7 @@ public class ThinClientProbeWiringTests {
         GlobalEndpointManager gem = newGemWithAccount(DB_ACCOUNT_NO_THINCLIENT_LOCATIONS);
         try {
             LocationCache locationCache = getLocationCache(gem);
-            Set<URI> thinclientEndpoints = locationCache.getThinClientRegionalEndpoints();
+            Set<URI> thinclientEndpoints = locationCache.getThinClientRegionalEndpointsEligibleForProbe();
 
             assertThat(thinclientEndpoints).isEmpty();
             assertThat(gem.hasThinClientReadLocations()).isFalse();

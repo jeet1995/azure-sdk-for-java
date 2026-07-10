@@ -205,9 +205,7 @@ public class GlobalEndpointManager implements AutoCloseable {
         if (probeCycleDisposable != null && !probeCycleDisposable.isDisposed()) {
             probeCycleDisposable.dispose();
         }
-        // Close the thin-client connectivity-probe client (if any) so its `closed` guard flips:
-        // any probe cycle still in flight (self-terminating via its per-probe timeout) then drops
-        // its result in applyCycleResult instead of mutating state on an otherwise-dead client.
+        // Flip the probe client's closed guard so any in-flight cycle drops its result.
         EndpointProbeClient probeClient = this.thinClientProbeClient.getAndSet(null);
         if (probeClient != null) {
             try {
@@ -241,11 +239,8 @@ public class GlobalEndpointManager implements AutoCloseable {
 
                     return dbAccount;
                 })
-                // Force-refresh bypasses refreshLocationPrivateAsync but still updates topology
-                // (hasThinClientReadLocations / LocationCache), so kick the delta-gated probe cycle
-                // here too to honor "probe on every account refresh". Fire-and-forget: never block
-                // the force-refresh (and thus ClientRetryPolicy's cross-region retry) on the probe —
-                // routing stays on Gateway V1 until the probe proves the proxy endpoints.
+                // Force-refresh updates topology but bypasses refreshLocationPrivateAsync, so fire
+                // the probe here too (fire-and-forget; routing stays on Gateway V1 until proven).
                 .doOnNext(ignored -> this.fireThinClientProbeCycle())
                 .then();
             }
@@ -277,7 +272,7 @@ public class GlobalEndpointManager implements AutoCloseable {
     }
 
     private Mono<Void> refreshLocationPrivateAsync(DatabaseAccount databaseAccount) {
-        return Mono.<Void>defer(() -> {
+        return Mono.defer(() -> {
             logger.debug("refreshLocationPrivateAsync() refreshing locations");
 
             if (databaseAccount != null) {
@@ -296,7 +291,7 @@ public class GlobalEndpointManager implements AutoCloseable {
                 this.fireThinClientProbeCycle();
             }
 
-            return Mono.<Void>defer(() -> {
+            return Mono.defer(() -> {
                 Utils.ValueHolder<Boolean> canRefreshInBackground = new Utils.ValueHolder<>();
                 if (this.locationCache.shouldRefreshEndpoints(canRefreshInBackground)) {
                     logger.debug("shouldRefreshEndpoints: true");
@@ -326,7 +321,7 @@ public class GlobalEndpointManager implements AutoCloseable {
                             if (!this.refreshInBackground.get()) {
                                 this.startRefreshLocationTimerAsync();
                             }
-                            return Mono.<Void>empty();
+                            return Mono.empty();
                         }));
                     }
 
@@ -336,7 +331,7 @@ public class GlobalEndpointManager implements AutoCloseable {
                     }
 
                     this.isRefreshing.set(false);
-                    return Mono.<Void>empty();
+                    return Mono.empty();
                 } else {
                     logger.debug("shouldRefreshEndpoints: false, nothing to do.");
 
@@ -351,7 +346,7 @@ public class GlobalEndpointManager implements AutoCloseable {
                     }
 
                     this.isRefreshing.set(false);
-                    return Mono.<Void>empty();
+                    return Mono.empty();
                 }
             });
         });
@@ -419,9 +414,8 @@ public class GlobalEndpointManager implements AutoCloseable {
     }
 
     /**
-     * Wires the thin-client HTTP/2 {@link HttpClient} used by the connectivity-probe
-     * probeClient. Must be invoked by the client bootstrap before {@link #init()} so
-     * that the very first topology refresh can issue probes.
+     * Wires the thin-client HTTP/2 {@link HttpClient} for the connectivity probe. Must be called
+     * before {@link #init()} so the first topology refresh can issue probes.
      */
     public void setThinClientHttpClient(HttpClient httpClient) {
         if (httpClient == null) {
@@ -430,24 +424,15 @@ public class GlobalEndpointManager implements AutoCloseable {
         try {
             this.thinClientProbeClient.compareAndSet(null, new EndpointProbeClient(httpClient));
         } catch (Throwable t) {
-            // Probe wiring must never trip CosmosClient initialization. If the probe client
-            // can't be constructed for any reason, leave it null — `getProxyProbeDecision()`
-            // then renders no decision (null) and routing behaves as if no probe were wired.
+            // Probe wiring must never trip init(); leaving it null makes getProxyProbeDecision() null.
             logger.warn("Failed to wire thin-client connectivity-probe client; thin-client routing will proceed without probe gating.", t);
         }
     }
 
     /**
-     * Returns the thin-client connectivity-probe's current routing decision as a tri-state:
-     * <ul>
-     *   <li>{@code null} &mdash; <b>no decision</b>: no probe client is wired (the client either
-     *       explicitly opted into/out of thin-client, or is not a thin-client client, so no probe
-     *       runs). The caller must treat this as neither healthy nor unhealthy and leave the routing
-     *       decision to the other gate inputs.</li>
-     *   <li>{@code TRUE} &mdash; an active probe considers the proxy fleet routable.</li>
-     *   <li>{@code FALSE} &mdash; an active probe is gating traffic to Gateway V1 until its regions are proven.</li>
-     * </ul>
-     * Only an active, wired probe can return a non-null decision.
+     * Returns the probe's tri-state routing decision: {@code null} when no probe is wired (leave the
+     * decision to other gate inputs), {@code TRUE} when the proxy fleet is routable, {@code FALSE}
+     * while gating to Gateway V1 until regions are proven.
      */
     public Boolean getProxyProbeDecision() {
         EndpointProbeClient probeClient = this.thinClientProbeClient.get();
@@ -459,23 +444,11 @@ public class GlobalEndpointManager implements AutoCloseable {
     }
 
     /**
-     * Fires the delta-gated thin-client connectivity-probe cycle <em>without blocking the caller</em>.
-     *
-     * <p>Previously the probe was composed via {@code .then(runThinClientProbeCycleMono())} onto the
-     * force-refresh and topology-refresh paths, which made those paths — and, transitively,
-     * {@link #init()} (which {@code .block()}s) and {@code ClientRetryPolicy}'s cross-region
-     * force-refresh — wait up to ~{@code perProbeTimeout} per unproven region before completing.
-     * That penalized cold-start and cross-region-retry latency during startup / topology-change
-     * windows (in steady state the delta is empty so the cycle is a free no-op).
-     *
-     * <p>The probe is now fired fire-and-forget: the outer refresh/retry/init completes immediately
-     * and routing stays on Gateway V1 until the probe proves the proxy endpoints — the
-     * "conservative until proven" invariant — at which point {@link #getProxyProbeDecision()} flips
-     * the gate to Gateway V2. The latest subscription is tracked in
-     * {@link #thinClientProbeCycleDisposable} so {@link #close()} can cancel it; the probe client's
-     * single-flight CAS dedups overlapping fires and any older in-flight cycle self-terminates via
-     * its per-probe timeout (its result is dropped once {@link #close()} flips the probe client's
-     * closed guard).
+     * Fires the delta-gated thin-client probe cycle fire-and-forget so the outer refresh/retry/init
+     * never blocks on it. Routing stays on Gateway V1 until the probe proves the proxy endpoints
+     * (conservative-until-proven), then {@link #getProxyProbeDecision()} flips the gate. The latest
+     * subscription is tracked in {@link #thinClientProbeCycleDisposable} for {@link #close()} to
+     * cancel; the probe client's single-flight CAS dedups overlapping fires.
      */
     private void fireThinClientProbeCycle() {
         Disposable newDisposable = this.runThinClientProbeCycleMono()
@@ -497,15 +470,8 @@ public class GlobalEndpointManager implements AutoCloseable {
             if (!this.hasThinClientReadLocations.get()) {
                 return Mono.empty();
             }
-            // Resolve the current thin-client regional endpoints. An empty set (e.g.
-            // hasThinClientReadLocations is true but LocationCache cannot normalize-match a single
-            // thin-client region) is passed straight through: runProbeCycle adopts it and the routing
-            // gate goes RED, so the SDK falls back to Gateway V1 until resolution recovers.
-            Set<URI> endpoints = this.locationCache.getThinClientRegionalEndpoints();
-            // Chained into the topology-refresh reactor pipeline. Cancellation propagates
-            // through the outer subscription (disposed in close() via backgroundRefreshDisposable).
-            // The probe client's internal single-flight CAS guarantees only one cycle runs at
-            // a time; runProbeCycle absorbs all per-probe errors and never errors the Mono.
+            // Empty set (endpoints unresolved) is passed through: the gate goes RED / Gateway V1.
+            Set<URI> endpoints = this.locationCache.getThinClientRegionalEndpointsEligibleForProbe();
             return probeClient
                 .runProbeCycle(endpoints)
                 .subscribeOn(CosmosSchedulers.GLOBAL_ENDPOINT_MANAGER_BOUNDED_ELASTIC)
@@ -516,8 +482,7 @@ public class GlobalEndpointManager implements AutoCloseable {
                 })
                 .then();
         }).onErrorResume(t -> {
-            // Defensive: probe issues must never bubble out and fail topology refresh or
-            // CosmosClient init. Log and move on — the gate stays at its current state.
+            // Probe issues must never fail topology refresh / init; keep the gate at its current state.
             logger.warn("Thin-client probe cycle threw; ignoring to protect topology refresh.", t);
             return Mono.empty();
         });

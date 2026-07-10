@@ -26,6 +26,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -137,36 +138,28 @@ public class LocationCache {
         return this.locationInfo.availableReadRegionalRoutingContexts;
     }
 
-    private static boolean collectThinClientEndpointsAllOrNothing(
-        UnmodifiableMap<String, RegionalRoutingContext> byRegion, Set<URI> sink) {
-        if (byRegion == null || byRegion.isEmpty()) {
-            return true;
-        }
-        for (RegionalRoutingContext ctx : byRegion.values()) {
-            if (ctx == null) {
+    // All-or-nothing across read AND write regions: useThinClientStoreModel() routes writes
+    // (point ops, batch) through thin-client too, so every readable/writable region must expose
+    // a thin-client endpoint. If any region is missing one (partial/mid-refresh topology), the
+    // account is not eligible for probing. Set semantics dedupe regions that are both read+write.
+    public Set<URI> getThinClientRegionalEndpointsEligibleForProbe() {
+        Set<URI> endpoints = new HashSet<>();
+        for (UnmodifiableMap<String, RegionalRoutingContext> byRegion : Arrays.asList(
+                this.locationInfo.availableReadRegionalRoutingContextsByRegionName,
+                this.locationInfo.availableWriteRegionalRoutingContextsByRegionName)) {
+            if (byRegion == null) {
                 continue;
             }
-            URI thinclientEndpoint = ctx.getThinclientRegionalEndpoint();
-            if (thinclientEndpoint == null) {
-                return false;
+            for (RegionalRoutingContext ctx : byRegion.values()) {
+                if (ctx == null) {
+                    continue;
+                }
+                URI thinclientEndpoint = ctx.getThinclientRegionalEndpoint();
+                if (thinclientEndpoint == null) {
+                    return Collections.emptySet();
+                }
+                endpoints.add(thinclientEndpoint);
             }
-            sink.add(thinclientEndpoint);
-        }
-        return true;
-    }
-
-    public Set<URI> getThinClientRegionalEndpoints() {
-        Set<URI> endpoints = new HashSet<>();
-        if (!collectThinClientEndpointsAllOrNothing(
-                this.locationInfo.availableReadRegionalRoutingContextsByRegionName, endpoints)) {
-            return Collections.emptySet();
-        }
-        // Also walk write regions: useThinClientStoreModel() routes writes (point ops, batch) through
-        // thin-client too, so a write-only region's thin-client endpoint must be probed as well.
-        // Set semantics dedupe the common case where a region is both readable and writable.
-        if (!collectThinClientEndpointsAllOrNothing(
-                this.locationInfo.availableWriteRegionalRoutingContextsByRegionName, endpoints)) {
-            return Collections.emptySet();
         }
         if (endpoints.isEmpty()) {
             return Collections.emptySet();

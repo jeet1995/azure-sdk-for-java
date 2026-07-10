@@ -19,12 +19,18 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.azure.cosmos.implementation.guava25.base.MoreObjects.firstNonNull;
 import static com.azure.cosmos.implementation.guava25.base.Strings.emptyToNull;
 
 public class Configs {
     private static final Logger logger = LoggerFactory.getLogger(Configs.class);
+
+    // Latches the one-time COSMOS.THINCLIENT_ENABLED misconfiguration warning. isThinClientEnabled()
+    // is on hot paths (e.g. HttpClientConfig.toDiagnosticsString()), so warning on every call would
+    // spam the log for the client lifetime; the value is effectively static, so warn once.
+    private static final AtomicBoolean thinClientEnabledMisconfigWarned = new AtomicBoolean(false);
 
     /**
      * Integer value specifying the speculation type
@@ -628,8 +634,10 @@ public class Configs {
         if ("false".equalsIgnoreCase(value)) {
             return Boolean.FALSE;
         }
-        logger.warn("Invalid COSMOS.THINCLIENT_ENABLED value '{}'; treating as unset (probe-gated). "
-            + "Only 'true' or 'false' are recognized.", value);
+        if (thinClientEnabledMisconfigWarned.compareAndSet(false, true)) {
+            logger.warn("Invalid COSMOS.THINCLIENT_ENABLED value '{}'; treating as unset (probe-gated). "
+                + "Only 'true' or 'false' are recognized.", value);
+        }
         return null;
     }
 
