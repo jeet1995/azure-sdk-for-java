@@ -3844,7 +3844,12 @@ public class PerPartitionCircuitBreakerE2ETests extends FaultInjectionTestBase {
                         }
                     }
 
-                    if (!Boolean.FALSE.equals(Configs.isThinClientEnabled()) && Configs.isHttp2Enabled() && response.cosmosException == null) {
+                    // Only assert thin-client routing when thin-client is EXPLICITLY opted in
+                    // (COSMOS.THINCLIENT_ENABLED=true), the sole config where routing is deterministic
+                    // because the endpoint probe is bypassed. On the implicit/unset path routing is
+                    // gated on the probe verdict, which under fault injection is not guaranteed to
+                    // greenlight all regions -- requests may legitimately fall back to Gateway V1 (:443).
+                    if (Boolean.TRUE.equals(Configs.isThinClientEnabled()) && Configs.isHttp2Enabled() && response.cosmosException == null) {
                         CosmosDiagnosticsContext ctx = getDiagnosticsContext(response);
                         if (ctx != null) {
                             assertThinClientEndpointUsed(ctx);
@@ -3896,7 +3901,10 @@ public class PerPartitionCircuitBreakerE2ETests extends FaultInjectionTestBase {
                         validateRegionsContactedWhenShortCircuitRegionMarkedAsHealthyOrHealthyTentative.accept(response.batchResponse.getDiagnostics().getDiagnosticsContext());
                     }
 
-                    if (!Boolean.FALSE.equals(Configs.isThinClientEnabled()) && Configs.isHttp2Enabled() && response.cosmosException == null) {
+                    // Only assert thin-client routing when thin-client is EXPLICITLY opted in
+                    // (COSMOS.THINCLIENT_ENABLED=true); see note above. On the implicit/probe path
+                    // routing may legitimately fall back to Gateway V1 (:443).
+                    if (Boolean.TRUE.equals(Configs.isThinClientEnabled()) && Configs.isHttp2Enabled() && response.cosmosException == null) {
                         CosmosDiagnosticsContext ctx = getDiagnosticsContext(response);
                         if (ctx != null) {
                             assertThinClientEndpointUsed(ctx);
