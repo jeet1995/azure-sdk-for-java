@@ -51,6 +51,7 @@ public class GlobalEndpointManager implements AutoCloseable {
     private final AtomicBoolean hasThinClientReadLocations = new AtomicBoolean(false);
     private final AtomicBoolean lastRecordedPerPartitionAutomaticFailoverEnabledOnClient = new AtomicBoolean(false);
     private final AtomicReference<EndpointProbeClient> thinClientProbeClient = new AtomicReference<>(null);
+    private final AtomicReference<Disposable> thinClientProbeCycleDisposable = new AtomicReference<>();
 
     private final ReentrantReadWriteLock.WriteLock databaseAccountWriteLock;
 
@@ -199,6 +200,23 @@ public class GlobalEndpointManager implements AutoCloseable {
         if (disposable != null && !disposable.isDisposed()) {
             disposable.dispose();
         }
+        // Cancel any in-flight fire-and-forget thin-client probe cycle subscription.
+        Disposable probeCycleDisposable = this.thinClientProbeCycleDisposable.getAndSet(null);
+        if (probeCycleDisposable != null && !probeCycleDisposable.isDisposed()) {
+            probeCycleDisposable.dispose();
+        }
+        // Close the thin-client connectivity-probe client (if any) so its `closed` guard flips:
+        // any probe cycle still in flight (self-terminating via its per-probe timeout) then drops
+        // its result in applyCycleResult instead of mutating state on an otherwise-dead client.
+        EndpointProbeClient probeClient = this.thinClientProbeClient.getAndSet(null);
+        if (probeClient != null) {
+            try {
+                probeClient.close();
+            } catch (Throwable t) {
+                // Closing the probe client must never fail GlobalEndpointManager.close().
+                logger.debug("Failed to close thin-client connectivity-probe client during close(); ignoring.", t);
+            }
+        }
         logger.debug("GlobalEndpointManager closed.");
     }
 
@@ -222,13 +240,14 @@ public class GlobalEndpointManager implements AutoCloseable {
                     }
 
                     return dbAccount;
-                }).flatMap(dbAccount -> {
-                    return Mono.<Void>empty();
                 })
                 // Force-refresh bypasses refreshLocationPrivateAsync but still updates topology
-                // (hasThinClientReadLocations / LocationCache), so drive the delta-gated probe
-                // cycle here too to honor "probe on every account refresh".
-                .then(runThinClientProbeCycleMono());
+                // (hasThinClientReadLocations / LocationCache), so kick the delta-gated probe cycle
+                // here too to honor "probe on every account refresh". Fire-and-forget: never block
+                // the force-refresh (and thus ClientRetryPolicy's cross-region retry) on the probe —
+                // routing stays on Gateway V1 until the probe proves the proxy endpoints.
+                .doOnNext(ignored -> this.fireThinClientProbeCycle())
+                .then();
             }
 
             if (!isRefreshing.compareAndSet(false, true)) {
@@ -261,7 +280,6 @@ public class GlobalEndpointManager implements AutoCloseable {
         return Mono.<Void>defer(() -> {
             logger.debug("refreshLocationPrivateAsync() refreshing locations");
 
-            Mono<Void> probePrefix = Mono.empty();
             if (databaseAccount != null) {
                 this.databaseAccountWriteLock.lock();
 
@@ -271,12 +289,14 @@ public class GlobalEndpointManager implements AutoCloseable {
                     this.databaseAccountWriteLock.unlock();
                 }
 
-                // Run the thin-client connectivity-probe cycle on every topology refresh so
-                // the routing gate (getProxyProbeDecision) can converge to the proxy fleet.
-                probePrefix = this.runThinClientProbeCycleMono();
+                // Fire-and-forget the delta-gated thin-client connectivity-probe cycle on every
+                // topology refresh so the routing gate (getProxyProbeDecision) can converge to the
+                // proxy fleet — without blocking init() (which .block()s this pipeline) or the
+                // background refresh loop on the probe. Routing stays on Gateway V1 until proven.
+                this.fireThinClientProbeCycle();
             }
 
-            return probePrefix.then(Mono.defer(() -> {
+            return Mono.<Void>defer(() -> {
                 Utils.ValueHolder<Boolean> canRefreshInBackground = new Utils.ValueHolder<>();
                 if (this.locationCache.shouldRefreshEndpoints(canRefreshInBackground)) {
                     logger.debug("shouldRefreshEndpoints: true");
@@ -299,7 +319,8 @@ public class GlobalEndpointManager implements AutoCloseable {
                             }
 
                             this.isRefreshing.set(false);
-                            return this.runThinClientProbeCycleMono();
+                            this.fireThinClientProbeCycle();
+                            return Mono.<Void>empty();
                         }).then(Mono.defer(() -> {
                             // trigger a startRefreshLocationTimerAsync don't wait on it.
                             if (!this.refreshInBackground.get()) {
@@ -332,7 +353,7 @@ public class GlobalEndpointManager implements AutoCloseable {
                     this.isRefreshing.set(false);
                     return Mono.<Void>empty();
                 }
-            }));
+            });
         });
     }
 
@@ -435,6 +456,36 @@ public class GlobalEndpointManager implements AutoCloseable {
             return null;
         }
         return probeClient.isThinClientRoutable();
+    }
+
+    /**
+     * Fires the delta-gated thin-client connectivity-probe cycle <em>without blocking the caller</em>.
+     *
+     * <p>Previously the probe was composed via {@code .then(runThinClientProbeCycleMono())} onto the
+     * force-refresh and topology-refresh paths, which made those paths — and, transitively,
+     * {@link #init()} (which {@code .block()}s) and {@code ClientRetryPolicy}'s cross-region
+     * force-refresh — wait up to ~{@code perProbeTimeout} per unproven region before completing.
+     * That penalized cold-start and cross-region-retry latency during startup / topology-change
+     * windows (in steady state the delta is empty so the cycle is a free no-op).
+     *
+     * <p>The probe is now fired fire-and-forget: the outer refresh/retry/init completes immediately
+     * and routing stays on Gateway V1 until the probe proves the proxy endpoints — the
+     * "conservative until proven" invariant — at which point {@link #getProxyProbeDecision()} flips
+     * the gate to Gateway V2. The latest subscription is tracked in
+     * {@link #thinClientProbeCycleDisposable} so {@link #close()} can cancel it; the probe client's
+     * single-flight CAS dedups overlapping fires and any older in-flight cycle self-terminates via
+     * its per-probe timeout (its result is dropped once {@link #close()} flips the probe client's
+     * closed guard).
+     */
+    private void fireThinClientProbeCycle() {
+        Disposable newDisposable = this.runThinClientProbeCycleMono()
+            .subscribe(
+                ignored -> { },
+                t -> logger.warn("Thin-client probe cycle subscription errored unexpectedly; ignoring.", t));
+        Disposable oldDisposable = this.thinClientProbeCycleDisposable.getAndSet(newDisposable);
+        if (oldDisposable != null && !oldDisposable.isDisposed()) {
+            oldDisposable.dispose();
+        }
     }
 
     private Mono<Void> runThinClientProbeCycleMono() {

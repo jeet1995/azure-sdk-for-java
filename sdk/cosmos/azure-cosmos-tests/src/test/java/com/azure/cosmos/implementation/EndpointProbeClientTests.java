@@ -10,6 +10,7 @@ import io.netty.buffer.ByteBuf;
 import org.mockito.Mockito;
 import org.testng.annotations.Test;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.net.ConnectException;
 import java.net.URI;
@@ -18,6 +19,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -316,6 +320,85 @@ public class EndpointProbeClientTests {
         assertThat(probeClient.runProbeCycle(Arrays.asList(REGION_EAST, REGION_WEST)).block()).isTrue();
         assertThat(probeClient.isThinClientRoutable()).isTrue();
         assertThat(sendCount.get()).isEqualTo(3);
+    }
+
+    @Test(groups = { "unit" })
+    public void runProbeCycle_overlappingCycle_skippedBySingleFlight() throws Exception {
+        // Single-flight invariant: while one probe cycle holds cycleInProgress, a concurrently
+        // triggered cycle must short-circuit — re-emitting the CURRENT gate WITHOUT issuing any
+        // additional HTTP probe. Mirrors .NET RunProbeCycle_OverlappingCycle_SkippedBySingleFlight.
+        AtomicInteger sendCount = new AtomicInteger(0);
+        CountDownLatch probeStarted = new CountDownLatch(1); // cycle #1 has entered send()
+        CountDownLatch releaseProbe = new CountDownLatch(1); // holds cycle #1 mid-flight
+
+        HttpClient client = Mockito.mock(HttpClient.class);
+        Mockito.doAnswer(inv -> {
+            sendCount.incrementAndGet();
+            probeStarted.countDown();
+            return Mono.fromCallable(() -> {
+                releaseProbe.await();
+                return stubResponse(200);
+            }).subscribeOn(Schedulers.boundedElastic());
+        }).when(client).send(any(HttpRequest.class), any(Duration.class));
+
+        EndpointProbeClient probeClient = new EndpointProbeClient(client);
+
+        // Cycle #1: fire asynchronously; it wins the single-flight CAS and blocks inside send().
+        CompletableFuture<Boolean> cycleOne = probeClient
+            .runProbeCycle(Collections.singletonList(REGION_EAST))
+            .subscribeOn(Schedulers.boundedElastic())
+            .toFuture();
+
+        // Wait until cycle #1 is provably mid-flight (CAS held, one probe in flight).
+        assertThat(probeStarted.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(sendCount.get()).isEqualTo(1);
+
+        // Cycle #2: triggered while #1 is in flight -> loses the CAS -> returns the current gate
+        // with NO additional probe. Gate is still UNHEALTHY (EAST not yet proven).
+        assertThat(probeClient.runProbeCycle(Collections.singletonList(REGION_EAST)).block()).isFalse();
+        assertThat(sendCount.get()).isEqualTo(1); // overlapping trigger issued no extra send
+
+        // Release cycle #1: EAST is now proven -> gate HEALTHY, and exactly one probe was ever issued.
+        releaseProbe.countDown();
+        assertThat(cycleOne.get(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(probeClient.isThinClientRoutable()).isTrue();
+        assertThat(sendCount.get()).isEqualTo(1);
+    }
+
+    @Test(groups = { "unit" })
+    public void runProbeCycle_closedMidCycle_resultDropped_gateStaysConservative() throws Exception {
+        // If the client is closed while a cycle is in flight, applyCycleResult must DROP the result
+        // (not mutate the add-only proven set), so the gate stays conservative (UNHEALTHY) even
+        // though the in-flight probe ultimately returned 200.
+        AtomicInteger sendCount = new AtomicInteger(0);
+        CountDownLatch probeStarted = new CountDownLatch(1);
+        CountDownLatch releaseProbe = new CountDownLatch(1);
+
+        HttpClient client = Mockito.mock(HttpClient.class);
+        Mockito.doAnswer(inv -> {
+            sendCount.incrementAndGet();
+            probeStarted.countDown();
+            return Mono.fromCallable(() -> {
+                releaseProbe.await();
+                return stubResponse(200);
+            }).subscribeOn(Schedulers.boundedElastic());
+        }).when(client).send(any(HttpRequest.class), any(Duration.class));
+
+        EndpointProbeClient probeClient = new EndpointProbeClient(client);
+        CompletableFuture<Boolean> cycle = probeClient
+            .runProbeCycle(Collections.singletonList(REGION_EAST))
+            .subscribeOn(Schedulers.boundedElastic())
+            .toFuture();
+
+        assertThat(probeStarted.await(5, TimeUnit.SECONDS)).isTrue();
+
+        // Close while the probe is mid-flight, then let it return 200.
+        probeClient.close();
+        releaseProbe.countDown();
+
+        // The cycle completes but its successful result is dropped -> EAST never proven -> gate RED.
+        cycle.get(5, TimeUnit.SECONDS);
+        assertThat(probeClient.isThinClientRoutable()).isFalse();
     }
 
     // --- Mock helpers ---

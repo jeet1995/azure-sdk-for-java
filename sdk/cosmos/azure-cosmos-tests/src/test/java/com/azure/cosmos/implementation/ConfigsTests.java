@@ -259,6 +259,38 @@ public class ConfigsTests {
     }
 
     @Test(groups = { "unit" })
+    public void thinClientEnabledInvalidValueTreatedAsUnset() {
+        // Only "true"/"false" (case-insensitive) are honored. Any other value must NOT silently
+        // collapse to a hard opt-out (which Boolean.parseBoolean would do); it is treated as unset
+        // (null -> probe-gated) so a typo/legacy truthy string does not disable thin-client for the
+        // client lifetime.
+        for (String invalid : new String[] {"yes", "1", "on", "TRUEISH", "enabled", "  "}) {
+            System.setProperty("COSMOS.THINCLIENT_ENABLED", invalid);
+            try {
+                assertThat(Configs.isThinClientEnabled())
+                    .as("value '%s' should be treated as unset (null)", invalid)
+                    .isNull();
+            } finally {
+                System.clearProperty("COSMOS.THINCLIENT_ENABLED");
+            }
+        }
+
+        // Case-insensitivity of the honored tokens.
+        System.setProperty("COSMOS.THINCLIENT_ENABLED", "TrUe");
+        try {
+            assertThat(Configs.isThinClientEnabled()).isTrue();
+        } finally {
+            System.clearProperty("COSMOS.THINCLIENT_ENABLED");
+        }
+        System.setProperty("COSMOS.THINCLIENT_ENABLED", "FALSE");
+        try {
+            assertThat(Configs.isThinClientEnabled()).isFalse();
+        } finally {
+            System.clearProperty("COSMOS.THINCLIENT_ENABLED");
+        }
+    }
+
+    @Test(groups = { "unit" })
     public void thinClientConnectionTimeoutDefaultTest() {
         // Default thin client connection timeout should be 5000 milliseconds
         System.clearProperty("COSMOS.THINCLIENT_CONNECTION_TIMEOUT_IN_MS");

@@ -601,15 +601,36 @@ public class Configs {
     public static Boolean isThinClientEnabled() {
         String valueFromSystemProperty = System.getProperty(THINCLIENT_ENABLED);
         if (valueFromSystemProperty != null && !valueFromSystemProperty.isEmpty()) {
-            return Boolean.parseBoolean(valueFromSystemProperty);
+            return parseTriStateThinClientEnabled(valueFromSystemProperty);
         }
 
         String valueFromEnvVariable = System.getenv(THINCLIENT_ENABLED_VARIABLE);
         if (valueFromEnvVariable != null && !valueFromEnvVariable.isEmpty()) {
-            return Boolean.parseBoolean(valueFromEnvVariable);
+            return parseTriStateThinClientEnabled(valueFromEnvVariable);
         }
 
         return DEFAULT_THINCLIENT_ENABLED;
+    }
+
+    /**
+     * Parses a raw {@code COSMOS.THINCLIENT_ENABLED} value into the tri-state {@link Boolean}
+     * contract using an explicit whitelist. Only {@code "true"}/{@code "false"} (case-insensitive)
+     * are honored as explicit opt-in / opt-out. Any other value (e.g. {@code "1"}, {@code "yes"},
+     * {@code "on"}, a typo) is treated as unset ({@code null} — probe-gated) rather than silently
+     * collapsing to a hard opt-out, which {@link Boolean#parseBoolean(String)} would do for every
+     * non-"true" string. A warning is logged so the misconfiguration is diagnosable instead of the
+     * customer silently getting thin-client disabled for the client lifetime.
+     */
+    private static Boolean parseTriStateThinClientEnabled(String value) {
+        if ("true".equalsIgnoreCase(value)) {
+            return Boolean.TRUE;
+        }
+        if ("false".equalsIgnoreCase(value)) {
+            return Boolean.FALSE;
+        }
+        logger.warn("Invalid COSMOS.THINCLIENT_ENABLED value '{}'; treating as unset (probe-gated). "
+            + "Only 'true' or 'false' are recognized.", value);
+        return null;
     }
 
     public static boolean isThinClientQueryPlanEnabled() {
