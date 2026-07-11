@@ -72,20 +72,27 @@ public class ReadFeedDatabasesTest extends TestSuiteBase {
 
     @AfterClass(groups = { "query" }, timeOut = 3 * SHUTDOWN_TIMEOUT, alwaysRun = true)
     public void afterClass() {
-        // Delete the created databases in parallel with a bounded per-operation timeout so a
-        // single slow/hung control-plane delete (e.g. throttling on a shared account) cannot
-        // consume the whole method timeout. Any database that fails to delete here is named with
+        // Delete the created databases in parallel, mirroring safeDeleteDatabase's contract:
+        // deletion is best-effort and no error is ever propagated out of this cleanup method.
+        // A bounded per-operation timeout ensures a single slow/hung control-plane delete (e.g.
+        // throttling on a shared account) self-terminates well within the method timeout instead
+        // of consuming it. onErrorResume swallows each op's failure so the stream never errors,
+        // and the outer try/catch is a final backstop. Any database left undeleted is named with
         // the shared test prefix, so the stale-database janitor (@AfterSuite) will reclaim it.
-        Flux.fromIterable(createdDatabases)
-            .flatMap(properties -> client.getDatabase(properties.getId())
-                .delete()
-                .timeout(Duration.ofSeconds(20))
-                .onErrorResume(error -> {
-                    logger.warn("Failed to delete database {} during cleanup; the stale-database "
-                        + "janitor will reclaim it.", properties.getId(), error);
-                    return Mono.empty();
-                }))
-            .blockLast(Duration.ofSeconds(60));
+        try {
+            Flux.fromIterable(createdDatabases)
+                .flatMap(properties -> client.getDatabase(properties.getId())
+                    .delete()
+                    .timeout(Duration.ofSeconds(20))
+                    .onErrorResume(error -> {
+                        logger.warn("Failed to delete database {} during cleanup; the stale-database "
+                            + "janitor will reclaim it.", properties.getId(), error);
+                        return Mono.empty();
+                    }))
+                .blockLast();
+        } catch (Exception e) {
+            logger.warn("Unexpected error during database cleanup; the stale-database janitor will reclaim any leaks.", e);
+        }
         safeClose(client);
     }
 }
