@@ -1,8 +1,6 @@
 {
   "displayNames": {
     "-Pthinclient-endpoint-probe": "ThinClientEndpointProbe",
-    "-Pconsistency-overrides": "ConsistencyOverrides",
-    "-Pquery": "Query",
     "Session": "",
     "ubuntu": "",
     "@{ enableMultipleWriteLocations = $true; defaultConsistencyLevel = 'Session'; enableMultipleRegions = $true }": ""},
@@ -17,7 +15,7 @@
         }
       },
       "PROTOCOLS": "[\"Tcp\"]",
-      "ProfileFlag": [ "-Pthinclient-endpoint-probe", "-Pquery", "-Pconsistency-overrides" ],
+      "ProfileFlag": [ "-Pthinclient-endpoint-probe" ],
       "Agent": {
         "ubuntu": { "OSVmImage": "env:LINUXVMIMAGE", "Pool": "env:LINUXPOOL" }
       }
