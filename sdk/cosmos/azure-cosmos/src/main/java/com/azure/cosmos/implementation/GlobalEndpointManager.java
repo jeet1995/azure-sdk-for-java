@@ -455,14 +455,23 @@ public class GlobalEndpointManager implements AutoCloseable {
             .subscribe(
                 ignored -> { },
                 t -> logger.warn("Thin-client probe cycle subscription errored unexpectedly; ignoring.", t));
-        Disposable oldDisposable = this.thinClientProbeCycleDisposable.getAndSet(newDisposable);
-        if (oldDisposable != null && !oldDisposable.isDisposed()) {
-            oldDisposable.dispose();
-        }
+        // Track the latest subscription for close() to cancel — do NOT dispose the previous one.
+        // Overlapping fires are deduped by EndpointProbeClient's single-flight CAS (the loser is a
+        // no-op emit), so the previously tracked subscription is either already complete or the ONLY
+        // cycle doing real probe I/O; cancelling it here would abort the sole active probe and stall
+        // the gate. In-flight work is bounded by the per-probe timeout and honors close().
+        this.thinClientProbeCycleDisposable.set(newDisposable);
     }
 
     private Mono<Void> runThinClientProbeCycleMono() {
         return Mono.defer(() -> {
+            // No-op when COSMOS.THINCLIENT_ENABLED is explicitly set (true or false): the flag is then
+            // a hard contract that decides routing directly, so the probe verdict is irrelevant and we
+            // skip the traffic. Read live here, so dropping the opt-out/opt-in back to unset resumes
+            // probing on the next refresh. Only an unset flag lets the probe gate routing.
+            if (Configs.isThinClientEnabled() != null) {
+                return Mono.empty();
+            }
             EndpointProbeClient probeClient = this.thinClientProbeClient.get();
             if (probeClient == null) {
                 return Mono.empty();
