@@ -2380,6 +2380,9 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
 
         try {
 
+            // Write availability strategy for PPAF is opt-in (disabled by default) — enable it for this test.
+            System.setProperty("COSMOS.IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF", "true");
+
             // Reset any client-level E2E policy that a prior test may have set on the shared builder
             CosmosAsyncClient asyncClient = getClientBuilder()
                 .endToEndOperationLatencyPolicyConfig(null)
@@ -2627,6 +2630,10 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
         Utils.ValueHolder<CosmosAsyncClient> cosmosAsyncClientValueHolder = new Utils.ValueHolder<>();
 
         try {
+
+            // Write availability strategy for PPAF is opt-in (disabled by default) — enable it so this test
+            // can verify Batch bypasses the (active) availability strategy and uses retry-based failover.
+            System.setProperty("COSMOS.IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF", "true");
 
             // Reset any client-level E2E policy that a prior test may have set on the shared builder
             CosmosAsyncClient asyncClient = getClientBuilder()
@@ -3061,6 +3068,9 @@ public class PerPartitionAutomaticFailoverE2ETests extends TestSuiteBase {
         Utils.ValueHolder<CosmosAsyncClient> cosmosAsyncClientValueHolder = new Utils.ValueHolder<>();
 
         try {
+            // Write availability strategy for PPAF is opt-in (disabled by default) — enable it for this test.
+            System.setProperty("COSMOS.IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF", "true");
+
             // Reset any client-level E2E policy that a prior test may have set on the shared builder
             CosmosAsyncClient asyncClient = getClientBuilder()
                 .endToEndOperationLatencyPolicyConfig(null)

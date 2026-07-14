@@ -388,7 +388,10 @@ public class Configs {
     private static final String IS_READ_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF = "COSMOS.IS_READ_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF";
     private static final String IS_READ_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF_VARIABLE = "COSMOS_IS_READ_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF";
 
-    private static final String DEFAULT_IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF = "true";
+    // Write availability strategy (hedging) for PPAF single-writer accounts is opt-in: it changes the
+    // write routing model (hedging writes to read regions), so it defaults to disabled and must be
+    // explicitly enabled via COSMOS.IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF.
+    private static final String DEFAULT_IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF = "false";
     private static final String IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF = "COSMOS.IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF";
     private static final String IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF_VARIABLE = "COSMOS_IS_WRITE_AVAILABILITY_STRATEGY_ENABLED_WITH_PPAF";
 
