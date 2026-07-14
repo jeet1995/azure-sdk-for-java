@@ -14,6 +14,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -425,6 +426,92 @@ public class ThinClientProbeWiringTests {
     }
 
     @Test(groups = { "unit" }, timeOut = TIMEOUT)
+    public void overlappingProbeFire_closeStillCancelsTheLiveCycle() throws Exception {
+        // New-A residual regression (PR #49796 comment r3575154107): an overlapping (no-op) probe fire
+        // must NOT replace the tracked disposable that points at the sole in-flight cycle. close() owns
+        // cancellation and disposes whatever handle is tracked, so if a no-op fire clobbers the handle,
+        // close() cancels the no-op and the real in-flight probe I/O keeps running until its per-probe
+        // timeout -- i.e. close() can no longer promptly stop the live cycle.
+        //
+        // Pre-fix, fireThinClientProbeCycle() did set(newDisposable) on EVERY fire, so an overlapping
+        // fire (single-flight loser -> a no-op that completes immediately) overwrote the tracked handle:
+        // the tracked disposable was then the disposed no-op, not the live cycle. The fix uses
+        // getAndUpdate(keep-live-predecessor): while a live cycle is tracked, a no-op fire is discarded
+        // and the handle keeps pointing at the real cycle, so close() promptly cancels it.
+        AtomicInteger probeCallCount = new AtomicInteger(0);
+        CountDownLatch probeEntered = new CountDownLatch(2); // both regions probed concurrently (flatMap)
+        CountDownLatch releaseProbe = new CountDownLatch(1); // holds both region sends in-flight
+        Map<URI, Integer> statusByEndpoint = new HashMap<>();
+        statusByEndpoint.put(URI.create("https://testaccount-eastus.documents.azure.com:10250/connectivity-probe"), 200);
+        statusByEndpoint.put(URI.create("https://testaccount-eastasia.documents.azure.com:10250/connectivity-probe"), 200);
+
+        HttpClient blockingClient = Mockito.mock(HttpClient.class);
+        org.mockito.stubbing.Answer<Mono<HttpResponse>> blockingAnswer = invocation -> {
+            HttpRequest req = invocation.getArgument(0);
+            Integer status = statusByEndpoint.get(req.uri());
+            if (status == null) {
+                return Mono.error(new RuntimeException("Unexpected probe URI: " + req.uri()));
+            }
+            return Mono.fromCallable(() -> {
+                    probeCallCount.incrementAndGet();
+                    probeEntered.countDown();
+                    releaseProbe.await();
+                    return stubResponse(req, status);
+                })
+                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic());
+        };
+        Mockito.when(blockingClient.send(any(HttpRequest.class), any(Duration.class))).thenAnswer(blockingAnswer);
+        Mockito.when(blockingClient.send(any(HttpRequest.class))).thenAnswer(blockingAnswer);
+
+        DatabaseAccount databaseAccount = new DatabaseAccount(DB_ACCOUNT_WITH_THINCLIENT_LOCATIONS);
+        Mockito.when(databaseAccountManagerInternal.getDatabaseAccountFromEndpoint(any())).thenReturn(Flux.just(databaseAccount));
+        Mockito.when(databaseAccountManagerInternal.getServiceEndpoint()).thenReturn(new URI("https://testaccount.documents.azure.com:443"));
+
+        ConnectionPolicy connectionPolicy = new ConnectionPolicy(DirectConnectionConfig.getDefaultConfig());
+        connectionPolicy.setEndpointDiscoveryEnabled(true);
+        connectionPolicy.setMultipleWriteRegionsEnabled(true);
+
+        String previous = System.getProperty(THINCLIENT_ENABLED_PROPERTY);
+        GlobalEndpointManager gem = new GlobalEndpointManager(databaseAccountManagerInternal, connectionPolicy, new Configs());
+        try {
+            System.clearProperty(THINCLIENT_ENABLED_PROPERTY); // tri-state unset -> probe-gated
+            gem.setThinClientHttpClient(blockingClient);
+            gem.init(); // cycle D1 fires; both region sends park on releaseProbe
+
+            assertThat(probeEntered.await(5, TimeUnit.SECONDS))
+                .as("the initial probe cycle reached in-flight HTTP for both thin-client regions")
+                .isTrue();
+
+            // D1 is the tracked, live cycle.
+            Disposable liveCycle = getTrackedProbeDisposable(gem);
+            assertThat(liveCycle).as("the initial in-flight cycle is tracked").isNotNull();
+            assertThat(liveCycle.isDisposed()).as("the tracked cycle is still live").isFalse();
+
+            // Fire an overlapping cycle while D1 is still in-flight (single-flight -> a no-op loser).
+            gem.refreshLocationAsync(null, true).block();
+
+            // The crux: the tracked handle must STILL be the live cycle, not the no-op fire.
+            // Pre-fix (set() on every fire) this is the disposed no-op, so both assertions go red.
+            assertThat(getTrackedProbeDisposable(gem))
+                .as("overlapping no-op fire must not replace the handle to the live cycle")
+                .isSameAs(liveCycle);
+            assertThat(liveCycle.isDisposed())
+                .as("the live cycle is untouched by the overlapping fire")
+                .isFalse();
+
+            // close() disposes the tracked handle: it must promptly cancel the REAL in-flight cycle.
+            gem.close();
+            assertThat(liveCycle.isDisposed())
+                .as("close() promptly cancels the live in-flight cycle")
+                .isTrue();
+        } finally {
+            releaseProbe.countDown(); // never leave a probe thread parked
+            restoreProperty(THINCLIENT_ENABLED_PROPERTY, previous);
+            LifeCycleUtils.closeQuietly(gem);
+        }
+    }
+
+    @Test(groups = { "unit" }, timeOut = TIMEOUT)
     public void staleTopologyGrowth_doesNotFlipGateForUnprobedRegion() throws Exception {
         // Issue #1 regression (stale-green): if the topology GROWS while a cycle is in flight, the
         // completing cycle must recompute the gate against the LATEST topology, not the snapshot it
@@ -537,6 +624,13 @@ public class ThinClientProbeWiringTests {
         Field f = GlobalEndpointManager.class.getDeclaredField("locationCache");
         f.setAccessible(true);
         return (LocationCache) f.get(gem);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Disposable getTrackedProbeDisposable(GlobalEndpointManager gem) throws Exception {
+        Field f = GlobalEndpointManager.class.getDeclaredField("thinClientProbeCycleDisposable");
+        f.setAccessible(true);
+        return ((AtomicReference<Disposable>) f.get(gem)).get();
     }
 
     private static HttpClient stubHttpClient(Map<URI, Integer> statusByEndpoint, AtomicInteger callCount) {
