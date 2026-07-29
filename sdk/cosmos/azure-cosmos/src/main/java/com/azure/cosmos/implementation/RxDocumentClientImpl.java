@@ -795,7 +795,9 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
             this.queryPlanCache = new ConcurrentHashMap<>();
             this.apiType = apiType;
             this.clientTelemetryConfig = clientTelemetryConfig;
-            this.thinClientConnectivityConfig = new ThinClientConnectivityConfig(this.connectionPolicy);
+            this.thinClientConnectivityConfig = new ThinClientConnectivityConfig(
+                this.connectionPolicy,
+                this::isResourceTokenAuthentication);
         } catch (RuntimeException e) {
             logger.error("unexpected failure in initializing client.", e);
             close();
@@ -9071,6 +9073,22 @@ public class RxDocumentClientImpl implements AsyncDocumentClient, IAuthorization
 
     public boolean useThinClient() {
         return this.thinClientConnectivityConfig.canThinClientBeUsed();
+    }
+
+    /**
+     * @return whether this client authenticates with resource tokens - either a resource token
+     * passed directly (via {@code CosmosClientBuilder#resourceToken(String)}) or a permission feed
+     * (via {@code CosmosClientBuilder#permissions(List)}). Such clients are never thin-client
+     * (Gateway V2) eligible because the thin-client proxy only supports master key / AAD
+     * authentication, so all their requests must stay on Gateway V1.
+     *
+     * <p>Evaluated lazily: the resource-token map is populated after the constructor which creates
+     * the {@link ThinClientConnectivityConfig} has completed.
+     */
+    private boolean isResourceTokenAuthentication() {
+        return this.hasAuthKeyResourceToken
+            || this.authorizationTokenType == AuthorizationTokenType.ResourceToken
+            || (this.resourceTokensMap != null && !this.resourceTokensMap.isEmpty());
     }
 
     private boolean useThinClientStoreModel(RxDocumentServiceRequest request) {

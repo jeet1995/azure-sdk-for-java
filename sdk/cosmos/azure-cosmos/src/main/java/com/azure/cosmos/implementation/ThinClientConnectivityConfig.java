@@ -4,6 +4,8 @@ package com.azure.cosmos.implementation;
 
 import com.azure.cosmos.ConnectionMode;
 
+import java.util.function.BooleanSupplier;
+
 /**
  * Single source of truth for thin-client (Gateway V2) enablement and connectivity-probe decisions.
  *
@@ -16,25 +18,39 @@ import com.azure.cosmos.ConnectionMode;
  * {@code COSMOS.THINCLIENT_ENABLED}: {@code true} = hard opt-in (probe skipped), {@code false} =
  * hard opt-out, unset = the connectivity probe gates routing (Gateway V2 only on an affirmative
  * probe, else Gateway V1).
+ *
+ * <p>Clients authenticating with resource tokens (a resource token passed directly or a permission
+ * feed) are never thin-client eligible - the Gateway V2 proxy only supports master key / AAD
+ * authentication - so such clients always stay on Gateway V1.
  */
 public final class ThinClientConnectivityConfig {
 
     private final ConnectionPolicy connectionPolicy;
+    private final BooleanSupplier isResourceTokenAuthentication;
 
     /**
      * @param connectionPolicy effective connection policy (mode + HTTP/2); held by reference so its
      * state is read lazily on each evaluation.
+     * @param isResourceTokenAuthentication supplier telling whether the client authenticates with
+     * resource tokens; evaluated lazily on each call because the client's authentication state is
+     * fully materialized only after construction of this instance.
      */
-    public ThinClientConnectivityConfig(ConnectionPolicy connectionPolicy) {
+    public ThinClientConnectivityConfig(
+        ConnectionPolicy connectionPolicy,
+        BooleanSupplier isResourceTokenAuthentication) {
+
         this.connectionPolicy = connectionPolicy;
+        this.isResourceTokenAuthentication = isResourceTokenAuthentication;
     }
 
     /**
      * @return whether thin-client (Gateway V2) routing can be used: GATEWAY mode, HTTP/2 effectively
-     * enabled, and {@code COSMOS.THINCLIENT_ENABLED} not {@code false}. Evaluated lazily.
+     * enabled, {@code COSMOS.THINCLIENT_ENABLED} not {@code false} and the client not using resource
+     * token authentication. Evaluated lazily.
      */
     public boolean canThinClientBeUsed() {
-        return !Boolean.FALSE.equals(Configs.isThinClientEnabled())
+        return !this.isResourceTokenAuthentication.getAsBoolean()
+            && !Boolean.FALSE.equals(Configs.isThinClientEnabled())
             && this.connectionPolicy.getConnectionMode() == ConnectionMode.GATEWAY
             && this.connectionPolicy.getHttp2ConnectionConfig() != null
             && ImplementationBridgeHelpers.Http2ConnectionConfigHelper

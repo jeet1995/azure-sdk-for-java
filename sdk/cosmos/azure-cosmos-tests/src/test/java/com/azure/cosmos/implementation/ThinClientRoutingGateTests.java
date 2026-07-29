@@ -2,6 +2,9 @@
 // Licensed under the MIT License.
 package com.azure.cosmos.implementation;
 
+import com.azure.cosmos.ConnectionMode;
+import com.azure.cosmos.GatewayConnectionConfig;
+import com.azure.cosmos.Http2ConnectionConfig;
 import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
@@ -169,5 +172,43 @@ public class ThinClientRoutingGateTests {
         Mockito.when(request.getOperationType()).thenReturn(OperationType.ExecuteJavaScript);
         Mockito.when(request.isExecuteStoredProcedureBasedRequest()).thenReturn(true);
         assertThat(ThinClientConnectivityConfig.shouldUseThinClientStoreModel(true, true, null, Boolean.FALSE, request)).isFalse();
+    }
+
+    // --- Resource token authentication is never thin-client eligible ---
+
+    private static ConnectionPolicy thinClientCapableConnectionPolicy() {
+        ConnectionPolicy connectionPolicy = new ConnectionPolicy(new GatewayConnectionConfig());
+        connectionPolicy.setConnectionMode(ConnectionMode.GATEWAY);
+        connectionPolicy.setHttp2ConnectionConfig(new Http2ConnectionConfig().setEnabled(true));
+        return connectionPolicy;
+    }
+
+    @Test(groups = "unit")
+    public void masterKeyAuthentication_canUseThinClient() {
+        ThinClientConnectivityConfig config =
+            new ThinClientConnectivityConfig(thinClientCapableConnectionPolicy(), () -> false);
+        assertThat(config.canThinClientBeUsed()).isTrue();
+    }
+
+    @Test(groups = "unit")
+    public void resourceTokenAuthentication_cannotUseThinClient() {
+        // Clients created with a resource token or a permission feed must never be routed to the
+        // thin-client (Gateway V2) proxy - it only supports master key / AAD authentication.
+        ThinClientConnectivityConfig config =
+            new ThinClientConnectivityConfig(thinClientCapableConnectionPolicy(), () -> true);
+        assertThat(config.canThinClientBeUsed()).isFalse();
+    }
+
+    @Test(groups = "unit")
+    public void resourceTokenAuthentication_isEvaluatedLazily() {
+        // The auth state of the client is materialized after ThinClientConnectivityConfig is
+        // constructed (permission feed parsing happens later), so the signal must be read per call.
+        boolean[] isResourceToken = new boolean[] { false };
+        ThinClientConnectivityConfig config =
+            new ThinClientConnectivityConfig(thinClientCapableConnectionPolicy(), () -> isResourceToken[0]);
+
+        assertThat(config.canThinClientBeUsed()).isTrue();
+        isResourceToken[0] = true;
+        assertThat(config.canThinClientBeUsed()).isFalse();
     }
 }
