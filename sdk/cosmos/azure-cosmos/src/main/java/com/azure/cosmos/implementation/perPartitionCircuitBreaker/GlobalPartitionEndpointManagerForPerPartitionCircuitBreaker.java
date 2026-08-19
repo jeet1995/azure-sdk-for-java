@@ -157,7 +157,7 @@ public class GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker impleme
                         partitionLevelLocationUnavailabilityInfoAsVal.areLocationsAvailableForPartitionKeyRange(applicableRegionalRoutingContexts));
                 }
 
-                request.requestContext.setPerPartitionCircuitBreakerInfoHolder(partitionLevelLocationUnavailabilityInfoAsVal.regionToLocationSpecificHealthContext);
+                this.publishSnapshot(request, partitionLevelLocationUnavailabilityInfoAsVal);
                 return partitionLevelLocationUnavailabilityInfoAsVal;
             });
 
@@ -218,7 +218,7 @@ public class GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker impleme
                     succeededRegionalRoutingContext,
                     request.isReadOnlyRequest());
 
-                request.requestContext.setPerPartitionCircuitBreakerInfoHolder(partitionKeyRangeToFailoverInfoAsVal.regionToLocationSpecificHealthContext);
+                this.publishSnapshot(request, partitionKeyRangeToFailoverInfoAsVal);
                 return partitionKeyRangeToFailoverInfoAsVal;
             });
         } catch (Exception e) {
@@ -245,6 +245,7 @@ public class GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker impleme
                 this.partitionKeyRangeToLocationSpecificUnavailabilityInfo.get(partitionKeyRangeWrapper);
 
             List<String> unavailableRegions = new ArrayList<>();
+            this.publishSnapshot(request, partitionLevelLocationUnavailabilityInfoSnapshot);
 
             if (partitionLevelLocationUnavailabilityInfoSnapshot != null) {
                 Map<RegionalRoutingContext, LocationSpecificHealthContext> locationEndpointToFailureMetricsForPartition =
@@ -285,6 +286,14 @@ public class GlobalPartitionEndpointManagerForPerPartitionCircuitBreaker impleme
         } catch (Exception e) {
             throw wrapAsCosmosException(request, e);
         }
+    }
+
+    private void publishSnapshot(
+        RxDocumentServiceRequest request,
+        PartitionLevelLocationUnavailabilityInfo info) {
+
+        request.requestContext.setPerPartitionCircuitBreakerInfoHolder(
+            info == null ? Collections.emptyMap() : info.regionToLocationSpecificHealthContext);
     }
 
     private Flux<?> updateStaleLocationInfo() {

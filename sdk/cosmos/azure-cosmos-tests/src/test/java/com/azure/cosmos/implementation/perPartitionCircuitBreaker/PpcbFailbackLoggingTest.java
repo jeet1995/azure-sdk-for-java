@@ -83,7 +83,7 @@ public class PpcbFailbackLoggingTest {
         this.manager.logFailbackFailure(PARTITION, REGION, "RECOVERY_PIPELINE", failure);
 
         verify(this.logger).warn(contains("stage=OPEN_CONNECTION_TASK"), same(failure));
-    verify(this.logger).warn(contains("stage=RECOVERY_PIPELINE"), same(failure));
+        verify(this.logger).warn(contains("stage=RECOVERY_PIPELINE"), same(failure));
     }
 
     @Test(groups = {"unit"})
