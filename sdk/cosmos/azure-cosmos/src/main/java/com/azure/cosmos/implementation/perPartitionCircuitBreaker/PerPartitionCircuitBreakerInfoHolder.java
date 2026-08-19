@@ -6,43 +6,23 @@ package com.azure.cosmos.implementation.perPartitionCircuitBreaker;
 import com.azure.cosmos.implementation.Utils;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
-@JsonSerialize(using = PerPartitionCircuitBreakerInfoHolder.PerPartitionCircuitBreakerInfoHolderSerializer.class)
 public class PerPartitionCircuitBreakerInfoHolder implements Serializable {
 
     public static final PerPartitionCircuitBreakerInfoHolder EMPTY = new PerPartitionCircuitBreakerInfoHolder();
 
     private final Utils.ValueHolder<Map<String, LocationSpecificHealthContext>> perPartitionCircuitBreakerInfoHolder = new Utils.ValueHolder<Map<String, LocationSpecificHealthContext>>();
-    private boolean initialized;
 
     public synchronized void setPerPartitionCircuitBreakerInfoHolder(final Map<String, LocationSpecificHealthContext> locationSpecificHealthContext) {
-        this.initialized = true;
-        this.perPartitionCircuitBreakerInfoHolder.v = locationSpecificHealthContext == null
-            ? Collections.emptyMap()
-            : Collections.unmodifiableMap(new LinkedHashMap<>(locationSpecificHealthContext));
+        this.perPartitionCircuitBreakerInfoHolder.v = locationSpecificHealthContext;
     }
 
     public synchronized Map<String, LocationSpecificHealthContext> getPerPartitionCircuitBreakerInfoHolder() {
         return perPartitionCircuitBreakerInfoHolder.v;
-    }
-
-    public synchronized PerPartitionCircuitBreakerInfoHolder snapshot() {
-        PerPartitionCircuitBreakerInfoHolder snapshot = new PerPartitionCircuitBreakerInfoHolder();
-        if (this.initialized) {
-            snapshot.setPerPartitionCircuitBreakerInfoHolder(this.perPartitionCircuitBreakerInfoHolder.v);
-        }
-        return snapshot;
-    }
-
-    synchronized boolean isInitialized() {
-        return this.initialized;
     }
 
     public static class PerPartitionCircuitBreakerInfoHolderSerializer extends com.fasterxml.jackson.databind.JsonSerializer<PerPartitionCircuitBreakerInfoHolder> {
@@ -52,10 +32,10 @@ public class PerPartitionCircuitBreakerInfoHolder implements Serializable {
 
             Map<String, LocationSpecificHealthContext> locationToLocationSpecificHealthContext = value.getPerPartitionCircuitBreakerInfoHolder();
 
-            if (value.isInitialized()) {
+            if (locationToLocationSpecificHealthContext != null && !locationToLocationSpecificHealthContext.isEmpty()) {
                 gen.writeStartObject();
 
-                gen.writePOJOField("stateByRegion", locationToLocationSpecificHealthContext);
+                gen.writePOJOField("locSpecificHealthCtx", locationToLocationSpecificHealthContext);
 
                 gen.writeEndObject();
             } else {
