@@ -134,6 +134,18 @@ class TenantDefaultConfig {
     @JsonProperty("http2Enabled")
     protected Boolean http2Enabled;
 
+    @JsonProperty("http2Mode")
+    protected String http2Mode;
+
+    @JsonProperty("thinClientMode")
+    protected String thinClientMode;
+
+    @JsonProperty("http2MinConnectionPoolSize")
+    protected Integer http2MinConnectionPoolSize;
+
+    @JsonProperty("http2MaxConnectionPoolSize")
+    protected Integer http2MaxConnectionPoolSize;
+
     @JsonProperty("http2MaxConcurrentStreams")
     protected Integer http2MaxConcurrentStreams;
 
@@ -227,6 +239,17 @@ class TenantDefaultConfig {
     public int getMaxConnectionPoolSize() { return maxConnectionPoolSize != null ? maxConnectionPoolSize : 1000; }
     public boolean isConnectionSharingAcrossClientsEnabled() { return connectionSharingAcrossClientsEnabled != null && connectionSharingAcrossClientsEnabled; }
     public boolean isHttp2Enabled() { return http2Enabled != null && http2Enabled; }
+    public FeatureMode getHttp2Mode() {
+        if (http2Mode != null) {
+            return FeatureMode.fromConfig(http2Mode, "http2Mode");
+        }
+        return Boolean.TRUE.equals(http2Enabled) ? FeatureMode.ENABLED : FeatureMode.DEFAULT;
+    }
+    public FeatureMode getThinClientMode() {
+        return FeatureMode.fromConfig(thinClientMode, "thinClientMode");
+    }
+    public Integer getHttp2MinConnectionPoolSize() { return http2MinConnectionPoolSize; }
+    public Integer getHttp2MaxConnectionPoolSize() { return http2MaxConnectionPoolSize; }
     public Integer getHttp2MaxConcurrentStreams() { return http2MaxConcurrentStreams; }
 
     public List<String> getPreferredRegionsList() {
@@ -286,6 +309,10 @@ class TenantDefaultConfig {
         if (maxConnectionPoolSize != null && tenant.maxConnectionPoolSize == null) tenant.maxConnectionPoolSize = maxConnectionPoolSize;
         if (connectionSharingAcrossClientsEnabled != null && tenant.connectionSharingAcrossClientsEnabled == null) tenant.connectionSharingAcrossClientsEnabled = connectionSharingAcrossClientsEnabled;
         if (http2Enabled != null && tenant.http2Enabled == null) tenant.http2Enabled = http2Enabled;
+        if (http2Mode != null && tenant.http2Mode == null) tenant.http2Mode = http2Mode;
+        if (thinClientMode != null && tenant.thinClientMode == null) tenant.thinClientMode = thinClientMode;
+        if (http2MinConnectionPoolSize != null && tenant.http2MinConnectionPoolSize == null) tenant.http2MinConnectionPoolSize = http2MinConnectionPoolSize;
+        if (http2MaxConnectionPoolSize != null && tenant.http2MaxConnectionPoolSize == null) tenant.http2MaxConnectionPoolSize = http2MaxConnectionPoolSize;
         if (http2MaxConcurrentStreams != null && tenant.http2MaxConcurrentStreams == null) tenant.http2MaxConcurrentStreams = http2MaxConcurrentStreams;
         if (preferredRegionsList != null && tenant.preferredRegionsList == null) tenant.preferredRegionsList = preferredRegionsList;
         if (excludedRegionsList != null && tenant.excludedRegionsList == null) tenant.excludedRegionsList = excludedRegionsList;

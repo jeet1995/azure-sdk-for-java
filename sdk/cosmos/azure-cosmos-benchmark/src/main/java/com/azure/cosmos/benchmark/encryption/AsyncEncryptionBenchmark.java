@@ -4,16 +4,13 @@
 package com.azure.cosmos.benchmark.encryption;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.cosmos.ConnectionMode;
 import com.azure.cosmos.CosmosAsyncClient;
 import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.CosmosAsyncDatabase;
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosException;
-import com.azure.cosmos.DirectConnectionConfig;
-import com.azure.cosmos.GatewayConnectionConfig;
-import com.azure.cosmos.Http2ConnectionConfig;
 import com.azure.cosmos.benchmark.Benchmark;
+import com.azure.cosmos.benchmark.BenchmarkClientBuilderHelper;
 import com.azure.cosmos.benchmark.BenchmarkHelper;
 import com.azure.cosmos.benchmark.Operation;
 import com.azure.cosmos.benchmark.TenantWorkloadConfig;
@@ -103,20 +100,7 @@ public abstract class AsyncEncryptionBenchmark<T> implements Benchmark {
                 .consistencyLevel(workloadCfg.getConsistencyLevel())
                 .contentResponseOnWriteEnabled(workloadCfg.isContentResponseOnWriteEnabled());
 
-        if (workloadCfg.getConnectionMode().equals(ConnectionMode.DIRECT)) {
-            cosmosClientBuilder = cosmosClientBuilder.directMode(DirectConnectionConfig.getDefaultConfig());
-        } else {
-            GatewayConnectionConfig gatewayConnectionConfig = new GatewayConnectionConfig();
-            gatewayConnectionConfig.setMaxConnectionPoolSize(workloadCfg.getMaxConnectionPoolSize());
-            if (workloadCfg.isHttp2Enabled()) {
-                Http2ConnectionConfig http2Config = gatewayConnectionConfig.getHttp2ConnectionConfig();
-                http2Config.setEnabled(true);
-                if (workloadCfg.getHttp2MaxConcurrentStreams() != null) {
-                    http2Config.setMaxConcurrentStreams(workloadCfg.getHttp2MaxConcurrentStreams());
-                }
-            }
-            cosmosClientBuilder = cosmosClientBuilder.gatewayMode(gatewayConnectionConfig);
-        }
+        cosmosClientBuilder = BenchmarkClientBuilderHelper.applyConnectionMode(cosmosClientBuilder, workloadCfg);
         cosmosClient = cosmosClientBuilder.buildAsyncClient();
         cosmosEncryptionAsyncClient = createEncryptionClientInstance(cosmosClient);
         createEncryptionDatabaseAndContainer();

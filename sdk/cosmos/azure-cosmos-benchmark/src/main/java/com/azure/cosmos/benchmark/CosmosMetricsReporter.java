@@ -209,7 +209,7 @@ public class CosmosMetricsReporter {
 
     private void reportGauge(String timestamp, Gauge gauge, double cpuPercent) {
         double value = gauge.value();
-        if (Double.isNaN(value) || value == 0) return;
+        if (Double.isNaN(value)) return;
 
         ObjectNode doc = createBaseDoc(timestamp, gauge, "gauge", cpuPercent);
         doc.put("Value", round(value));

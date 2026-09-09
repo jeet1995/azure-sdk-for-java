@@ -10,6 +10,7 @@ import com.azure.cosmos.benchmark.encryption.AsyncEncryptionReadBenchmark;
 import com.azure.cosmos.benchmark.encryption.AsyncEncryptionWriteBenchmark;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
@@ -43,8 +44,9 @@ public class BenchmarkOrchestrator {
     private static final Logger logger = LoggerFactory.getLogger(BenchmarkOrchestrator.class);
 
     public void run(BenchmarkConfig config) throws Exception {
-        String testRunId = String.format("bench-%s",
-            Instant.now().toString().replace(':', '-'));
+        String testRunId = config.getRunId() == null || config.getRunId().isEmpty()
+            ? String.format("bench-%s", Instant.now().toString().replace(':', '-'))
+            : config.getRunId();
 
         logger.info("=== Benchmark Orchestrator ===");
         logger.info("  Cycles:    {}", config.getCycles());
@@ -73,6 +75,10 @@ public class BenchmarkOrchestrator {
         logger.info("Console reporter started (LoggingMeterRegistry, interval={}s)",
             config.getPrintingInterval());
 
+        List<Tag> benchmarkCommonTags = buildBenchmarkCommonTags(config, testRunId);
+        loggingRegistry.config().commonTags(benchmarkCommonTags);
+        BenchmarkRunManifestWriter.write(config, testRunId);
+
         JvmGcMetrics gcMetrics = null;
         ThreadPrefixGaugeSet threadPrefixGaugeSet = null;
 
@@ -97,7 +103,7 @@ public class BenchmarkOrchestrator {
         // registry.close() when a CosmosClient is destroyed; by giving each cycle
         // its own registry we avoid cross-cycle contamination.
         try {
-            runLifecycleLoop(config, loggingRegistry);
+            runLifecycleLoop(config, loggingRegistry, benchmarkCommonTags);
         } finally {
             loggingRegistry.close();
             if (gcMetrics != null) {
@@ -113,7 +119,8 @@ public class BenchmarkOrchestrator {
     // ======== Lifecycle loop (create -> run -> close -> settle x N) ========
 
     private void runLifecycleLoop(BenchmarkConfig config,
-                                  LoggingMeterRegistry loggingRegistry) throws Exception {
+                                  LoggingMeterRegistry loggingRegistry,
+                                  List<Tag> benchmarkCommonTags) throws Exception {
         int totalCycles = config.getCycles();
         List<TenantWorkloadConfig> tenants = config.getTenantWorkloads();
 
@@ -131,6 +138,11 @@ public class BenchmarkOrchestrator {
                 CompositeMeterRegistry cycleRegistry = new CompositeMeterRegistry();
                 cycleRegistry.add(loggingRegistry);
 
+                if (config.isEnableNativeMemoryStats()) {
+                    new NativeMemoryGaugeSet().bindTo(cycleRegistry);
+                    logger.info("Native memory metrics enabled");
+                }
+
                 boolean addedToGlobal = false;
                 if (config.isEnableNettyHttpMetrics()) {
                     Metrics.addRegistry(cycleRegistry);
@@ -147,6 +159,7 @@ public class BenchmarkOrchestrator {
                         switch (destination) {
                             case CSV:
                                 SimpleMeterRegistry csvRegistry = new SimpleMeterRegistry();
+                                csvRegistry.config().commonTags(benchmarkCommonTags);
                                 cycleRegistry.add(csvRegistry);
                                 csvReporter = new CsvMetricsReporter(
                                     csvRegistry, config.getCsvReporterConfig().getReportingDirectory());
@@ -155,6 +168,7 @@ public class BenchmarkOrchestrator {
 
                             case COSMOSDB:
                                 SimpleMeterRegistry cosmosSimpleRegistry = new SimpleMeterRegistry();
+                                cosmosSimpleRegistry.config().commonTags(benchmarkCommonTags);
                                 cycleRegistry.add(cosmosSimpleRegistry);
                                 Set<String> ops = new LinkedHashSet<>();
                                 for (TenantWorkloadConfig t : tenants) {
@@ -168,7 +182,7 @@ public class BenchmarkOrchestrator {
 
                             case APPLICATION_INSIGHTS:
                                 appInsightsRegistry = buildAppInsightsMeterRegistry(
-                                    config.getAppInsightsReporterConfig());
+                                    config.getAppInsightsReporterConfig(), benchmarkCommonTags);
                                 if (appInsightsRegistry != null) {
                                     cycleRegistry.add(appInsightsRegistry);
                                 } else {
@@ -442,7 +456,38 @@ public class BenchmarkOrchestrator {
 
     // ======== Application Insights registry ========
 
-    private MeterRegistry buildAppInsightsMeterRegistry(AppInsightsReporterConfig config) {
+    private List<Tag> buildBenchmarkCommonTags(BenchmarkConfig config, String runId) {
+        List<Tag> tags = new ArrayList<>();
+        tags.add(Tag.of("RunId", runId));
+        tags.add(Tag.of("SdkVersion", com.azure.cosmos.implementation.HttpConstants.Versions.getSdkVersion()));
+        tags.add(Tag.of("Http2Mode", config.getHttp2Mode().name()));
+        tags.add(Tag.of("ThinClientMode", config.getThinClientMode().name()));
+        tags.add(Tag.of("ConnectionMode", getConnectionModeTag(config)));
+        tags.add(Tag.of("JavaVersion", System.getProperty("java.version", "unknown")));
+
+        if (config.getPhase() != null && !config.getPhase().isEmpty()) {
+            tags.add(Tag.of("Phase", config.getPhase()));
+        }
+
+        return tags;
+    }
+
+    private String getConnectionModeTag(BenchmarkConfig config) {
+        String connectionMode = null;
+        for (TenantWorkloadConfig tenant : config.getTenantWorkloads()) {
+            String tenantMode = tenant.getConnectionMode().name();
+            if (connectionMode == null) {
+                connectionMode = tenantMode;
+            } else if (!connectionMode.equals(tenantMode)) {
+                return "MIXED";
+            }
+        }
+        return connectionMode == null ? "UNKNOWN" : connectionMode;
+    }
+
+    private MeterRegistry buildAppInsightsMeterRegistry(
+        AppInsightsReporterConfig config,
+        List<Tag> benchmarkCommonTags) {
         String connStr = config.getConnectionString();
 
         if (connStr == null) {
@@ -475,6 +520,7 @@ public class BenchmarkOrchestrator {
         MeterRegistry registry = new io.micrometer.azuremonitor.AzureMonitorMeterRegistry(
             amConfig, io.micrometer.core.instrument.Clock.SYSTEM);
         java.util.List<io.micrometer.core.instrument.Tag> globalTags = new java.util.ArrayList<>();
+        globalTags.addAll(benchmarkCommonTags);
         if (testCategoryTag != null && !testCategoryTag.isEmpty()) {
             globalTags.add(io.micrometer.core.instrument.Tag.of("TestCategory", testCategoryTag));
         }
@@ -500,9 +546,14 @@ public class BenchmarkOrchestrator {
         System.clearProperty("COSMOS.E2E_TIMEOUT_ERROR_HIT_TIME_WINDOW_IN_SECONDS_FOR_PPAF");
         System.clearProperty("COSMOS.MIN_CONNECTION_POOL_SIZE_PER_ENDPOINT");
         System.clearProperty("COSMOS.NETTY_HTTP_CLIENT_METRICS_ENABLED");
+        System.clearProperty("COSMOS.HTTP2_ENABLED");
+        System.clearProperty("COSMOS.THINCLIENT_ENABLED");
     }
 
     private void setGlobalSystemProperties(BenchmarkConfig config) {
+        applyFeatureMode("COSMOS.HTTP2_ENABLED", config.getHttp2Mode());
+        applyFeatureMode("COSMOS.THINCLIENT_ENABLED", config.getThinClientMode());
+
         if (config.isPartitionLevelCircuitBreakerEnabled()) {
             System.setProperty("COSMOS.PARTITION_LEVEL_CIRCUIT_BREAKER_CONFIG",
                 "{\"isPartitionLevelCircuitBreakerEnabled\": true, "
@@ -530,9 +581,23 @@ public class BenchmarkOrchestrator {
             logger.info("Reactor Netty HTTP connection pool metrics enabled");
         }
 
-        logger.info("Global system properties set (circuit breaker: {}, PPAF: {}, minConnPoolSize: {})",
+        logger.info(
+            "Global system properties set (http2Mode: {}, thinClientMode: {}, circuit breaker: {}, "
+                + "PPAF: {}, minConnPoolSize: {})",
+            config.getHttp2Mode(),
+            config.getThinClientMode(),
             config.isPartitionLevelCircuitBreakerEnabled(),
             config.isPerPartitionAutomaticFailoverRequired(),
             config.getMinConnectionPoolSizePerEndpoint());
+    }
+
+    private void applyFeatureMode(String propertyName, FeatureMode mode) {
+        Boolean value = mode.toNullableBoolean();
+        if (value == null) {
+            logger.info("{} left at SDK/environment default", propertyName);
+        } else {
+            System.setProperty(propertyName, value.toString());
+            logger.info("{} explicitly set to {}", propertyName, value);
+        }
     }
 }

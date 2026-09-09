@@ -45,6 +45,10 @@ Licensed under the MIT License.
     <!-- TODO: Remove this once all Javadoc warnings and errors are resolved -->
     <doclintMissingInclusion>-</doclintMissingInclusion>
     <spotless.skip>true</spotless.skip>
+
+    <!-- SDK-under-test versions. Override both when building a production baseline. -->
+    <azure-cosmos.version>4.82.0-beta.1</azure-cosmos.version> <!-- {x-version-update;com.azure:azure-cosmos;current} -->
+    <azure-cosmos-encryption.version>2.31.0-beta.1</azure-cosmos-encryption.version> <!-- {x-version-update;com.azure:azure-cosmos-encryption;current} -->
   </properties>
 
   <dependencies>
@@ -52,13 +56,13 @@ Licensed under the MIT License.
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-cosmos</artifactId>
-      <version>4.82.0-beta.1</version> <!-- {x-version-update;com.azure:azure-cosmos;current} -->
+      <version>${azure-cosmos.version}</version>
     </dependency>
 
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-cosmos-encryption</artifactId>
-      <version>2.31.0-beta.1</version> <!-- {x-version-update;com.azure:azure-cosmos-encryption;current} -->
+      <version>${azure-cosmos-encryption.version}</version>
     </dependency>
 
     <dependency>
@@ -266,6 +270,9 @@ Licensed under the MIT License.
                 <include>org.apache.logging.log4j:log4j-api:[2.26.0]</include> <!-- {x-include-update;org.apache.logging.log4j:log4j-api;external_dependency} -->
                 <include>org.apache.logging.log4j:log4j-core:[2.26.0]</include> <!-- {x-include-update;org.apache.logging.log4j:log4j-core;external_dependency} -->
                 <include>org.apache.logging.log4j:log4j-slf4j-impl:[2.26.0]</include> <!-- {x-include-update;org.apache.logging.log4j:log4j-slf4j-impl;external_dependency} -->
+                <include>org.openjdk.jmh:jmh-core:[1.37]</include> <!-- {x-include-update;org.openjdk.jmh:jmh-core;external_dependency} -->
+                <include>org.openjdk.jmh:jmh-generator-annprocess:[1.37]</include> <!-- {x-include-update;org.openjdk.jmh:jmh-generator-annprocess;external_dependency} -->
+                <include>org.bouncycastle:bcpkix-lts8on:[2.73.11]</include> <!-- {x-include-update;org.bouncycastle:bcpkix-lts8on;external_dependency} -->
               </includes>
             </bannedDependencies>
           </rules>
@@ -631,6 +638,67 @@ Licensed under the MIT License.
                 <io.netty.leakDetection.targetRecords>256</io.netty.leakDetection.targetRecords>
                 <io.netty.leakDetection.level>paranoid</io.netty.leakDetection.level>
               </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>jmh-benchmark</id>
+      <activation>
+        <property>
+          <name>jmh-benchmark</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- JMH requires annotation processing. -->
+        <compiler.proc></compiler.proc>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.openjdk.jmh</groupId>
+          <artifactId>jmh-core</artifactId>
+          <version>1.37</version> <!-- {x-version-update;org.openjdk.jmh:jmh-core;external_dependency} -->
+        </dependency>
+        <dependency>
+          <groupId>org.bouncycastle</groupId>
+          <artifactId>bcpkix-lts8on</artifactId>
+          <version>2.73.11</version> <!-- {x-version-update;org.bouncycastle:bcpkix-lts8on;external_dependency} -->
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>3.6.1</version> <!-- {x-version-update;org.codehaus.mojo:build-helper-maven-plugin;external_dependency} -->
+            <executions>
+              <execution>
+                <id>add-jmh-source</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/jmh/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.14.0</version> <!-- {x-version-update;org.apache.maven.plugins:maven-compiler-plugin;external_dependency} -->
+            <configuration>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>org.openjdk.jmh</groupId>
+                  <artifactId>jmh-generator-annprocess</artifactId>
+                  <version>1.37</version> <!-- {x-version-update;org.openjdk.jmh:jmh-generator-annprocess;external_dependency} -->
+                </path>
+              </annotationProcessorPaths>
             </configuration>
           </plugin>
         </plugins>

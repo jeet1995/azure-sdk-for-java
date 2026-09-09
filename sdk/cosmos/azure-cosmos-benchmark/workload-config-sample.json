@@ -7,6 +7,9 @@
   },
 
   "orchestrator": {
+    "runId": "http2-baseline-001",
+    "phase": "production-baseline",
+    "runManifestPath": "/tmp/benchmark-output/run-manifest.json",
     "concurrency": 1000,
     "numberOfOperations": 100000,
     "isPartitionLevelCircuitBreakerEnabled": true,
@@ -17,6 +20,7 @@
       "printingInterval": 10,
       "enableJvmStats": true,
       "enableNettyHttpMetrics": true,
+      "enableNativeMemoryStats": true,
       "destination": {
         "csv": {
           "reportingDirectory": "/tmp/benchmark-output"
@@ -27,6 +31,11 @@
     "tenantDefaults": {
       "consistencyLevel": "Session",
       "connectionMode": "Direct",
+      "http2Mode": "DEFAULT",
+      "thinClientMode": "DEFAULT",
+      "http2MinConnectionPoolSize": 8,
+      "http2MaxConnectionPoolSize": 1000,
+      "http2MaxConcurrentStreams": 30,
       "numberOfPreCreatedDocuments": 1000,
       "documentDataFieldSize": 20
     },

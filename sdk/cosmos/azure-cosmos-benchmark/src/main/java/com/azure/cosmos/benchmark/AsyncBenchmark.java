@@ -12,9 +12,6 @@ import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosDiagnosticsThresholds;
 import com.azure.cosmos.CosmosContainerProactiveInitConfigBuilder;
 import com.azure.cosmos.CosmosException;
-import com.azure.cosmos.DirectConnectionConfig;
-import com.azure.cosmos.GatewayConnectionConfig;
-import com.azure.cosmos.Http2ConnectionConfig;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.models.CosmosClientTelemetryConfig;
@@ -117,22 +114,8 @@ abstract class AsyncBenchmark<T> implements Benchmark {
 
         benchmarkSpecificClientBuilder.clientTelemetryConfig(telemetryConfig);
 
-        if (cfg.getConnectionMode().equals(ConnectionMode.DIRECT)) {
-            benchmarkSpecificClientBuilder = benchmarkSpecificClientBuilder.directMode(DirectConnectionConfig.getDefaultConfig());
-        } else {
-            GatewayConnectionConfig gatewayConnectionConfig = new GatewayConnectionConfig();
-            gatewayConnectionConfig.setMaxConnectionPoolSize(cfg.getMaxConnectionPoolSize());
-            if (cfg.isHttp2Enabled()) {
-                Http2ConnectionConfig http2Config = gatewayConnectionConfig.getHttp2ConnectionConfig();
-                http2Config.setEnabled(true);
-                if (cfg.getHttp2MaxConcurrentStreams() != null) {
-                    http2Config.setMaxConcurrentStreams(cfg.getHttp2MaxConcurrentStreams());
-                }
-                logger.info("HTTP/2 enabled with maxConcurrentStreams: {}",
-                    http2Config.getMaxConcurrentStreams());
-            }
-            benchmarkSpecificClientBuilder = benchmarkSpecificClientBuilder.gatewayMode(gatewayConnectionConfig);
-        }
+        benchmarkSpecificClientBuilder =
+            BenchmarkClientBuilderHelper.applyConnectionMode(benchmarkSpecificClientBuilder, cfg);
 
         benchmarkWorkloadClient = benchmarkSpecificClientBuilder.buildAsyncClient();
 

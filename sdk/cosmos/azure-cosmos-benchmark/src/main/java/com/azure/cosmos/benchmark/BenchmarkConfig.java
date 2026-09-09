@@ -106,6 +106,7 @@ public class BenchmarkConfig {
             validateTenantConfig(tenant);
             resolvedTenants.add(tenant);
         }
+        validateFeatureModes(resolvedTenants);
         config.tenantWorkloads = resolvedTenants;
 
         // Validate orchestrator settings
@@ -138,6 +139,30 @@ public class BenchmarkConfig {
         }
     }
 
+    private static void validateFeatureModes(List<TenantWorkloadConfig> tenants) {
+        FeatureMode http2Mode = null;
+        FeatureMode thinClientMode = null;
+
+        for (TenantWorkloadConfig tenant : tenants) {
+            FeatureMode tenantHttp2Mode = tenant.getHttp2Mode();
+            FeatureMode tenantThinClientMode = tenant.getThinClientMode();
+
+            if (http2Mode == null) {
+                http2Mode = tenantHttp2Mode;
+                thinClientMode = tenantThinClientMode;
+            } else if (http2Mode != tenantHttp2Mode || thinClientMode != tenantThinClientMode) {
+                throw new IllegalArgumentException(
+                    "All tenants in one benchmark JVM must use the same http2Mode and thinClientMode. "
+                        + "Run different transport variations in separate processes.");
+            }
+        }
+
+        if (http2Mode == FeatureMode.DISABLED && thinClientMode == FeatureMode.ENABLED) {
+            throw new IllegalArgumentException(
+                "thinClientMode=ENABLED requires HTTP/2; http2Mode cannot be DISABLED.");
+        }
+    }
+
     // ======== Convenience getters (delegate to nested configs) ========
 
     // -- Lifecycle --
@@ -150,6 +175,9 @@ public class BenchmarkConfig {
     public int getConcurrency() { return orchestrator.concurrency; }
     public int getNumberOfOperations() { return orchestrator.numberOfOperations; }
     public Duration getMaxRunningTimeDuration() { return orchestrator.maxRunningTimeDuration; }
+    public String getRunId() { return orchestrator.runId; }
+    public String getPhase() { return orchestrator.phase; }
+    public String getRunManifestPath() { return orchestrator.runManifestPath; }
 
     // -- JVM system properties (now under orchestrator) --
     public boolean isPartitionLevelCircuitBreakerEnabled() { return orchestrator.isPartitionLevelCircuitBreakerEnabled; }
@@ -159,6 +187,7 @@ public class BenchmarkConfig {
     // -- Metrics (now under orchestrator) --
     public boolean isEnableJvmStats() { return orchestrator.metrics.enableJvmStats; }
     public boolean isEnableNettyHttpMetrics() { return orchestrator.metrics.enableNettyHttpMetrics; }
+    public boolean isEnableNativeMemoryStats() { return orchestrator.metrics.enableNativeMemoryStats; }
     public int getPrintingInterval() { return orchestrator.metrics.printingInterval; }
 
     public CsvReporterConfig getCsvReporterConfig() {
@@ -185,6 +214,12 @@ public class BenchmarkConfig {
 
     // -- Tenants --
     public List<TenantWorkloadConfig> getTenantWorkloads() { return tenantWorkloads; }
+    public FeatureMode getHttp2Mode() {
+        return tenantWorkloads.isEmpty() ? FeatureMode.DEFAULT : tenantWorkloads.get(0).getHttp2Mode();
+    }
+    public FeatureMode getThinClientMode() {
+        return tenantWorkloads.isEmpty() ? FeatureMode.DEFAULT : tenantWorkloads.get(0).getThinClientMode();
+    }
 
     @Override
     public String toString() {
@@ -249,6 +284,15 @@ public class BenchmarkConfig {
         @JsonProperty("maxRunningTimeDuration")
         Duration maxRunningTimeDuration;
 
+        @JsonProperty("runId")
+        String runId;
+
+        @JsonProperty("phase")
+        String phase;
+
+        @JsonProperty("runManifestPath")
+        String runManifestPath;
+
         // -- JVM system properties (flattened from former jvmProperties section) --
         @JsonProperty("isPartitionLevelCircuitBreakerEnabled")
         boolean isPartitionLevelCircuitBreakerEnabled = true;
@@ -273,9 +317,10 @@ public class BenchmarkConfig {
         @Override
         public String toString() {
             return String.format(
-                "Orchestrator{concurrency=%d, numberOfOperations=%d, maxRunningTimeDuration=%s, "
-                + "circuitBreaker=%s, ppaf=%s, minConnPoolSize=%d}",
+                "Orchestrator{concurrency=%d, numberOfOperations=%d, maxRunningTimeDuration=%s, runId=%s, "
+                + "phase=%s, circuitBreaker=%s, ppaf=%s, minConnPoolSize=%d}",
                 concurrency, numberOfOperations, maxRunningTimeDuration,
+                runId, phase,
                 isPartitionLevelCircuitBreakerEnabled, isPerPartitionAutomaticFailoverRequired,
                 minConnectionPoolSizePerEndpoint);
         }
@@ -291,6 +336,9 @@ public class BenchmarkConfig {
 
         @JsonProperty("enableNettyHttpMetrics")
         boolean enableNettyHttpMetrics = false;
+
+        @JsonProperty("enableNativeMemoryStats")
+        boolean enableNativeMemoryStats = false;
 
         @JsonProperty("printingInterval")
         int printingInterval = 10;

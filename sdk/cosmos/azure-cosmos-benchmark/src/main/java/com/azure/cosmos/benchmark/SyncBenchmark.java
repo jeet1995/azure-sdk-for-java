@@ -4,7 +4,6 @@
 package com.azure.cosmos.benchmark;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.cosmos.ConnectionMode;
 import com.azure.cosmos.CosmosAsyncContainer;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
@@ -13,8 +12,6 @@ import com.azure.cosmos.CosmosDatabase;
 import com.azure.cosmos.CosmosDiagnosticsHandler;
 import com.azure.cosmos.CosmosDiagnosticsThresholds;
 import com.azure.cosmos.CosmosException;
-import com.azure.cosmos.DirectConnectionConfig;
-import com.azure.cosmos.GatewayConnectionConfig;
 import com.azure.cosmos.implementation.HttpConstants;
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.models.CosmosClientTelemetryConfig;
@@ -86,13 +83,8 @@ abstract class SyncBenchmark<T> implements Benchmark {
         clientBuilderAccessor()
             .setRegionScopedSessionCapturingEnabled(benchmarkSpecificClientBuilder, workloadCfg.isRegionScopedSessionContainerEnabled());
 
-        if (workloadCfg.getConnectionMode().equals(ConnectionMode.DIRECT)) {
-            benchmarkSpecificClientBuilder = benchmarkSpecificClientBuilder.directMode(DirectConnectionConfig.getDefaultConfig());
-        } else {
-            GatewayConnectionConfig gatewayConnectionConfig = new GatewayConnectionConfig();
-            gatewayConnectionConfig.setMaxConnectionPoolSize(workloadCfg.getMaxConnectionPoolSize());
-            benchmarkSpecificClientBuilder = benchmarkSpecificClientBuilder.gatewayMode(gatewayConnectionConfig);
-        }
+        benchmarkSpecificClientBuilder =
+            BenchmarkClientBuilderHelper.applyConnectionMode(benchmarkSpecificClientBuilder, workloadCfg);
 
         CosmosClientTelemetryConfig telemetryConfig = new CosmosClientTelemetryConfig()
             .diagnosticsThresholds(
