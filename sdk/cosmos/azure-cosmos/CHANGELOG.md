@@ -7,6 +7,8 @@
 #### Breaking Changes
 
 #### Bugs Fixed
+* Fixed HTTP/2 response decoding by normalizing only surrounding spaces and tabs in `x-ms-serviceversion` before Netty's standard header validation. HTTP/1.1 retains Reactor's native initialization and validation.
+* Preserved network-failure classification for connections closed before HTTP/2 SETTINGS and plaintext HTTP/1.1 fallback for the opt-in emulator path.
 
 #### Other Changes
 
