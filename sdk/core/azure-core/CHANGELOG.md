@@ -1,6 +1,6 @@
 # Release History
 
-## 1.60.0-beta.1 (Unreleased)
+## 1.61.0-beta.1 (Unreleased)
 
 ### Features Added
 
@@ -18,6 +18,10 @@
   that point could never run, so this case is now logged and the work continues.
 
 ### Other Changes
+
+#### Dependency Updates
+
+- Upgraded Reactor from `3.7.19` to `3.8.7`.
 
 ## 1.59.1 (2026-08-27)
 
