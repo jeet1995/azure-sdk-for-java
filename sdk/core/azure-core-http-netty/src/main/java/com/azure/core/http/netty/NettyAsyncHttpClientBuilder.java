@@ -16,13 +16,11 @@ import com.azure.core.util.Configuration;
 import com.azure.core.util.Context;
 import com.azure.core.util.CoreUtils;
 import com.azure.core.util.logging.ClientLogger;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.resolver.DefaultAddressResolverGroup;
 import io.netty.resolver.NoopAddressResolverGroup;
-import io.netty.util.internal.SystemPropertyUtil;
 import reactor.netty.Connection;
 import reactor.netty.NettyPipeline;
 import reactor.netty.http.HttpDecoderSpec;
@@ -201,16 +199,6 @@ public class NettyAsyncHttpClientBuilder {
             nettyHttpClient = HttpClient.create(this.connectionProvider);
         } else {
             nettyHttpClient = HttpClient.create();
-        }
-
-        // Keep the pooled default while respecting allocator choices made by the application.
-        if (!nettyHttpClient.configuration().options().containsKey(ChannelOption.ALLOCATOR)
-            && !SystemPropertyUtil.contains("io.netty.allocator.type")) {
-            // If ChannelOptions and io.netty.allocator.type wasn't configured with an allocator fallback to the default
-            // setting from Netty 4.1 which was the pooled allocator. Otherwise, respect the configuration, be it
-            // ChannelOptions or io.netty.allocator.type. In the future, this should be validated for if this should use
-            // the new Netty 4.2 default which is an adaptive allocator.
-            nettyHttpClient = nettyHttpClient.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
         // If a resolver hasn't been set, set the default one.

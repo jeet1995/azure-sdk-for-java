@@ -11,8 +11,8 @@ import com.azure.core.validation.http.models.TestConfigurationSource;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.ConfigurationBuilder;
 import com.azure.core.util.ConfigurationSource;
+import io.netty.buffer.AdaptiveByteBufAllocator;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -27,7 +27,6 @@ import io.netty.handler.proxy.HttpProxyHandler;
 import io.netty.handler.proxy.ProxyHandler;
 import io.netty.handler.proxy.Socks4ProxyHandler;
 import io.netty.handler.proxy.Socks5ProxyHandler;
-import io.netty.util.internal.SystemPropertyUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -112,13 +111,12 @@ public class NettyAsyncHttpClientBuilderTests {
     }
 
     @Test
-    public void defaultAllocatorRespectsSystemProperty() {
+    public void defaultAllocatorUsesNettyDefault() {
         NettyAsyncHttpClient client = (NettyAsyncHttpClient) new NettyAsyncHttpClientBuilder().build();
-        ByteBufAllocator expectedAllocator = SystemPropertyUtil.contains("io.netty.allocator.type")
-            ? ByteBufAllocator.DEFAULT
-            : PooledByteBufAllocator.DEFAULT;
-        Object configuredAllocator = client.nettyClient.configuration().options().get(ChannelOption.ALLOCATOR);
-        assertSame(expectedAllocator, configuredAllocator == null ? ByteBufAllocator.DEFAULT : configuredAllocator);
+        assertNull(client.nettyClient.configuration().options().get(ChannelOption.ALLOCATOR));
+        if (System.getProperty("io.netty.allocator.type") == null) {
+            assertInstanceOf(AdaptiveByteBufAllocator.class, ByteBufAllocator.DEFAULT);
+        }
     }
 
     @Test
