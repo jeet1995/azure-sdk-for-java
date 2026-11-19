@@ -71,6 +71,46 @@ Latency
 
 You can provide ``--help`` to the tool to see the list of other work loads (read, etc) and other options.
 
+## SDK fault injection
+
+Run the benchmark with `-workloadConfig workload-config.json`. To enable fault injection,
+add this property to the desired entry in `orchestrator.tenants`:
+
+```json
+{
+  "faultInjection": {
+    "rules": [
+      {
+        "id": "read-500",
+        "operationType": "READ_ITEM",
+        "errorType": "INTERNAL_SERVER_ERROR",
+        "injectionRate": 0.05,
+        "startDelay": "PT10S",
+        "duration": "PT30S",
+        "hitLimit": 100
+      }
+    ]
+  }
+}
+```
+
+- `id` must be unique within the tenant. `operationType` matches SDK requests, not benchmark workload names:
+  use `READ_ITEM`, `CREATE_ITEM`, or `QUERY_ITEM`.
+- `errorType` accepts `INTERNAL_SERVER_ERROR` (500), `TOO_MANY_REQUEST` (429),
+  `SERVICE_UNAVAILABLE` (503), `TIMEOUT` (408), `RESPONSE_DELAY`, or `CONNECTION_DELAY`.
+  Both delay types require `delay` (e.g. `"PT0.2S"`).
+- Optional `connectionType` must match the tenant's `DIRECT` or `GATEWAY` mode; it is inferred if omitted.
+  Optional `region` limits the rule to that region. `injectionRate` is in `(0, 1]` and defaults to `1`.
+- Rules are installed after setup and cooldown, just before dispatch. `startDelay` is measured from SDK rule
+  installation, and `duration` limits the active window after that delay. Omit both to inject immediately
+  through the end of dispatch, subject to any `hitLimit`. Durations use ISO 8601.
+
+Each cycle logs `[FAULT_INJECTION]` hit counts per tenant and rule, including zero hits. Counts represent SDK
+injections, not failed benchmark operations: retries can recover from an injected error.
+This feature is opt-in for standard async and sync workloads. CTL and encryption workloads are excluded,
+as are async configurations using shared connections, proactive connection management, or unwarmed containers.
+SDK delay faults do not reproduce packet loss or kernel TCP timeouts.
+
 
 
 

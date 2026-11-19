@@ -8,6 +8,8 @@ import com.azure.cosmos.benchmark.encryption.AsyncEncryptionQueryBenchmark;
 import com.azure.cosmos.benchmark.encryption.AsyncEncryptionQuerySinglePartitionMultiple;
 import com.azure.cosmos.benchmark.encryption.AsyncEncryptionReadBenchmark;
 import com.azure.cosmos.benchmark.encryption.AsyncEncryptionWriteBenchmark;
+import com.azure.cosmos.test.faultinjection.CosmosFaultInjectionHelper;
+import com.azure.cosmos.test.faultinjection.FaultInjectionRule;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
@@ -27,6 +29,7 @@ import reactor.core.scheduler.Scheduler;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -140,6 +143,7 @@ public class BenchmarkOrchestrator {
                 CsvMetricsReporter csvReporter = null;
                 CosmosMetricsReporter cosmosReporter = null;
                 MeterRegistry appInsightsRegistry = null;
+                List<Benchmark> benchmarks = new ArrayList<>();
 
                 try {
                     ReportingDestination destination = config.getReportingDestination();
@@ -188,7 +192,9 @@ public class BenchmarkOrchestrator {
                     double baselineCpu = CpuMonitor.captureProcessCpuLoad();
 
                     // 2. Create clients (constructors perform data ingestion)
-                    List<Benchmark> benchmarks = createBenchmarks(config);
+                    for (TenantWorkloadConfig tenant : tenants) {
+                        benchmarks.add(createBenchmarkForOperation(tenant));
+                    }
 
                     logger.info("[LIFECYCLE] POST_CREATE cycle={} clients={} timestamp={}",
                         cycle, benchmarks.size(), Instant.now());
@@ -197,7 +203,7 @@ public class BenchmarkOrchestrator {
                     CpuMonitor.awaitCoolDown(baselineCpu);
 
                     // 4. Run workload — orchestrator dispatches operations across tenants
-                    runWorkload(benchmarks, cycle, config, benchmarkScheduler);
+                    runWorkloadWithFaultInjection(benchmarks, cycle, config, benchmarkScheduler);
                     logger.info("[LIFECYCLE] POST_WORKLOAD cycle={} timestamp={}", cycle, Instant.now());
 
                     // 5. Flush reporters before shutdown destroys the registry
@@ -215,14 +221,6 @@ public class BenchmarkOrchestrator {
                         addedToGlobal = false;
                     }
 
-                    // 7. Close all clients (SDK will clear+close cycleRegistry — safe now)
-                    shutdownBenchmarks(benchmarks, cycle);
-                    logger.info("[LIFECYCLE] POST_CLOSE cycle={} timestamp={}", cycle, Instant.now());
-
-                    if (appInsightsRegistry != null) {
-                        appInsightsRegistry.close();
-                        appInsightsRegistry = null;
-                    }
                 } finally {
                     if (csvReporter != null) {
                         try { csvReporter.stop(); } catch (Exception e) { /* already stopped or best-effort */ }
@@ -234,10 +232,12 @@ public class BenchmarkOrchestrator {
                     if (addedToGlobal) {
                         Metrics.removeRegistry(cycleRegistry);
                     }
+                    shutdownBenchmarks(benchmarks, cycle);
                     if (appInsightsRegistry != null) {
                         try { appInsightsRegistry.close(); } catch (Exception e) { /* best-effort */ }
                     }
                 }
+                logger.info("[LIFECYCLE] POST_CLOSE cycle={} timestamp={}", cycle, Instant.now());
 
                 // 8. Settle
                 if (config.getSettleTimeMs() > 0) {
@@ -263,12 +263,41 @@ public class BenchmarkOrchestrator {
             totalCycles, durationSec, Instant.now());
     }
 
-    private List<Benchmark> createBenchmarks(BenchmarkConfig config) throws Exception {
-        List<Benchmark> benchmarks = new ArrayList<>();
-        for (TenantWorkloadConfig tenant : config.getTenantWorkloads()) {
-            benchmarks.add(createBenchmarkForOperation(tenant));
+    private void runWorkloadWithFaultInjection(List<Benchmark> benchmarks, int cycle, BenchmarkConfig config,
+                                              Scheduler benchmarkScheduler) throws Exception {
+        List<TenantWorkloadConfig> tenants = config.getTenantWorkloads();
+        List<List<FaultInjectionRule>> installedRules = new ArrayList<>();
+        try {
+            for (int i = 0; i < tenants.size(); i++) {
+                TenantWorkloadConfig tenant = tenants.get(i);
+                FaultInjectionConfig faultConfig = tenant.getFaultInjection();
+                if (faultConfig == null) {
+                    installedRules.add(Collections.emptyList());
+                    continue;
+                }
+
+                List<FaultInjectionRule> rules = faultConfig.buildRules(tenant.getConnectionMode());
+                // Track rules before registration so partial installs are cleaned up too.
+                installedRules.add(rules);
+                try {
+                    CosmosFaultInjectionHelper.configureFaultInjectionRules(
+                        benchmarks.get(i).faultInjectionContainer(), rules).block(Duration.ofMinutes(1));
+                } catch (RuntimeException ex) {
+                    throw new IllegalStateException(
+                        "Could not configure fault injection for tenant '" + tenant.getId() + "' in cycle " + cycle, ex);
+                }
+            }
+
+            runWorkload(benchmarks, cycle, config, benchmarkScheduler);
+        } finally {
+            for (int i = 0; i < installedRules.size(); i++) {
+                for (FaultInjectionRule rule : installedRules.get(i)) {
+                    rule.disable();
+                    logger.info("[FAULT_INJECTION] cycle={} tenantIndex={} tenant={} rule={} hits={}",
+                        cycle, i, tenants.get(i).getId(), rule.getId(), rule.getHitCount());
+                }
+            }
         }
-        return benchmarks;
     }
 
     /**

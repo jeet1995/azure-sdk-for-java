@@ -3,6 +3,7 @@
 
 package com.azure.cosmos.benchmark;
 
+import com.azure.cosmos.CosmosAsyncContainer;
 import reactor.core.publisher.Mono;
 
 /**
@@ -17,6 +18,10 @@ import reactor.core.publisher.Mono;
 public interface Benchmark {
 
     void shutdown();
+
+    default CosmosAsyncContainer faultInjectionContainer() {
+        throw new UnsupportedOperationException("Fault injection is not supported by " + getClass().getSimpleName());
+    }
 
     /**
      * Execute a single operation for this benchmark. The orchestrator calls this
