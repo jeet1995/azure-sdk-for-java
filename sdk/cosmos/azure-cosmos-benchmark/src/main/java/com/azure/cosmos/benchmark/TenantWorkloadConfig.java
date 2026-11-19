@@ -56,6 +56,9 @@ public class TenantWorkloadConfig extends TenantDefaultConfig {
     @JsonProperty("containerId")
     private String containerId;
 
+    @JsonProperty("faultInjection")
+    private FaultInjectionConfig faultInjection;
+
     // ======== AAD auth (per-tenant only) ========
 
     @JsonProperty("aadLoginEndpoint")
@@ -83,6 +86,7 @@ public class TenantWorkloadConfig extends TenantDefaultConfig {
     public String getMasterKey() { return masterKey; }
     public String getDatabaseId() { return databaseId; }
     public String getContainerId() { return containerId; }
+    FaultInjectionConfig getFaultInjection() { return faultInjection; }
     public String getAadLoginEndpoint() { return aadLoginEndpoint; }
     public String getAadTenantId() { return aadTenantId; }
     public String getAadManagedIdentityClientId() { return aadManagedIdentityClientId; }

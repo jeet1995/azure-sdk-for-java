@@ -211,6 +211,13 @@ abstract class SyncBenchmark<T> implements Benchmark {
     protected void init() {
     }
 
+    @Override
+    public CosmosAsyncContainer faultInjectionContainer() {
+        return clientAccessor().getCosmosAsyncClient(benchmarkWorkloadClient)
+            .getDatabase(workloadConfig.getDatabaseId())
+            .getContainer(workloadConfig.getContainerId());
+    }
+
     public void shutdown() {
         if (workloadConfig.isSuppressCleanup()) {
             logger.info("Skipping cleanup of database/container (suppressCleanup=true)");

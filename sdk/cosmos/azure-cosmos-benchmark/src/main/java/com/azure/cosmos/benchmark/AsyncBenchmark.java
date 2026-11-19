@@ -310,6 +310,11 @@ abstract class AsyncBenchmark<T> implements Benchmark {
     protected void init() {
     }
 
+    @Override
+    public CosmosAsyncContainer faultInjectionContainer() {
+        return cosmosAsyncContainer;
+    }
+
     public void shutdown() {
         if (workloadConfig.isSuppressCleanup()) {
             logger.info("Skipping cleanup of database/container (suppressCleanup=true)");
