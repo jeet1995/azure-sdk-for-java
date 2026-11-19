@@ -136,6 +136,23 @@ public class BenchmarkConfig {
             throw new IllegalArgumentException(
                 "Tenant '" + tenant.getId() + "' is missing required configuration: " + missing);
         }
+
+        if (tenant.getFaultInjection() != null) {
+            try {
+                if (tenant.getOperationType() == Operation.CtlWorkload || tenant.isEncryptionEnabled()) {
+                    throw new IllegalArgumentException("not supported for CTL or encryption workloads");
+                }
+                if (!tenant.isSync() && (tenant.isConnectionSharingAcrossClientsEnabled()
+                    || tenant.isProactiveConnectionManagementEnabled() || tenant.isUseUnWarmedUpContainer())) {
+                    throw new IllegalArgumentException(
+                        "not supported with connection sharing, proactive connection management, or unwarmed containers");
+                }
+                tenant.getFaultInjection().buildRules(tenant.getConnectionMode());
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException(
+                    "Tenant '" + tenant.getId() + "' faultInjection: " + ex.getMessage(), ex);
+            }
+        }
     }
 
     // ======== Convenience getters (delegate to nested configs) ========
