@@ -143,6 +143,12 @@ public class BenchmarkConfig {
                 "Tenant '" + tenant.getId() + "' is missing required configuration: " + missing);
         }
 
+        if (tenant.getOperationType() == Operation.ReadWriteThroughput
+            && tenant.getNumberOfPreCreatedDocuments() < 1) {
+            throw new IllegalArgumentException(
+                "Tenant '" + tenant.getId() + "' ReadWriteThroughput requires numberOfPreCreatedDocuments >= 1");
+        }
+
         if (tenant.getFaultInjection() != null) {
             try {
                 if (tenant.getOperationType() == Operation.CtlWorkload || tenant.isEncryptionEnabled()) {

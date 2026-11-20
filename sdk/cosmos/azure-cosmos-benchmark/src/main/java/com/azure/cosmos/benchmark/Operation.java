@@ -15,6 +15,7 @@ import java.util.Arrays;
 public enum Operation {
     ReadThroughput,
     WriteThroughput,
+    ReadWriteThroughput,
     QueryInClauseParallel,
     QueryCross,
     QuerySingle,

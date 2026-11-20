@@ -55,6 +55,7 @@ public class Main {
     private static void validateConfiguration(TenantWorkloadConfig workloadCfg) {
         switch (workloadCfg.getOperationType()) {
             case WriteThroughput:
+            case ReadWriteThroughput:
                 break;
             default:
                 if (!workloadCfg.isContentResponseOnWriteEnabled()) {

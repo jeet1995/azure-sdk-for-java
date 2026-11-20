@@ -31,6 +31,11 @@ class AsyncWriteBenchmark extends AsyncBenchmark<CosmosItemResponse> {
         Mono<? extends CosmosItemResponse<?>> result;
         CosmosItemRequestOptions options = new CosmosItemRequestOptions();
         options.setExcludedRegions(workloadConfig.getExcludedRegionsList());
+        if (workloadConfig.getOperationType() == Operation.ReadWriteThroughput && i % 2 != 0) {
+            PojoizedJson doc = docsToRead.get((int) ((i / 2) % docsToRead.size()));
+            return cosmosAsyncContainer.readItem(doc.getId(), new PartitionKey(doc.getId()),
+                options, PojoizedJson.class).map(response -> response);
+        }
         if (workloadConfig.isDisablePassingPartitionKeyAsOptionOnWrite()) {
             result = cosmosAsyncContainer.createItem(BenchmarkHelper.generateDocument(id,
                 dataFieldValue,

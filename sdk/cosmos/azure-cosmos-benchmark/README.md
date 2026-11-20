@@ -65,11 +65,32 @@ Latency
 
 * ReadThroughput,
 * WriteThroughput,
+* ReadWriteThroughput,
 * QueryInClauseParallel
 * ReadMyWrites
 
 
 You can provide ``--help`` to the tool to see the list of other work loads (read, etc) and other options.
+
+## Combined create/read throughput
+
+Set `"operation": "ReadWriteThroughput"` on a single tenant to alternate creates and
+point reads using the same client and container. Even operation indices create fresh
+documents; odd indices read from the pre-created document pool in round-robin order.
+The split is 50/50 for an even number of dispatched operations (one extra create for
+an odd count), not necessarily for completed or successful operations. Concurrent
+requests can complete out of order. Reads do not depend on concurrent creates succeeding,
+and no queries are issued by this workload.
+
+Async and sync (`"useSync": true`) modes are supported; encryption is not supported.
+Set `numberOfPreCreatedDocuments` to at least `1` (default: `1000`). Data preparation
+happens before the measured workload. Existing create request options apply to creates,
+and excluded regions apply to both creates and reads.
+
+For fault injection, put both `CREATE_ITEM` and `READ_ITEM` rules in the same tenant's
+`faultInjection.rules`. For example, each can use `INTERNAL_SERVER_ERROR`,
+`injectionRate: 1.0`, `startDelay: "PT10M"`, and `duration: "PT10M"` with an
+orchestrator `maxRunningTimeDuration` of `"PT30M"`.
 
 ## SDK metrics sampling
 

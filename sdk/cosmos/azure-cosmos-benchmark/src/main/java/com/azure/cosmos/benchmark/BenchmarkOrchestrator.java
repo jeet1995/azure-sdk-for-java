@@ -406,6 +406,7 @@ public class BenchmarkOrchestrator {
                 case ReadThroughput:
                     return new SyncReadBenchmark(cfg);
                 case WriteThroughput:
+                case ReadWriteThroughput:
                     return new SyncWriteBenchmark(cfg);
                 default:
                     throw new IllegalArgumentException(
@@ -445,6 +446,7 @@ public class BenchmarkOrchestrator {
             case ReadThroughput:
                 return new AsyncReadBenchmark(cfg);
             case WriteThroughput:
+            case ReadWriteThroughput:
                 return new AsyncWriteBenchmark(cfg);
             case QueryCross:
             case QuerySingle:

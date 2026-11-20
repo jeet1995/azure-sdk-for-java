@@ -29,6 +29,11 @@ class SyncWriteBenchmark extends SyncBenchmark<CosmosItemResponse> {
         String id = uuid + i;
         CosmosItemRequestOptions options = new CosmosItemRequestOptions();
         options.setExcludedRegions(workloadConfig.getExcludedRegionsList());
+        if (workloadConfig.getOperationType() == Operation.ReadWriteThroughput && i % 2 != 0) {
+            PojoizedJson doc = docsToRead.get((int) ((i / 2) % docsToRead.size()));
+            return cosmosContainer.readItem(doc.getId(), new PartitionKey(doc.getId()),
+                options, PojoizedJson.class);
+        }
         if (workloadConfig.isDisablePassingPartitionKeyAsOptionOnWrite()) {
             // require parsing partition key from the doc
             return cosmosContainer.createItem(BenchmarkHelper.generateDocument(id,
