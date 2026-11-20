@@ -70,7 +70,8 @@ final class FaultInjectionConfig {
         private Integer hitLimit;
 
         FaultInjectionRule build(ConnectionMode mode) {
-            require(operationType == FaultInjectionOperationType.READ_ITEM
+            require(operationType == null
+                    || operationType == FaultInjectionOperationType.READ_ITEM
                     || operationType == FaultInjectionOperationType.CREATE_ITEM
                     || operationType == FaultInjectionOperationType.QUERY_ITEM,
                 "operationType must be READ_ITEM, CREATE_ITEM, or QUERY_ITEM");
@@ -99,8 +100,10 @@ final class FaultInjectionConfig {
             require(connectionType == null || connectionType == expected,
                 "connectionType must match tenant connectionMode (" + expected + ")");
             FaultInjectionConditionBuilder condition = new FaultInjectionConditionBuilder()
-                .operationType(operationType)
                 .connectionType(expected);
+            if (operationType != null) {
+                condition.operationType(operationType);
+            }
             if (region != null) {
                 require(!region.trim().isEmpty(), "region must not be blank");
                 condition.region(region.trim());

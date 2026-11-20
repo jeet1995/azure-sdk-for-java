@@ -87,8 +87,9 @@ Set `numberOfPreCreatedDocuments` to at least `1` (default: `1000`). Data prepar
 happens before the measured workload. Existing create request options apply to creates,
 and excluded regions apply to both creates and reads.
 
-For fault injection, put both `CREATE_ITEM` and `READ_ITEM` rules in the same tenant's
-`faultInjection.rules`. For example, each can use `INTERNAL_SERVER_ERROR`,
+For fault injection, omit `operationType` to use one rule without an operation-type
+filter, or put separate `CREATE_ITEM` and `READ_ITEM` rules in the same tenant's
+`faultInjection.rules`. For example, a rule can use `INTERNAL_SERVER_ERROR`,
 `injectionRate: 1.0`, `startDelay: "PT10M"`, and `duration: "PT10M"` with an
 orchestrator `maxRunningTimeDuration` of `"PT30M"`.
 
@@ -146,7 +147,10 @@ add this property to the desired entry in `orchestrator.tenants`:
 ```
 
 - `id` must be unique within the tenant. `operationType` matches SDK requests, not benchmark workload names:
-  use `READ_ITEM`, `CREATE_ITEM`, or `QUERY_ITEM`.
+  when specified, use `READ_ITEM`, `CREATE_ITEM`, or `QUERY_ITEM`. Omit it (or set it to `null`)
+  to leave the SDK condition's operation type unset. The SDK can then apply the rule to any
+  operation type, subject to its fault support and the remaining conditions; this is not a
+  document-only filter and can include metadata requests.
 - `errorType` accepts `INTERNAL_SERVER_ERROR` (500), `TOO_MANY_REQUEST` (429),
   `SERVICE_UNAVAILABLE` (503), `TIMEOUT` (408), `RESPONSE_DELAY`, or `CONNECTION_DELAY`.
   Both delay types require `delay` (e.g. `"PT0.2S"`).

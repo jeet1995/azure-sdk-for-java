@@ -4,6 +4,7 @@
 package com.azure.cosmos.benchmark;
 
 import com.azure.cosmos.test.faultinjection.FaultInjectionConnectionType;
+import com.azure.cosmos.test.faultinjection.FaultInjectionOperationType;
 import com.azure.cosmos.test.faultinjection.FaultInjectionRule;
 import com.azure.cosmos.test.faultinjection.FaultInjectionServerErrorResult;
 import com.azure.cosmos.test.faultinjection.FaultInjectionServerErrorType;
@@ -28,6 +29,7 @@ public class FaultInjectionConfigTest {
             + ",\"injectionRate\":0.05,\"startDelay\":\"PT10S\",\"duration\":\"PT30S\",\"hitLimit\":100} ");
         FaultInjectionRule first = tenant.getFaultInjection().buildRules(tenant.getConnectionMode()).get(0);
         assertThat(first.getCondition().getConnectionType()).isEqualTo(FaultInjectionConnectionType.GATEWAY);
+        assertThat(first.getCondition().getOperationType()).isEqualTo(FaultInjectionOperationType.READ_ITEM);
         assertThat(((FaultInjectionServerErrorResult) first.getResult()).getServerErrorType())
             .isEqualTo(FaultInjectionServerErrorType.INTERNAL_SERVER_ERROR);
         assertThat(first.getStartDelay()).isEqualTo(Duration.ofSeconds(10));
@@ -38,8 +40,28 @@ public class FaultInjectionConfigTest {
     }
 
     @DataProvider
+    public Object[][] unrestrictedOperations() {
+        return new Object[][] {{"", "Gateway"}, {"", "Direct"}, {"\"operationType\":null,", "Gateway"}};
+    }
+
+    @Test(groups = "unit", dataProvider = "unrestrictedOperations")
+    public void omittedOperationTypeUsesSdkDefault(String operationProperty, String mode) throws Exception {
+        TenantWorkloadConfig tenant = load(",\"connectionMode\":\"" + mode + "\"",
+            "{\"id\":\"all-500\"," + operationProperty + "\"errorType\":\"INTERNAL_SERVER_ERROR\","
+                + "\"injectionRate\":1.0,\"startDelay\":\"PT10M\",\"duration\":\"PT10M\"}");
+        FaultInjectionRule rule = tenant.getFaultInjection().buildRules(tenant.getConnectionMode()).get(0);
+        assertThat(rule.getCondition().getOperationType()).isNull();
+        assertThat(rule.getCondition().getConnectionType())
+            .isEqualTo(FaultInjectionConnectionType.valueOf(mode.toUpperCase()));
+        assertThat(rule.getStartDelay()).isEqualTo(Duration.ofMinutes(10));
+        assertThat(rule.getDuration()).isEqualTo(Duration.ofMinutes(10));
+    }
+
+    @DataProvider
     public Object[][] invalidRules() {
         return new Object[][] {
+            {"", "{\"id\":\"unsupported\",\"operationType\":\"DELETE_ITEM\","
+                + "\"errorType\":\"INTERNAL_SERVER_ERROR\"}", "operationType must"},
             {"", READ_500 + "}," + READ_500 + "}", "duplicate rule id"},
             {"", READ_500 + ",\"connectionType\":\"DIRECT\"}", "must match tenant connectionMode"},
             {"", READ_500 + ",\"injectionRate\":0}", "injectionRate"},
