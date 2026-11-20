@@ -22,6 +22,7 @@ import com.azure.cosmos.implementation.OperationType;
 import com.azure.cosmos.models.CosmosBulkExecutionOptions;
 import com.azure.cosmos.models.CosmosBulkOperationResponse;
 import com.azure.cosmos.models.CosmosBulkOperations;
+import com.azure.cosmos.models.CosmosClientTelemetryConfig;
 import com.azure.cosmos.models.CosmosItemIdentity;
 import com.azure.cosmos.models.CosmosItemOperation;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
@@ -96,6 +97,10 @@ public class AsyncCtlWorkload implements Benchmark {
                 }
             }
             cosmosClientBuilder = cosmosClientBuilder.gatewayMode(gatewayConnectionConfig);
+        }
+        if (workloadCfg.getMetricsSampleRate() != null) {
+            cosmosClientBuilder.clientTelemetryConfig(workloadCfg.configureDiagnosticsSampling(
+                new CosmosClientTelemetryConfig()));
         }
         cosmosClient = cosmosClientBuilder.buildAsyncClient();
         workloadConfig = workloadCfg;

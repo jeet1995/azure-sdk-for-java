@@ -71,6 +71,36 @@ Latency
 
 You can provide ``--help`` to the tool to see the list of other work loads (read, etc) and other options.
 
+## SDK metrics sampling
+
+Set `sampleRate` under `orchestrator.metrics` in the workload configuration:
+
+```json
+{
+  "orchestrator": {
+    "metrics": {
+      "sampleRate": 0.1
+    }
+  }
+}
+```
+
+Merge this fragment into a complete configuration with tenant definitions and the desired
+metrics destination. The rate applies to all tenant workload clients and must be between
+`0` and `1`, inclusive: `0.1` captures diagnostics for approximately 10% of SDK operations,
+`0` disables operation diagnostics, and `1` captures all operations. This uses
+`CosmosClientTelemetryConfig.sampleDiagnostics`, so it samples operation diagnostics
+(logs, tracing, and eligible SDK metrics) together, not just exported metrics.
+Omitting the setting preserves the SDK default, including any `COSMOS.METRICS_CONFIG`
+sampling configuration; an explicit JSON value overrides that sampling rate.
+
+Sampling does not enable a metrics destination, change the reporter interval, or sample
+benchmark-owned operation counters and latency timers. SDK metrics can therefore represent
+a different population from benchmark metrics; they are not automatically scaled to estimate
+the full workload. Existing meter/category and diagnostic-threshold filters still apply.
+In particular, standard async workloads currently enable transport-level diagnostic-threshold
+filtering, so `sampleRate: 1` alone does not ensure every transport-level metric is recorded.
+
 ## SDK fault injection
 
 Run the benchmark with `-workloadConfig workload-config.json`. To enable fault injection,

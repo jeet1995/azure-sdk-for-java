@@ -105,6 +105,10 @@ abstract class SyncBenchmark<T> implements Benchmark {
             telemetryConfig.diagnosticsHandler(CosmosDiagnosticsHandler.DEFAULT_LOGGING_HANDLER);
         }
 
+        if (workloadCfg.getMetricsSampleRate() != null) {
+            benchmarkSpecificClientBuilder.clientTelemetryConfig(
+                workloadCfg.configureDiagnosticsSampling(telemetryConfig));
+        }
         benchmarkWorkloadClient = benchmarkSpecificClientBuilder.buildClient();
 
             try {

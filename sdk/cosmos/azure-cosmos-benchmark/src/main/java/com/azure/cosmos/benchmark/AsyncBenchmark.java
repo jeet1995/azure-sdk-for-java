@@ -115,7 +115,7 @@ abstract class AsyncBenchmark<T> implements Benchmark {
                 new CosmosMicrometerMetricsOptions().meterRegistry(null));
         }
 
-        benchmarkSpecificClientBuilder.clientTelemetryConfig(telemetryConfig);
+        benchmarkSpecificClientBuilder.clientTelemetryConfig(cfg.configureDiagnosticsSampling(telemetryConfig));
 
         if (cfg.getConnectionMode().equals(ConnectionMode.DIRECT)) {
             benchmarkSpecificClientBuilder = benchmarkSpecificClientBuilder.directMode(DirectConnectionConfig.getDefaultConfig());

@@ -4,6 +4,7 @@
 package com.azure.cosmos.benchmark;
 
 import com.azure.core.credential.TokenCredential;
+import com.azure.cosmos.models.CosmosClientTelemetryConfig;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -76,6 +77,7 @@ public class TenantWorkloadConfig extends TenantDefaultConfig {
 
     /** Cosmos SDK micrometer registry (set by orchestrator, not from JSON). */
     private transient MeterRegistry cosmosMicrometerRegistry;
+    private transient Double metricsSampleRate;
 
     public TenantWorkloadConfig() {}
 
@@ -100,6 +102,28 @@ public class TenantWorkloadConfig extends TenantDefaultConfig {
 
     public boolean isSuppressCleanup() { return suppressCleanup; }
     public MeterRegistry getCosmosMicrometerRegistry() { return cosmosMicrometerRegistry; }
+
+    /**
+     * Gets the optional SDK diagnostics sampling rate supplied by the orchestrator.
+     *
+     * @return the sampling rate, or null when the SDK configuration is unchanged
+     */
+    public Double getMetricsSampleRate() { return metricsSampleRate; }
+
+    void setMetricsSampleRate(Double sampleRate) { this.metricsSampleRate = sampleRate; }
+
+    /**
+     * Applies the orchestrator's optional operation-level diagnostics sampling rate.
+     *
+     * @param telemetryConfig telemetry configuration to update
+     * @return the updated telemetry configuration
+     */
+    public CosmosClientTelemetryConfig configureDiagnosticsSampling(CosmosClientTelemetryConfig telemetryConfig) {
+        if (metricsSampleRate != null) {
+            telemetryConfig.sampleDiagnostics(metricsSampleRate);
+        }
+        return telemetryConfig;
+    }
 
     /**
      * Builds a TokenCredential for managed identity authentication.

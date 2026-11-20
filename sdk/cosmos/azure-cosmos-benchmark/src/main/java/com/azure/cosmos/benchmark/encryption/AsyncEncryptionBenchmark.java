@@ -32,6 +32,7 @@ import com.azure.cosmos.models.CosmosBulkExecutionOptions;
 import com.azure.cosmos.models.CosmosBulkOperationResponse;
 import com.azure.cosmos.models.CosmosBulkOperations;
 import com.azure.cosmos.models.CosmosClientEncryptionKeyProperties;
+import com.azure.cosmos.models.CosmosClientTelemetryConfig;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosItemOperation;
 import com.azure.cosmos.models.EncryptionKeyWrapMetadata;
@@ -116,6 +117,10 @@ public abstract class AsyncEncryptionBenchmark<T> implements Benchmark {
                 }
             }
             cosmosClientBuilder = cosmosClientBuilder.gatewayMode(gatewayConnectionConfig);
+        }
+        if (workloadCfg.getMetricsSampleRate() != null) {
+            cosmosClientBuilder.clientTelemetryConfig(workloadCfg.configureDiagnosticsSampling(
+                new CosmosClientTelemetryConfig()));
         }
         cosmosClient = cosmosClientBuilder.buildAsyncClient();
         cosmosEncryptionAsyncClient = createEncryptionClientInstance(cosmosClient);

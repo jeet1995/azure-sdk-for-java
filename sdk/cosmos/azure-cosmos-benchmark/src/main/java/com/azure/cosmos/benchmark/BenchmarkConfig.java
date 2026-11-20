@@ -86,6 +86,11 @@ public class BenchmarkConfig {
 
         BenchmarkConfig config = OBJECT_MAPPER.readValue(configFile, BenchmarkConfig.class);
 
+        Double sampleRate = config.orchestrator.metrics.sampleRate;
+        if (sampleRate != null && !(sampleRate >= 0 && sampleRate <= 1)) {
+            throw new IllegalArgumentException("orchestrator.metrics.sampleRate must be between 0 and 1 (inclusive)");
+        }
+
         // Smart defaults for multi-cycle runs
         if (config.lifecycle.cycles > 1) {
             if (config.lifecycle.settleTimeMs == -1) {
@@ -104,6 +109,7 @@ public class BenchmarkConfig {
                 defaults.applyTo(tenant);
             }
             validateTenantConfig(tenant);
+            tenant.setMetricsSampleRate(sampleRate);
             resolvedTenants.add(tenant);
         }
         config.tenantWorkloads = resolvedTenants;
@@ -303,6 +309,9 @@ public class BenchmarkConfig {
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class MetricsConfig {
+        @JsonProperty("sampleRate")
+        Double sampleRate;
+
         @JsonProperty("enableJvmStats")
         boolean enableJvmStats = false;
 
