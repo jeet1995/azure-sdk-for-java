@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 package com.azure.cosmos.benchmark;
+import com.azure.cosmos.models.CosmosMetricTagName;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -90,6 +91,19 @@ public class BenchmarkConfig {
         if (sampleRate != null && !(sampleRate >= 0 && sampleRate <= 1)) {
             throw new IllegalArgumentException("orchestrator.metrics.sampleRate must be between 0 and 1 (inclusive)");
         }
+        List<CosmosMetricTagName> additionalTags = new ArrayList<>();
+        if (config.orchestrator.metrics.additionalTags != null) {
+            for (String tag : config.orchestrator.metrics.additionalTags) {
+                if (tag == null || tag.trim().isEmpty()) {
+                    throw new IllegalArgumentException("orchestrator.metrics.additionalTags must not contain null or blank tags");
+                }
+                try {
+                    additionalTags.add(CosmosMetricTagName.fromString(tag));
+                } catch (IllegalArgumentException ex) {
+                    throw new IllegalArgumentException("orchestrator.metrics.additionalTags: " + ex.getMessage(), ex);
+                }
+            }
+        }
 
         // Smart defaults for multi-cycle runs
         if (config.lifecycle.cycles > 1) {
@@ -110,6 +124,7 @@ public class BenchmarkConfig {
             }
             validateTenantConfig(tenant);
             tenant.setMetricsSampleRate(sampleRate);
+            tenant.setAdditionalMetricTags(additionalTags);
             resolvedTenants.add(tenant);
         }
         config.tenantWorkloads = resolvedTenants;
@@ -317,6 +332,9 @@ public class BenchmarkConfig {
     public static class MetricsConfig {
         @JsonProperty("sampleRate")
         Double sampleRate;
+
+        @JsonProperty("additionalTags")
+        List<String> additionalTags;
 
         @JsonProperty("enableJvmStats")
         boolean enableJvmStats = false;

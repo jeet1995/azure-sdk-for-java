@@ -5,6 +5,9 @@ package com.azure.cosmos.benchmark;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.cosmos.models.CosmosClientTelemetryConfig;
+import com.azure.cosmos.models.CosmosMetricTagName;
+import com.azure.cosmos.models.CosmosMicrometerMetricsOptions;
+import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -12,6 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.azure.identity.DefaultAzureCredentialBuilder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Fully-resolved configuration for a single tenant workload.
@@ -78,6 +84,7 @@ public class TenantWorkloadConfig extends TenantDefaultConfig {
     /** Cosmos SDK micrometer registry (set by orchestrator, not from JSON). */
     private transient MeterRegistry cosmosMicrometerRegistry;
     private transient Double metricsSampleRate;
+    private transient List<CosmosMetricTagName> additionalMetricTags = Collections.emptyList();
 
     public TenantWorkloadConfig() {}
 
@@ -112,6 +119,37 @@ public class TenantWorkloadConfig extends TenantDefaultConfig {
 
     void setMetricsSampleRate(Double sampleRate) { this.metricsSampleRate = sampleRate; }
 
+    void setAdditionalMetricTags(List<CosmosMetricTagName> tags) {
+        this.additionalMetricTags = Collections.unmodifiableList(new ArrayList<>(tags));
+    }
+
+    /**
+     * Applies additive tag configuration without replacing existing SDK metric options.
+     *
+     * @param options metrics options to update
+     * @return the updated options
+     */
+    public CosmosMicrometerMetricsOptions configureMetricsOptions(CosmosMicrometerMetricsOptions options) {
+        if (!additionalMetricTags.isEmpty()) {
+            CosmosClientTelemetryConfig telemetry = new CosmosClientTelemetryConfig().metricsOptions(options);
+            List<CosmosMetricTagName> tags = new ArrayList<>(additionalMetricTags);
+            ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                .getCosmosClientTelemetryConfigAccessor().getMetricTagNames(telemetry)
+                .forEach(tag -> tags.add(CosmosMetricTagName.fromString(tag.toString())));
+            options.configureDefaultTagNames(tags.toArray(new CosmosMetricTagName[0]));
+        }
+        return options;
+    }
+
+    /**
+     * Indicates whether explicit tenant telemetry configuration is required.
+     *
+     * @return true when sampling or additional metric tags are configured
+     */
+    public boolean hasTelemetryOverrides() {
+        return metricsSampleRate != null || !additionalMetricTags.isEmpty();
+    }
+
     /**
      * Applies the orchestrator's optional operation-level diagnostics sampling rate.
      *
@@ -121,6 +159,24 @@ public class TenantWorkloadConfig extends TenantDefaultConfig {
     public CosmosClientTelemetryConfig configureDiagnosticsSampling(CosmosClientTelemetryConfig telemetryConfig) {
         if (metricsSampleRate != null) {
             telemetryConfig.sampleDiagnostics(metricsSampleRate);
+        }
+        return telemetryConfig;
+    }
+
+    /**
+     * Configures sampling and optional SDK metrics for workload clients without existing metric wiring.
+     *
+     * @param telemetryConfig telemetry configuration to update
+     * @return the updated telemetry configuration
+     */
+    public CosmosClientTelemetryConfig configureTelemetry(CosmosClientTelemetryConfig telemetryConfig) {
+        configureDiagnosticsSampling(telemetryConfig);
+        if (!additionalMetricTags.isEmpty()) {
+            CosmosMicrometerMetricsOptions options = new CosmosMicrometerMetricsOptions();
+            if (cosmosMicrometerRegistry != null) {
+                options.meterRegistry(cosmosMicrometerRegistry).setEnabled(true);
+            }
+            telemetryConfig.metricsOptions(configureMetricsOptions(options));
         }
         return telemetryConfig;
     }

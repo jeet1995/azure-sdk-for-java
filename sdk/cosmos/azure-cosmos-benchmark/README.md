@@ -93,6 +93,40 @@ filter, or put separate `CREATE_ITEM` and `READ_ITEM` rules in the same tenant's
 `injectionRate: 1.0`, `startDelay: "PT10M"`, and `duration: "PT10M"` with an
 orchestrator `maxRunningTimeDuration` of `"PT30M"`.
 
+## SDK metric tags
+
+Use an additive list under `orchestrator.metrics` rather than a separate boolean for each tag:
+
+```json
+{
+  "orchestrator": {
+    "metrics": {
+      "sampleRate": 0.5,
+      "additionalTags": ["PartitionKeyRangeId"]
+    }
+  }
+}
+```
+
+Merge this fragment into a complete workload configuration. Names are validated using
+`CosmosMetricTagName.fromString` (case-insensitive); for example, `ReplicaId` and
+`ConsistencyLevel` are also supported. Invalid, blank, or null entries fail configuration
+loading. Omitted, null, or empty lists preserve existing SDK tags. Nonempty lists merge
+with the effective tags, including tags configured through `COSMOS.METRICS_CONFIG`;
+they do not replace them. Duplicate tags are harmless.
+
+This configures tenant workload clients, not exporter clients or SDK-wide defaults.
+Additional tags do not change sampling rates, latency thresholds, meter categories, or
+transport-level threshold filtering. Tags appear only on meters to which they apply,
+and per-meter suppression still takes precedence. More tags can increase series cardinality.
+For sync, CTL, and encryption workloads, an explicit tag list also wires the injected
+SDK metrics registry when available.
+
+After rebuilding, verify applicable request meters have nonempty partition-key-range IDs
+in ADX during a live run. Effective options alone do not prove export/ingestion or that
+every request carries a partition identifier. This live verification is separate from
+offline configuration tests.
+
 ## SDK metrics sampling
 
 Set `sampleRate` under `orchestrator.metrics` in the workload configuration:

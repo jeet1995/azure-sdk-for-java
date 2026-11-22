@@ -109,10 +109,10 @@ abstract class AsyncBenchmark<T> implements Benchmark {
                 .meterRegistry(micrometerRegistry)
                 .applyDiagnosticThresholdsForTransportLevelMeters(true)
                 .setEnabled(true);
-            telemetryConfig.metricsOptions(metricOptions);
+            telemetryConfig.metricsOptions(cfg.configureMetricsOptions(metricOptions));
         } else {
             telemetryConfig.metricsOptions(
-                new CosmosMicrometerMetricsOptions().meterRegistry(null));
+                cfg.configureMetricsOptions(new CosmosMicrometerMetricsOptions().meterRegistry(null)));
         }
 
         benchmarkSpecificClientBuilder.clientTelemetryConfig(cfg.configureDiagnosticsSampling(telemetryConfig));

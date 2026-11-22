@@ -4,6 +4,10 @@ package com.azure.cosmos.benchmark;
 
 import com.azure.cosmos.implementation.ImplementationBridgeHelpers;
 import com.azure.cosmos.models.CosmosClientTelemetryConfig;
+import com.azure.cosmos.models.CosmosMetricTagName;
+import com.azure.cosmos.models.CosmosMicrometerMetricsOptions;
+import com.azure.cosmos.implementation.clienttelemetry.TagName;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -11,11 +15,106 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ReporterConfigValidationTest {
+
+    @Test(groups = "unit")
+    public void additionalTagsPreserveCustomTagsSamplingAndThresholdFiltering() throws IOException {
+        BenchmarkConfig config = loadSamplingConfig(
+            "\"sampleRate\":0.5,\"additionalTags\":[\"PartitionKeyRangeId\",\"partitionkeyrangeid\",\"ReplicaId\"]");
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        try {
+            for (TenantWorkloadConfig tenant : config.getTenantWorkloads()) {
+                CosmosMicrometerMetricsOptions options = new CosmosMicrometerMetricsOptions()
+                    .configureDefaultTagNames(CosmosMetricTagName.MINIMUM, CosmosMetricTagName.CONSISTENCY_LEVEL)
+                    .applyDiagnosticThresholdsForTransportLevelMeters(true)
+                    .meterRegistry(registry).setEnabled(true);
+                CosmosClientTelemetryConfig telemetry = tenant.configureDiagnosticsSampling(
+                    new CosmosClientTelemetryConfig().metricsOptions(tenant.configureMetricsOptions(options)));
+                EnumSet<TagName> expected = TagName.MINIMUM_TAGS.clone();
+                expected.add(TagName.ConsistencyLevel);
+                expected.add(TagName.PartitionKeyRangeId);
+                expected.add(TagName.ReplicaId);
+                assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                    .getCosmosClientTelemetryConfigAccessor().getMetricTagNames(telemetry)).isEqualTo(expected);
+                assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                    .getCosmosClientTelemetryConfigAccessor().getSamplingRate(telemetry)).isEqualTo(0.5);
+                assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                    .getCosmosClientTelemetryConfigAccessor().getClientMetricRegistry(telemetry)).isSameAs(registry);
+                assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                    .getCosmosClientTelemetryConfigAccessor()
+                    .shouldApplyDiagnosticThresholdsForTransportLevelMeters(telemetry)).isTrue();
+            }
+        } finally {
+            registry.close();
+        }
+    }
+
+    @DataProvider
+    public Object[][] unchangedTags() {
+        return new Object[][] {{""}, {"\"additionalTags\":[]"}, {"\"additionalTags\":null"}};
+    }
+
+    @Test(groups = "unit")
+    public void additionalTagsWireRegistryWithoutChangingDefaultTagsOrSampling() throws IOException {
+        CosmosClientTelemetryConfig baseline = new CosmosClientTelemetryConfig()
+            .metricsOptions(new CosmosMicrometerMetricsOptions());
+        EnumSet<TagName> baselineTags = ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+            .getCosmosClientTelemetryConfigAccessor().getMetricTagNames(baseline).clone();
+        EnumSet<TagName> expected = baselineTags.clone();
+        expected.add(TagName.PartitionKeyRangeId);
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        try {
+            for (TenantWorkloadConfig tenant
+                : loadSamplingConfig("\"additionalTags\":[\"PartitionKeyRangeId\"]").getTenantWorkloads()) {
+                tenant.setCosmosMicrometerRegistry(registry);
+                CosmosClientTelemetryConfig telemetry = tenant.configureTelemetry(
+                    new CosmosClientTelemetryConfig().sampleDiagnostics(0.7));
+                assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                    .getCosmosClientTelemetryConfigAccessor().getMetricTagNames(telemetry)).isEqualTo(expected);
+                assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                    .getCosmosClientTelemetryConfigAccessor().getSamplingRate(telemetry)).isEqualTo(0.7);
+                assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                    .getCosmosClientTelemetryConfigAccessor().getClientMetricRegistry(telemetry)).isSameAs(registry);
+            }
+            CosmosClientTelemetryConfig unchanged = new CosmosClientTelemetryConfig()
+                .metricsOptions(new CosmosMicrometerMetricsOptions());
+            assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                .getCosmosClientTelemetryConfigAccessor().getMetricTagNames(unchanged)).isEqualTo(baselineTags);
+        } finally {
+            registry.close();
+        }
+    }
+
+    @Test(groups = "unit", dataProvider = "unchangedTags")
+    public void omittedOrEmptyTagsPreserveExistingOptions(String metrics) throws IOException {
+        for (TenantWorkloadConfig tenant : loadSamplingConfig(metrics).getTenantWorkloads()) {
+            CosmosMicrometerMetricsOptions options = new CosmosMicrometerMetricsOptions()
+                .configureDefaultTagNames(CosmosMetricTagName.MINIMUM);
+            CosmosClientTelemetryConfig telemetry = new CosmosClientTelemetryConfig()
+                .metricsOptions(tenant.configureMetricsOptions(options));
+            assertThat(ImplementationBridgeHelpers.CosmosClientTelemetryConfigHelper
+                .getCosmosClientTelemetryConfigAccessor().getMetricTagNames(telemetry))
+                .isEqualTo(TagName.MINIMUM_TAGS);
+            assertThat(tenant.hasTelemetryOverrides()).isFalse();
+        }
+    }
+
+    @DataProvider
+    public Object[][] invalidTags() {
+        return new Object[][] {{"null"}, {"\"\""}, {"\"not-a-tag\""}};
+    }
+
+    @Test(groups = "unit", dataProvider = "invalidTags")
+    public void rejectsInvalidAdditionalTags(String tag) {
+        assertThatThrownBy(() -> loadSamplingConfig("\"additionalTags\":[" + tag + "]"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("orchestrator.metrics.additionalTags");
+    }
 
     @DataProvider
     public Object[][] sampleRates() {

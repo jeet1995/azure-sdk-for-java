@@ -118,8 +118,8 @@ public abstract class AsyncEncryptionBenchmark<T> implements Benchmark {
             }
             cosmosClientBuilder = cosmosClientBuilder.gatewayMode(gatewayConnectionConfig);
         }
-        if (workloadCfg.getMetricsSampleRate() != null) {
-            cosmosClientBuilder.clientTelemetryConfig(workloadCfg.configureDiagnosticsSampling(
+        if (workloadCfg.hasTelemetryOverrides()) {
+            cosmosClientBuilder.clientTelemetryConfig(workloadCfg.configureTelemetry(
                 new CosmosClientTelemetryConfig()));
         }
         cosmosClient = cosmosClientBuilder.buildAsyncClient();
